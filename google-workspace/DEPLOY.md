@@ -141,6 +141,17 @@ Revoking removes their grant, clears active sign-in codes, and logs `access_revo
 
 After deploying a new web app URL/version, run **Tech Assistant → Refresh revoke links** once so the **Revoke** column hyperlinks stay valid.
 
+### Notify approved users of a new app URL
+
+After changing `CONFIG.APP_URL` (for example after a GitHub username / Pages host change):
+
+1. Paste the updated `Code.gs` into Apps Script and save.
+2. **Deploy → Manage deployments → Edit → New version → Deploy** (so approval emails use the new URL).
+3. Reload the spreadsheet, then **Tech Assistant → Email approved users new app URL**.
+4. Confirm the recipient list — the script emails every **non-expired** row on **ApprovedUsers** with the new link.
+
+Users keep their existing grant; the email only points them at the new Pages URL.
+
 ---
 
 ## BETA tool access

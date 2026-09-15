@@ -557,6 +557,7 @@ function onOpen() {
     .createMenu('Tech Assistant')
     .addItem('Revoke selected user', 'revokeSelectedApprovedUser')
     .addItem('Refresh revoke links', 'refreshApprovedUserRevokeLinks')
+    .addItem('Email approved users new app URL', 'notifyApprovedUsersNewAppUrl')
     .addToUi();
 }
 
@@ -564,6 +565,109 @@ function getAppUrl() {
   var url = String(CONFIG.APP_URL || '').trim();
   if (!url) return getWebAppUrl();
   return url.charAt(url.length - 1) === '/' ? url : url + '/';
+}
+
+/**
+ * One-shot: email every non-expired ApprovedUsers row the current CONFIG.APP_URL.
+ * Run from Apps Script editor or Tech Assistant → Email approved users new app URL.
+ */
+function notifyApprovedUsersNewAppUrl() {
+  var ui = SpreadsheetApp.getUi();
+  var appUrl = getAppUrl();
+  var emails = listActiveApprovedEmails_();
+  if (!emails.length) {
+    ui.alert('No active approved users found (or all grants are expired).');
+    return;
+  }
+
+  var preview =
+    'Send the new app URL to ' +
+    emails.length +
+    ' approved user(s)?\n\n' +
+    'URL: ' +
+    appUrl +
+    '\n\nRecipients:\n' +
+    emails.slice(0, 20).join('\n') +
+    (emails.length > 20 ? '\n… and ' + (emails.length - 20) + ' more' : '');
+
+  var response = ui.alert('Email new app URL', preview, ui.ButtonSet.YES_NO);
+  if (response !== ui.Button.YES) return;
+
+  var sent = 0;
+  var failed = [];
+  var i;
+  for (i = 0; i < emails.length; i++) {
+    try {
+      sendAppUrlUpdateEmail_(emails[i], appUrl);
+      sent++;
+      Utilities.sleep(200);
+    } catch (err) {
+      failed.push(emails[i] + ': ' + String(err));
+    }
+  }
+
+  logAccessEvent('app_url_update_emailed', CONFIG.RECIPIENT_EMAIL, 'sent:' + sent, {
+    tool: 'hub',
+    page: appUrl,
+    detail: 'failed:' + failed.length,
+  });
+
+  var summary = 'Sent: ' + sent + ' of ' + emails.length + '.';
+  if (failed.length) {
+    summary += '\n\nFailed:\n' + failed.slice(0, 10).join('\n');
+  }
+  ui.alert('Done', summary, ui.ButtonSet.OK);
+  return { sent: sent, failed: failed, total: emails.length, appUrl: appUrl };
+}
+
+function listActiveApprovedEmails_() {
+  var ss = getSpreadsheet();
+  var sheet = ensureSheet(ss, 'ApprovedUsers', SHEET_HEADERS.ApprovedUsers);
+  var values = sheet.getDataRange().getValues();
+  var emails = [];
+  var seen = {};
+  var i;
+  for (i = 1; i < values.length; i++) {
+    var email = normalizeAccessEmail(values[i][0]);
+    if (!isValidAccessEmail(email) || seen[email]) continue;
+    var expiresAt = new Date(values[i][2]).getTime();
+    if (!expiresAt || isNaN(expiresAt) || Date.now() > expiresAt) continue;
+    seen[email] = true;
+    emails.push(email);
+  }
+  return emails;
+}
+
+function sendAppUrlUpdateEmail_(email, appUrl) {
+  var subject = 'Technician Assistant — updated app link';
+  var plain =
+    'The Technician Assistant web address has been updated.\n\n' +
+    'Please use this link going forward:\n' +
+    appUrl +
+    '\n\n' +
+    'Your existing access grant still applies. If the app asks you to sign in again, ' +
+    'submit the same work email and use the sign-in code you receive.\n\n' +
+    'Bookmark the new link so you can find it later.';
+  var html =
+    '<p>The <strong>Technician Assistant</strong> web address has been updated.</p>' +
+    '<p style="margin:24px 0;"><a href="' +
+    appUrl +
+    '" style="display:inline-block;padding:12px 20px;background:#005f9e;color:#fff;text-decoration:none;border-radius:6px;font-weight:700;">Open Technician Assistant</a></p>' +
+    '<p>Please use this link going forward:</p>' +
+    '<p><a href="' +
+    appUrl +
+    '">' +
+    appUrl +
+    '</a></p>' +
+    '<p>Your existing access grant still applies. If the app asks you to sign in again, submit the same work email and use the sign-in code you receive.</p>' +
+    '<p style="color:#666;font-size:13px;">Bookmark the new link so you can find it later.</p>';
+  MailApp.sendEmail({
+    to: email,
+    subject: subject,
+    body: plain,
+    htmlBody: html,
+    name: 'Technician Assistant',
+  });
 }
 
 function accessIsoDate(ms) {
