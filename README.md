@@ -2,7 +2,7 @@
 
 Static field-tools hub for Trimble technicians — dealer-facing workflows on GitHub Pages, with personnel-only tools in a **separate local package**.
 
-**Live site (dealer):** https://justinbill-ai.github.io/trimble-technician-assistant/
+**Live site (dealer):** https://Justin-B25.github.io/trimble-technician-assistant/
 
 ---
 

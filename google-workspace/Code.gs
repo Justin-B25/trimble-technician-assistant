@@ -15,7 +15,7 @@ var CONFIG = {
   DRIVE_FOLDER_ID: '1oZK53RQj23uuQ9naORlZiCiwTBiL63Fw',
   RECIPIENT_EMAIL: 'justin_bill@trimble.com',
   /** Public app URL — used in approval emails */
-  APP_URL: 'https://justinbill-ai.github.io/trimble-technician-assistant/',
+  APP_URL: 'https://Justin-B25.github.io/trimble-technician-assistant/',
   /** Days before approved users must request access again */
   ACCESS_GRANT_DAYS: 28,
   /** Comma-separated domains that auto-approve (no manual review) */

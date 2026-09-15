@@ -12,7 +12,7 @@ window.WORKSPACE_CONFIG = {
   appName: 'Trimble Technician Assistant',
   recipientEmail: 'justin_bill@trimble.com',
   /** Public app URL — used in approval emails from Apps Script CONFIG.APP_URL */
-  appUrl: 'https://justinbill-ai.github.io/trimble-technician-assistant/',
+  appUrl: 'https://Justin-B25.github.io/trimble-technician-assistant/',
   /** Approved access duration (days) — must match Code.gs ACCESS_GRANT_DAYS */
   accessGrantDays: 28,
   /** Sign-in code validity (minutes) — must match Code.gs ACCESS_CODE_MINUTES */

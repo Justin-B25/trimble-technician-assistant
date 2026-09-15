@@ -2,7 +2,7 @@
 
 This document describes the **public dealer hub** deployed to GitHub Pages. Personnel-only tools live in [`trimble-internal/`](../trimble-internal/README.md) and must **not** ship with the dealer deploy.
 
-**Live site:** https://justinbill-ai.github.io/trimble-technician-assistant/
+**Live site:** https://Justin-B25.github.io/trimble-technician-assistant/
 
 ---
 
