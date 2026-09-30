@@ -41,6 +41,12 @@ if (exists('groundworks/csv-formatter/index.html')) {
   fail('groundworks/csv-formatter/ missing — BETA CSV formatter should be on dealer path');
 }
 
+if (exists('groundworks/pile-qc/index.html')) {
+  ok('groundworks/pile-qc/ present (Pile QC / Deviation Calculator)');
+} else {
+  fail('groundworks/pile-qc/ missing — Pile QC tool should be on dealer path');
+}
+
 if (!exists('trimble-internal/index.html')) {
   fail('trimble-internal/index.html missing');
 } else {
@@ -69,6 +75,12 @@ if (/csv-formatter/i.test(gwHub) && !/BETA/i.test(gwHub)) {
   ok('groundworks/index.html lists CSV Formatter (BETA)');
 } else {
   fail('groundworks/index.html missing CSV formatter tile');
+}
+
+if (/pile-qc/i.test(gwHub)) {
+  ok('groundworks/index.html lists Pile QC / Deviation Calculator');
+} else {
+  fail('groundworks/index.html missing Pile QC tile');
 }
 
 var dealerConfig = read('assets/workspace-config.js');

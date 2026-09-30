@@ -35,6 +35,8 @@
     var path = (window.location.pathname || '').toLowerCase().replace(/\\/g, '/');
     if (path.indexOf('/groundworks/csv-formatter') !== -1) return 'gw-csv-formatter';
     if (path.indexOf('/trimble-internal/groundworks/csv-formatter') !== -1) return 'gw-csv-formatter';
+    if (path.indexOf('/groundworks/pile-qc') !== -1) return 'gw-pile-qc';
+    if (path.indexOf('/trimble-internal/groundworks/pile-qc') !== -1) return 'gw-pile-qc';
     if (path.indexOf('/trimble-internal/bench-crane/') !== -1) return 'bench-crane';
     if (path.indexOf('/trimble-internal/index.html') !== -1 || /\/trimble-internal\/?$/.test(path)) {
       return 'internal-hub';

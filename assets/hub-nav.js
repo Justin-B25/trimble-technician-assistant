@@ -37,6 +37,12 @@
           beta: true,
           summary: 'Map Siteworks Export/TBC CSV columns and export Groundworks pile import files — BETA access required',
         },
+        {
+          href: './groundworks/pile-qc/index.html',
+          icon: 'QC',
+          name: 'Pile QC / Deviation Calculator',
+          summary: 'Design vs rover stakeout vs machine as-built — XY/Z deltas, median ΔZ, bullseye, and PDF report',
+        },
       ],
     },
     {

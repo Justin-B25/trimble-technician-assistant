@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="../../assets/theme-init.js"></script>
+  <title>Pile QC / Deviation Calculator — Trimble Technician Assistant</title>
+  <meta name="theme-color" content="#005f9e" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../../favicon-32.png" />
+  <link rel="stylesheet" href="../../assets/trimble-connect.css" />
+  <link rel="stylesheet" href="../../assets/app-access.css" />
+  <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
+  <link rel="stylesheet" href="styles.css?v=1" />
+</head>
+<body data-gw-page="pile-qc" class="pile-qc">
+  <header class="tc-app-header">
+    <a class="tc-back-link" href="../index.html">&larr; Groundworks</a>
+    <div class="tc-header__inner">
+      <div class="tc-header__brand">
+        <img class="tc-header__logo" src="../../assets/brand/trimble-logo-white.png" alt="Trimble" />
+        <div class="tc-header__titles">
+          <h1 class="tc-header__product">Pile QC / Deviation Calculator</h1>
+          <p class="tc-header__sub">Design · Measured stakeout · Machine quality — common pile IDs only</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="tc-main pile-qc-main">
+    <p class="pile-qc-intro">
+      Compare design top-of-pile, rover stakeout, and Groundworks machine as-built on matching pile IDs.
+      Use averages, median ΔZ, bullseye, and Z charts to check XY/Z consistency during testing.
+    </p>
+
+    <section class="card">
+      <h2>Job</h2>
+      <div class="job-grid">
+        <div>
+          <label class="muted" for="job-name">Job / site</label>
+          <input id="job-name" type="text" placeholder="e.g. Array A" />
+        </div>
+        <div>
+          <label class="muted" for="job-notes">Notes</label>
+          <input id="job-notes" type="text" placeholder="Optional" />
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Load files (multiple allowed)</h2>
+      <p class="muted" style="margin-top: -4px; margin-bottom: 12px">
+        Report includes only point IDs present in <strong>every</strong> loaded source type (intersection). Example: design 5017 + rover 5017 + machine pile 5017.
+      </p>
+      <div class="upload-grid">
+        <div class="dropzone" id="dz-design">
+          <h3>Design CSV</h3>
+          <p>Headerless PointID, Northing, Easting, Elevation. Multiple plan CSVs OK.</p>
+          <input id="file-design" type="file" accept=".csv,text/csv" multiple />
+          <ul class="file-list" id="list-design"></ul>
+        </div>
+        <div class="dropzone" id="dz-measured">
+          <h3>Measured stakeout CSV</h3>
+          <p>Trimble stakeout export. Point names like 5170_stk → 5170. Multiple files OK.</p>
+          <input id="file-measured" type="file" accept=".csv,text/csv" multiple />
+          <ul class="file-list" id="list-measured"></ul>
+        </div>
+        <div class="dropzone" id="dz-machine">
+          <h3>Machine quality XLSX</h3>
+          <p>Groundworks Quality Metrics. As-Built Top of Pile N/E/Z (auto-detected). Multiple reports OK.</p>
+          <input id="file-machine" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple />
+          <ul class="file-list" id="list-machine"></ul>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-secondary" id="btn-clear">Clear all files</button>
+        <button type="button" class="btn btn-secondary" id="btn-csv" disabled>Export CSV</button>
+        <button type="button" class="btn btn-primary" id="btn-pdf" disabled>Export PDF</button>
+      </div>
+    </section>
+
+    <div id="alert" class="alert hidden"></div>
+
+    <div id="results" class="hidden">
+      <section class="card">
+        <h2>Summary</h2>
+        <p class="muted" id="match-note"></p>
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Common piles</div>
+            <div class="value" id="stat-count">—</div>
+            <div class="note" id="stat-count-note"></div>
+          </div>
+          <div class="stat">
+            <div class="label">Avg ΔN (ft)</div>
+            <div class="value" id="stat-dn">—</div>
+            <div class="note" id="stat-dn-note"></div>
+          </div>
+          <div class="stat">
+            <div class="label">Avg ΔE (ft)</div>
+            <div class="value" id="stat-de">—</div>
+            <div class="note" id="stat-de-note"></div>
+          </div>
+          <div class="stat">
+            <div class="label">Avg ΔZ (ft)</div>
+            <div class="value" id="stat-dz">—</div>
+            <div class="note" id="stat-dz-note"></div>
+          </div>
+          <div class="stat stat-median-z">
+            <div class="label">Median ΔZ (ft)</div>
+            <div class="median-pair">
+              <div>
+                <div class="median-sublabel">Rover</div>
+                <div class="value value-sm" id="stat-median-rover">—</div>
+              </div>
+              <div>
+                <div class="median-sublabel">Machine</div>
+                <div class="value value-sm" id="stat-median-machine">—</div>
+              </div>
+            </div>
+            <div class="note">vs design · less skewed by outliers than average</div>
+          </div>
+        </div>
+        <p class="favor" id="favor-text"></p>
+      </section>
+
+      <section class="card">
+        <h2>Visuals</h2>
+        <div class="viz-grid viz-grid--bullseye">
+          <div class="viz-panel">
+            <h3>Directional bullseye (ΔE vs ΔN)</h3>
+            <canvas id="canvas-bullseye" width="480" height="360"></canvas>
+          </div>
+        </div>
+        <div class="viz-panel viz-panel--z">
+          <h3>Z visualizer (ΔZ) <span class="muted">— scroll sideways · click a point for details</span></h3>
+          <div class="z-scroll" id="z-scroll">
+            <div class="z-spacer" id="z-spacer"></div>
+            <canvas id="canvas-z" width="800" height="420"></canvas>
+          </div>
+          <div id="z-point-detail" class="z-detail hidden" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Per-pile QC</h2>
+        <div class="table-wrap">
+          <table class="qc-table">
+            <thead>
+              <tr>
+                <th class="id">ID</th>
+                <th>Des N</th>
+                <th>Des E</th>
+                <th>Des Z</th>
+                <th>Meas N</th>
+                <th>Meas E</th>
+                <th>Meas Z</th>
+                <th>Mach N</th>
+                <th>Mach E</th>
+                <th>Mach Z</th>
+                <th>ΔN m−d</th>
+                <th>ΔE m−d</th>
+                <th>ΔZ m−d</th>
+                <th>Horiz</th>
+                <th>ΔN k−d</th>
+                <th>ΔE k−d</th>
+                <th>ΔZ k−d</th>
+                <th>ΔN k−m</th>
+                <th>ΔE k−m</th>
+                <th>ΔZ k−m</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+        <p class="muted" id="table-note">m−d = measured − design · k−d = machine − design · k−m = machine − measured. Units: ft.</p>
+        <div class="actions" id="table-more-wrap" style="display:none">
+          <button type="button" class="btn btn-secondary" id="btn-table-more">Show more rows</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="tc-footer">Pile QC / Deviation Calculator · Groundworks · Technician Assistant</footer>
+
+  <script src="../../assets/workspace-config.js?v=5"></script>
+  <script src="../../assets/workspace-api.js?v=12"></script>
+  <script src="../../assets/app-access.js?v=10"></script>
+  <script src="../../assets/theme-toggle.js"></script>
+  <script src="../../assets/header-home.js"></script>
+  <script src="../../assets/feedback-config.js?v=3"></script>
+  <script src="../../assets/feedback.js?v=4"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="js/parsers.js?v=1"></script>
+  <script src="js/qc.js?v=1"></script>
+  <script src="js/charts.js?v=1"></script>
+  <script src="js/pdf.js?v=1"></script>
+  <script src="js/app.js?v=1"></script>
+</body>
+</html>
