@@ -1344,6 +1344,8 @@ function syncRodUi() {
 
   if (rodSection) rodSection.hidden = !shotWithRod;
   if (rodField) rodField.hidden = !shotWithRod || !rodInSwNo;
+  var measureupFigure = document.getElementById('measureupToolFigure');
+  if (measureupFigure) measureupFigure.hidden = !shotWithRod;
   updateRodHeightDefault();
 }
 
