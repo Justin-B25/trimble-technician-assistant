@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="../../assets/theme-init.js"></script>
+  <title>.dc reminder preview — CSV Formatter</title>
+  <link rel="stylesheet" href="../../assets/trimble-connect.css" />
+  <link rel="stylesheet" href="styles.css?v=9" />
+  <style>
+    .gw-preview-banner {
+      margin: 0 0 16px;
+      padding: 10px 14px;
+      background: var(--tc-blue-tint);
+      border: 1px solid var(--tc-grey-300);
+      border-radius: var(--tc-radius-lg);
+      font-size: 0.84rem;
+      color: var(--tc-grey-600);
+    }
+  </style>
+</head>
+<body>
+  <header class="tc-app-header">
+    <div class="tc-header__inner tc-header__inner--with-help">
+      <div class="tc-header__brand">
+        <img class="tc-header__logo" src="../../assets/brand/trimble-logo-white.png" alt="Trimble" />
+        <div class="tc-header__titles">
+          <h1 class="tc-header__product">.dc reminder preview</h1>
+          <p class="tc-header__sub">Not published — review only</p>
+        </div>
+      </div>
+      <div class="tc-header__actions">
+        <button class="help-trigger" type="button" aria-hidden="true" style="visibility:hidden" tabindex="-1"></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="tc-main gw-csv-main">
+    <p class="gw-preview-banner">
+      <strong>Preview mode.</strong> This page shows only the new <code>.dc</code> reminder block.
+    </p>
+
+    <section class="gw-dc-reminder" id="gwDcReminder" aria-labelledby="gwDcReminderTitle">
+      <h2 class="gw-dc-reminder__title" id="gwDcReminderTitle">Don&rsquo;t forget the <code>.dc</code> file</h2>
+      <p class="gw-dc-reminder__lead">
+        The pile CSV is only half of the import. Groundworks also needs the
+        <code>.dc</code> file from the same project on the data collector. Copy it to your USB drive
+        together with the formatted pile CSV <strong>before</strong> running Groundworks Project Setup.
+      </p>
+      <p class="gw-dc-reminder__lead">
+        Siteworks cannot export this for you &mdash; copy it from the collector project folder or your
+        Trimble Synchronizer PC folder.
+      </p>
+      <p class="gw-dc-reminder__path-label">Example project folder (Windows Synchronizer):</p>
+      <code class="gw-dc-reminder__path">C:\Trimble Synchronizer Data\PC\Trimble SCS900 Data\EXAMPLE PROJECT\</code>
+      <p class="gw-dc-reminder__file-hint">
+        In that folder, look for <code>EXAMPLE PROJECT.dc</code> (Type: <strong>DC File</strong>) in the same
+        directory as <strong>AsBuild</strong> and <strong>Designs</strong>.
+      </p>
+      <figure class="gw-dc-reminder__figure">
+        <img
+          class="gw-dc-reminder__screenshot"
+          src="./assets/windows-dc-folder-example.png"
+          alt="Windows File Explorer showing a Trimble SCS900 project folder with AsBuild, Designs, and a .dc file"
+          width="960"
+          height="540"
+          loading="lazy"
+        />
+        <figcaption class="gw-dc-reminder__caption">
+          Example: <code>EXAMPLE PROJECT.dc</code> in the project root next to AsBuild and Designs.
+        </figcaption>
+      </figure>
+    </section>
+  </main>
+
+  <script src="../../assets/theme-toggle.js"></script>
+</body>
+</html>

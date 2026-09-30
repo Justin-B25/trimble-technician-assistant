@@ -1,0 +1,1690 @@
+{
+  "ASSEMBLY_ORDER": [
+    "axio-group",
+    "base-plates",
+    "boom",
+    "boom-spacers-dual-sheave",
+    "boom-supports",
+    "multi-turn-add-on",
+    "bucket-attachment"
+  ],
+  "GUIDE": {
+    "title": "TMC Bench Crane — Assembly Guide",
+    "subtitle": "Interactive assembly procedure & parts list",
+    "hardwareKitIntro": "This crane reuses a small set of Ruthex inserts, cap screws, and dowels across all segments. Quantities below will be finalized as each segment is completed.",
+    "viewer3d": {
+      "title": "Full crane — 360° 3D view",
+      "description": "Explore the complete assembled TMC wire crane from any angle. Use this while working through steps to see how parts fit together.",
+      "url": "https://a360.co/4en8lcl",
+      "embedUrl": "https://a360.co/4en8lcl",
+      "provider": "Autodesk Fusion / A360"
+    },
+    "sections": {
+      "overview": {
+        "id": "overview",
+        "kind": "overview",
+        "title": "Overview",
+        "status": "complete",
+        "intro": {
+          "title": "How this guide is organized",
+          "paragraphs": [
+            "The TMC bench crane assembly is broken into separate segments. Each segment matches a folder in the STL library and has its own print checklist, hardware list, and step-by-step assembly instructions.",
+            "Start here for required tools and the master shopping list. Then work through each segment in order — hardware called out in a segment is only what you need for that part of the build.",
+            "This guide is still being expanded. Segments marked “Coming soon” are not ready yet; hardware totals will change as those sections are finished."
+          ]
+        },
+        "requiredTools": {
+          "title": "Required tools",
+          "intro": "Have these ready before you start printing or assembling.",
+          "items": [
+            {
+              "name": "2.5 mm hex key (Allen)",
+              "preferred": "T-handle may help — especially on repeated M3 fasteners",
+              "usedFor": "M3×8 cap screws throughout the crane (socket head uses 2.5 mm hex — not 3 mm)"
+            },
+            {
+              "name": "5 mm hex key (Allen)",
+              "preferred": "T-handle may help — especially on M6 fasteners in tight spaces",
+              "usedFor": "M6×20 and M6×30 cap screws — base plates, boom mounts, VRU, extrusions (socket head uses 5 mm hex — not 6 mm)"
+            },
+            {
+              "name": "Soldering iron",
+              "detail": "Required for installing ruthex® heat-set inserts. Use a soldering iron compatible with 900M- and T18-series tips (see ruthex tip set below).",
+              "usedFor": "Heating ruthex® RX-M3×5.7 and RX-M6Sx6.8 inserts into printed parts",
+              "warnings": [
+                "Do not exceed 300°C when installing inserts"
+              ]
+            },
+            {
+              "name": "ruthex® heat-set tip set",
+              "detail": "Use the tip that matches each insert size: M3 tip for RX-M3×5.7 inserts, M6 tip for RX-M6Sx6.8 inserts. Tips are compatible with 900M- and T18-series soldering irons.",
+              "imageDriveId": "ruthexTipSet",
+              "imageAlt": "ruthex heat-set insert tip set — M2 through M8 tips for 900M and T18 soldering irons",
+              "warnings": [
+                "Tips are for installing inserts only — not suitable for removal",
+                "Pair with a soldering iron before starting assembly"
+              ]
+            }
+          ]
+        },
+        "masterPartsList": {
+          "title": "Full crane hardware & parts",
+          "incomplete": true,
+          "incompleteNotice": "INCOMPLETE — This master list reflects what is documented so far (Base Plates, partial Boom, and Bucket Attachment hardware). Totals will be updated as remaining segments are added. Do not use this as a final BOM until the guide is complete."
+        },
+        "segmentsIntro": "Assembly segments — open any section for that segment’s hardware, prints, and instructions."
+      },
+      "axio-group": {
+        "id": "axio-group",
+        "order": 1,
+        "title": "Axio Group",
+        "driveFolder": "AXIO GROUP",
+        "status": "in-progress",
+        "assemblyNote": "Assemble the Axio Group here first, then install it on the base plates in Base Plates · Step 3.",
+        "steps": [
+          {
+            "id": "axio-01-assemble",
+            "title": "Assemble Axio Group",
+            "required": true,
+            "summary": "Assemble the Axio Group per the AXIO GROUP prints. Detailed step-by-step photos and hardware lists are being added — check back as this segment is expanded.",
+            "warnings": [
+              "Assembly instructions for printed parts and internal hardware are still being documented."
+            ],
+            "printedParts": [],
+            "hardware": [],
+            "checks": [
+              "Axio Group fully assembled per AXIO GROUP prints",
+              "Ready to mount on base plate assembly in Base Plates · Step 3"
+            ],
+            "imagePlaceholder": "Axio Group assembly — photos coming soon"
+          }
+        ]
+      },
+      "base-plates": {
+        "id": "base-plates",
+        "order": 2,
+        "title": "Base Plates",
+        "driveFolder": "BASE PLATES",
+        "status": "complete",
+        "criticalBanner": {
+          "title": "STOP — Read before mounting extrusions",
+          "lines": [
+            "Do NOT bolt the base plate assembly to the aluminum extrusions until you have joined the base plates, installed the boom mounts, and installed the Axio Group.",
+            "Six M6×20 cap screws must be tightened from the UNDERSIDE of the base plate before extrusions go on: 4× for boom mounts (Step 2) and 2× for the Axio Group (Step 3).",
+            "Once the extrusions are installed, you cannot reach those underside screws — the build will be blocked."
+          ]
+        },
+        "assemblyNote": "Extrusions are always the last step. Complete plate join, boom mounts, and Axio Group mount (Step 3) before extrusions.",
+        "prerequisitesBeforeExtrusions": [
+          "Front & rear base plates joined with 3× M3×8 (Step 1)",
+          "Optional M3×12 alignment dowels at plate joint if used (Step 1)",
+          "Boom pin installed through boom mounts + lower boom section (Step 2)",
+          "Boom mounts bolted from underside — 4× M6×20 (Step 2)",
+          "Axio Group assembled (Axio Group segment)",
+          "Assembled Axio Group installed — 6× M3×8 + 2× M6×20 (Step 3)"
+        ],
+        "chapterHardware": [
+          {
+            "ref": "ruthex-m3-57",
+            "qty": 3,
+            "note": "Rear base plate"
+          },
+          {
+            "ref": "cap-screw-m3x8",
+            "qty": 9,
+            "note": "3× join plates + 6× Axio Group mount"
+          },
+          {
+            "ref": "pin-boom-10x150",
+            "qty": 1,
+            "note": "Boom pivot"
+          },
+          {
+            "ref": "cap-screw-m6x20",
+            "qty": 14,
+            "note": "4× boom mounts + 2× Axio Group + 8× extrusions"
+          },
+          {
+            "ref": "dowel-m3x12",
+            "qty": 3,
+            "note": "Optional plate alignment"
+          },
+          {
+            "ref": "extrusion-4040-500",
+            "qty": 2
+          },
+          {
+            "ref": "tnut-m6-rollin",
+            "qty": 8
+          },
+          {
+            "ref": "endcap-40-series",
+            "qty": 4
+          }
+        ],
+        "printParts": [
+          {
+            "name": "Combined Base Plate — Front",
+            "file": "COMBINED BASE PLATE FRONT.stl",
+            "qty": 1,
+            "folder": "BASE PLATES"
+          },
+          {
+            "name": "Combined Base Plate — Rear",
+            "file": "COMBINED BASE PLATE REAR.stl",
+            "qty": 1,
+            "folder": "BASE PLATES",
+            "note": "3× RX-M3×5.7 inserts"
+          },
+          {
+            "name": "Boom Mount",
+            "file": "BOOM MOUNT.stl",
+            "qty": 2,
+            "folder": "BOOM",
+            "note": "Installed in Step 2 — before extrusions"
+          },
+          {
+            "name": "Boom End — Lower",
+            "file": "BOOM END LOWER.stl",
+            "qty": 1,
+            "folder": "BOOM",
+            "note": "On pivot pin in Step 2"
+          }
+        ],
+        "steps": [
+          {
+            "id": "base-01-join-plates",
+            "title": "Join front & rear base plates",
+            "required": true,
+            "summary": "Install 3× ruthex® RX-M3×5.7 heat-set inserts in the rear base plate, then connect the front and rear combined base plates using 3× M3×8 cap screws. Keep the assembly off the extrusions — the extrusion mount is always the last step.",
+            "orientationNotes": [
+              "Install all 3 inserts in the REAR base plate before mating the front plate",
+              "Use 4.0 mm holes for RX-M3×5.7 inserts (P/N GE-M3X5.7-001)",
+              "Align front plate to rear plate and install 3× M3×8 cap screws into the inserts"
+            ],
+            "legend": [
+              {
+                "color": "blue",
+                "label": "M3×8 cap screws — join front & rear plates (×3)"
+              },
+              {
+                "color": "green",
+                "label": "M3×12 dowel pins — optional alignment aid (×3)"
+              }
+            ],
+            "printedParts": [
+              {
+                "name": "Combined Base Plate — Front",
+                "file": "COMBINED BASE PLATE FRONT.stl",
+                "qty": 1
+              },
+              {
+                "name": "Combined Base Plate — Rear",
+                "file": "COMBINED BASE PLATE REAR.stl",
+                "qty": 1,
+                "note": "3× RX-M3×5.7 inserts install here"
+              }
+            ],
+            "hardware": [
+              {
+                "ref": "ruthex-m3-57",
+                "qty": 3,
+                "note": "Rear base plate only"
+              },
+              {
+                "ref": "cap-screw-m3x8",
+                "qty": 3,
+                "note": "Front plate into rear plate inserts"
+              }
+            ],
+            "checks": [
+              "All 3× RX-M3×5.7 inserts flush in rear base plate",
+              "Front and rear plates aligned and seated together",
+              "All 3× M3×8 cap screws installed — plate joint secure"
+            ],
+            "optionalAddendum": {
+              "title": "Alignment dowels (not required)",
+              "summary": "Optionally install 3× M3×12 steel dowel pins at the plate joint before or while mating the front plate. Dowels are not required — they can aid alignment and add rigidity beyond the M3×8 screw connection.",
+              "orientationNotes": [
+                "Press dowels into the rear plate dowel holes before mating the front plate",
+                "The joint is secured by the 3× M3×8 cap screws — dowels are an alignment aid only"
+              ],
+              "hardware": [
+                {
+                  "ref": "dowel-m3x12",
+                  "qty": 3,
+                  "note": "Optional — press-fit at plate joint"
+                }
+              ],
+              "checks": [
+                "All 3 dowels fully seated (if used)",
+                "Plate joint solid — no gap at seam"
+              ]
+            },
+            "imageDriveId": "base01Join",
+            "imageAlt": "Join base plates — M3×8 cap screws (blue) and optional M3×12 dowel pins (green)",
+            "imagePlaceholder": "Rear plate inserts + front/rear plate connection"
+          },
+          {
+            "id": "base-02-boom-mount-prep",
+            "title": "Boom pin, boom mounts & lower boom — bolt from underneath",
+            "required": true,
+            "summary": "On the joined base plate assembly (still OFF the extrusions), install the 10 mm boom pin through both boom mounts and the lower boom section. Once the pin is fully through, bolt both boom mounts to the base plate from underneath with 4× M6×20 cap screws.",
+            "warnings": [
+              "REQUIRED before extrusions. These 4 screws are 4 of 6 underside M6×20 cap screws — the extrusion rails will cover this access."
+            ],
+            "orientationNotes": [
+              "Work with base plates on a flat surface — not yet on extrusions",
+              "1. Slide 10 mm × 150 mm boom pin through both boom mounts and the lower boom section",
+              "2. Confirm pin is fully through mounts and lower boom section",
+              "3. Bolt both boom mounts to base plate from underneath — 4× M6×20 cap screws (blue arrows)"
+            ],
+            "legend": [
+              {
+                "color": "blue",
+                "label": "Top arrows — boom pin through mounts & lower boom"
+              },
+              {
+                "color": "blue",
+                "label": "Bottom arrows — M6×20 mount screws from underside (×4)"
+              }
+            ],
+            "printedParts": [
+              {
+                "name": "Combined Base Plate — Front",
+                "file": "COMBINED BASE PLATE FRONT.stl",
+                "qty": 1,
+                "note": "Not on extrusions yet"
+              },
+              {
+                "name": "Combined Base Plate — Rear",
+                "file": "COMBINED BASE PLATE REAR.stl",
+                "qty": 1
+              },
+              {
+                "name": "Boom Mount",
+                "file": "BOOM MOUNT.stl",
+                "qty": 2,
+                "folder": "BOOM"
+              },
+              {
+                "name": "Boom End — Lower",
+                "file": "BOOM END LOWER.stl",
+                "qty": 1,
+                "folder": "BOOM",
+                "note": "Lower boom section on pivot pin"
+              }
+            ],
+            "hardware": [
+              {
+                "ref": "pin-boom-10x150",
+                "qty": 1,
+                "note": "Through both boom mounts and lower boom section"
+              },
+              {
+                "ref": "cap-screw-m6x20",
+                "qty": 4,
+                "note": "From underside of base plate into boom mounts"
+              }
+            ],
+            "checks": [
+              "Boom pin fully through both boom mounts and lower boom section",
+              "Both boom mounts seated on base plate",
+              "All 4× M6×20 cap screws installed from underside",
+              "Pivot swings freely before proceeding to extrusion mount"
+            ],
+            "imageDriveId": "base02BoomMount",
+            "imageAlt": "Underside view — M6×20 boom mount screws (blue) before extrusions",
+            "imagePlaceholder": "Pin through mounts + lower boom, then 4 underside mount screws",
+            "imageNote": "Perform before base plates are on extrusions"
+          },
+          {
+            "id": "base-03-axio-mount",
+            "title": "Install assembled Axio Group — bolt from underneath",
+            "required": true,
+            "summary": "On the joined base plate assembly (still OFF the extrusions), mount the assembled Axio Group and secure it with 6× M3×8 cap screws plus 2× M6×20 cap screws from underneath. The 2× M6×20 are 2 of the 6 underside M6×20 screws that become inaccessible once extrusions are on.",
+            "warnings": [
+              "Assemble the Axio Group first in the Axio Group segment.",
+              "REQUIRED before extrusions. The 2× M6×20 screws are installed from the bottom of the base plate — the extrusion rails will cover this access."
+            ],
+            "orientationNotes": [
+              "Work with base plates on a flat surface — not yet on extrusions",
+              "Position the assembled Axio Group on the base plate",
+              "Install 6× M3×8 cap screws to secure the Axio Group to the base plate",
+              "Bolt the Axio Group from underneath — 2× M6×20 cap screws"
+            ],
+            "legend": [
+              {
+                "color": "blue",
+                "label": "M3×8 cap screws — Axio Group to base plate (×6)"
+              },
+              {
+                "color": "blue",
+                "label": "M6×20 cap screws — underside into Axio Group (×2)"
+              }
+            ],
+            "printedParts": [],
+            "hardware": [
+              {
+                "ref": "cap-screw-m3x8",
+                "qty": 6,
+                "note": "Secure Axio Group to base plate"
+              },
+              {
+                "ref": "cap-screw-m6x20",
+                "qty": 2,
+                "note": "From underside of base plate into Axio Group"
+              }
+            ],
+            "checks": [
+              "Axio Group seated on base plate",
+              "All 6× M3×8 cap screws installed",
+              "Both M6×20 cap screws installed from underside",
+              "Axio Group secure before proceeding to extrusion mount"
+            ],
+            "imageDriveId": "base03AxioMount",
+            "imageAlt": "Axio Group on base plate — 6× M3×8 and 2× underside M6×20 screws",
+            "imageNote": "Perform before base plates are on extrusions"
+          },
+          {
+            "id": "base-04-extrusions",
+            "title": "NOW mount base plate assembly to extrusions",
+            "required": true,
+            "summary": "Last step — bolt the complete base plate assembly (plates joined, boom mounts secured, Axio Group installed) to two 500 mm 8020 extrusions. If any of the 6 underside M6×20 screws are missing, STOP and go back to Steps 2 and 3.",
+            "warnings": [
+              "BLOCKED until Steps 1–3 are complete. Never attach extrusions first.",
+              "If you already mounted extrusions: remove them, complete Steps 2 and 3 (6× M6×20 underside screws), then remount."
+            ],
+            "blockedUntil": [
+              "Step 1 — front & rear plates joined with 3× M3×8",
+              "Step 2 — boom pin through mounts + lower boom",
+              "Step 2 — 4× M6×20 boom mount screws from underside",
+              "Axio Group segment — Axio Group assembled",
+              "Step 3 — Axio Group installed; 6× M3×8 + 2× M6×20 from underside"
+            ],
+            "orientationNotes": [
+              "REAR plate (flange end) goes on the left",
+              "FRONT plate (U-opening) goes on the right",
+              "Roll M6 T-nuts into T-slots at each screw location before installing cap screws",
+              "Install end caps on both ends of both extrusion rails"
+            ],
+            "printedParts": [
+              {
+                "name": "Combined Base Plate — Front",
+                "file": "COMBINED BASE PLATE FRONT.stl",
+                "qty": 1
+              },
+              {
+                "name": "Combined Base Plate — Rear",
+                "file": "COMBINED BASE PLATE REAR.stl",
+                "qty": 1
+              }
+            ],
+            "hardware": [
+              {
+                "ref": "extrusion-4040-500",
+                "qty": 2
+              },
+              {
+                "ref": "tnut-m6-rollin",
+                "qty": 8,
+                "note": "One per cap screw — roll into T-slot first"
+              },
+              {
+                "ref": "cap-screw-m6x20",
+                "qty": 8
+              },
+              {
+                "ref": "endcap-40-series",
+                "qty": 4,
+                "note": "Both ends of both rails"
+              }
+            ],
+            "checks": [
+              "Plates flush on both extrusions",
+              "Front/rear orientation correct",
+              "All 8× M6 T-nuts seated and 8× M6×20 cap screws tight",
+              "All 4 end caps installed on extrusion rail ends",
+              "Extrusions parallel"
+            ],
+            "imageDriveId": "base04Extrusions",
+            "imageAlt": "Base plate assembly mounted on 8020 extrusions — rear left, front right",
+            "imagePlaceholder": "8020 40-4040-LITE-BLACK — 500 mm extrusion + base plates",
+            "imageNote": "Reference: 8020.net · 40-4040-Lite-Black · 40 Series · cut to 500 mm"
+          }
+        ]
+      },
+      "boom": {
+        "id": "boom",
+        "order": 3,
+        "title": "Boom",
+        "driveFolder": "BOOM",
+        "status": "in-progress",
+        "configuration": {
+          "prompt": "Which boom configuration are you building?",
+          "options": [
+            {
+              "id": "single-sheave",
+              "label": "Single sheave",
+              "description": "1× 30 mm + 1× 50 mm pulley"
+            },
+            {
+              "id": "dual-sheave",
+              "label": "Dual sheave",
+              "description": "2× 30 mm + 2× 50 mm pulley",
+              "default": true
+            }
+          ]
+        },
+        "vruConfiguration": {
+          "prompt": "VRU placement on boom mounts",
+          "options": [
+            {
+              "id": "vru-both-sides",
+              "label": "Either side (recommended)",
+              "description": "8× ruthex® RX-M6Sx6.8 — VRU on either side",
+              "default": true,
+              "insertQty": 8
+            },
+            {
+              "id": "vru-one-side",
+              "label": "One side only",
+              "description": "6× ruthex® RX-M6Sx6.8 — VRU on one side only",
+              "insertQty": 6
+            }
+          ]
+        },
+        "sharedPrintedParts": [
+          {
+            "name": "Boom Mount",
+            "file": "BOOM MOUNT.stl",
+            "qty": 2
+          },
+          {
+            "name": "Boom Section 1 — LH",
+            "file": "BOOM SECTION 1 LH.stl",
+            "qty": 1
+          },
+          {
+            "name": "Boom Section 1 — RH",
+            "file": "BOOM SECTION 1 RH.stl",
+            "qty": 1
+          },
+          {
+            "name": "Boom Section 1 — Top/Bottom",
+            "file": "BOOM SECTION 1 TOP_BOTTOM.stl",
+            "qty": 1
+          },
+          {
+            "name": "Boom Mid Section — LH/RH",
+            "file": "BOOM MID SECTION LH_RH.stl",
+            "qty": 1
+          },
+          {
+            "name": "Boom Mid Section — Top/Bottom",
+            "file": "BOOM MID SECTION TOP_BOTTOM.stl",
+            "qty": 1
+          },
+          {
+            "name": "Boom End — Lower",
+            "file": "BOOM END LOWER.stl",
+            "qty": 1
+          },
+          {
+            "name": "Boom End — Upper",
+            "file": "BOOM END UPPER.stl",
+            "qty": 1
+          },
+          {
+            "name": "Boom Spacer",
+            "file": "BOOM SPACER.stl",
+            "qty": 1
+          },
+          {
+            "name": "Upper Boom Clamp",
+            "file": "UPPER BOOM CLAMP.stl",
+            "qty": 4
+          },
+          {
+            "name": "Boom End Dual Sheave — LH",
+            "file": "BOOM END DUAL SHEAVE LH.stl",
+            "qty": 1
+          },
+          {
+            "name": "Boom End Dual Sheave — RH",
+            "file": "BOOM END DUAL SHEAVE RH.stl",
+            "qty": 1
+          },
+          {
+            "name": "Boom LR970B — Front Plate",
+            "file": "BOOM LR970B FRONT PLATE.stl",
+            "qty": 1
+          },
+          {
+            "name": "Boom LR970B — Back Plate",
+            "file": "BOOM LR970B BACK PLATE.stl",
+            "qty": 1
+          }
+        ],
+        "configPrintedParts": {
+          "single-sheave": {
+            "include": [
+              {
+                "name": "30 mm Pulley Half 1",
+                "file": "30MM PULLEY (PRIMARY SHEAVE) HALF 1.stl",
+                "qty": 1
+              },
+              {
+                "name": "30 mm Pulley Half 2",
+                "file": "30MM PULLEY (PRIMARY SHEAVE) HALF 2.stl",
+                "qty": 1
+              },
+              {
+                "name": "50 mm Pulley Half 1",
+                "file": "50MM PULLEY (SECONDARY SHEAVE) HALF 1.stl",
+                "qty": 1
+              },
+              {
+                "name": "50 mm Pulley Half 2",
+                "file": "50MM PULLEY (SECONDARY SHEAVE) HALF 2.stl",
+                "qty": 1
+              },
+              {
+                "name": "Sheave Spacer (single sheave only)",
+                "file": "SHEAVE SPACER.stl",
+                "qty": 4,
+                "note": "LH & RH of each sheave to center on boom"
+              }
+            ],
+            "excludeNote": "Do not print files from DUAL SHEAVE BOOM SPACER folder"
+          },
+          "dual-sheave": {
+            "include": [
+              {
+                "name": "30 mm Pulley Half 1",
+                "file": "30MM PULLEY (PRIMARY SHEAVE) HALF 1.stl",
+                "qty": 2
+              },
+              {
+                "name": "30 mm Pulley Half 2",
+                "file": "30MM PULLEY (PRIMARY SHEAVE) HALF 2.stl",
+                "qty": 2
+              },
+              {
+                "name": "50 mm Pulley Half 1",
+                "file": "50MM PULLEY (SECONDARY SHEAVE) HALF 1.stl",
+                "qty": 2
+              },
+              {
+                "name": "50 mm Pulley Half 2",
+                "file": "50MM PULLEY (SECONDARY SHEAVE) HALF 2.stl",
+                "qty": 2
+              },
+              {
+                "name": "Center 8 mm Spacer",
+                "file": "CENTER 8MM SPACER.stl",
+                "qty": 2,
+                "folder": "DUAL SHEAVE BOOM SPACER"
+              },
+              {
+                "name": "LH 48 mm Spacer",
+                "file": "LH 48MM SPACER.stl",
+                "qty": 2,
+                "folder": "DUAL SHEAVE BOOM SPACER"
+              },
+              {
+                "name": "RH 35 mm Spacer",
+                "file": "RH 35MM SPACER.stl",
+                "qty": 2,
+                "folder": "DUAL SHEAVE BOOM SPACER"
+              }
+            ],
+            "excludeNote": "Do not print SHEAVE SPACER.stl (single sheave only)"
+          }
+        },
+        "assemblyMethod": {
+          "title": "Recommended assembly order",
+          "summary": "First assemble the LH and RH side halves (bottom + mid + top sections joined on each side). Then assemble the top and bottom panels to close the lattice.",
+          "sides": [
+            "1. Right-hand side half",
+            "1. Left-hand side half",
+            "2. Top panels",
+            "2. Bottom panels"
+          ]
+        },
+        "steps": [
+          {
+            "id": "boom-01",
+            "title": "Boom mount & pivot pin",
+            "required": true,
+            "summary": "Completed in Axio Group segment + Base Plates · Steps 1–4 — assemble Axio Group, join plates, boom mounts, mount Axio, then extrusions.",
+            "warnings": [
+              "If not done yet, complete the Axio Group segment and Base Plates · Steps 1–4 in order. Do not mount to extrusions before all 6 underside M6×20 screws are installed (4× boom mounts + 2× Axio Group)."
+            ],
+            "printedParts": [],
+            "hardware": [],
+            "checks": [
+              "Axio Group segment complete — Axio Group assembled",
+              "Base Plates · Step 1 complete — front & rear plates joined",
+              "Base Plates · Step 2 complete — pin through mounts & lower boom",
+              "Base Plates · Step 3 complete — Axio Group bolted from underside",
+              "Base Plates · Step 4 complete — assembly on extrusions"
+            ],
+            "imagePlaceholder": "See Axio Group segment + Base Plates — steps 1–4",
+            "configs": [
+              "single-sheave",
+              "dual-sheave"
+            ]
+          },
+          {
+            "id": "boom-02-side-halves",
+            "title": "Assemble LH & RH side halves",
+            "required": true,
+            "summary": "Assemble both side halves first. On each side, join the bottom, mid, and top lattice sections using Ruthex inserts, cap screws, and dowels at the four joint locations (two joints × two fasteners per joint).",
+            "orientationNotes": [
+              "Build the right-hand side half completely before starting the left",
+              "Each side = bottom section + mid section + top section",
+              "4 joint fasteners per side at bottom↔mid and mid↔top seams (see arrows)",
+              "At the top section of each side, install 6× ruthex® RX-M3×5.7 inserts for upper boom clamp mounts"
+            ],
+            "printedParts": [
+              {
+                "name": "Boom Section 1 — LH",
+                "file": "BOOM SECTION 1 LH.stl",
+                "qty": 1,
+                "note": "Bottom/mid/top side panels — LH"
+              },
+              {
+                "name": "Boom Section 1 — RH",
+                "file": "BOOM SECTION 1 RH.stl",
+                "qty": 1,
+                "note": "Bottom/mid/top side panels — RH"
+              },
+              {
+                "name": "Boom Mid Section — LH/RH",
+                "file": "BOOM MID SECTION LH_RH.stl",
+                "qty": 1
+              },
+              {
+                "name": "Boom End — Lower",
+                "file": "BOOM END LOWER.stl",
+                "qty": 1
+              },
+              {
+                "name": "Boom End — Upper",
+                "file": "BOOM END UPPER.stl",
+                "qty": 1
+              }
+            ],
+            "hardwarePerSide": [
+              {
+                "ref": "ruthex-m3-57",
+                "qty": 4,
+                "note": "Section joints — 2 at bottom↔mid + 2 at mid↔top"
+              },
+              {
+                "ref": "cap-screw-m3x8",
+                "qty": 4,
+                "note": "Into RX-M3×5.7 inserts at section joints"
+              },
+              {
+                "ref": "dowel-m3x12",
+                "qty": 2,
+                "note": "Assists alignment at section joints"
+              },
+              {
+                "ref": "ruthex-m3-57",
+                "qty": 6,
+                "note": "Top section only — for upper boom clamp mounts"
+              }
+            ],
+            "hardwareTotals": {
+              "section-joints": {
+                "label": "Section joints (both sides)",
+                "items": [
+                  {
+                    "ref": "ruthex-m3-57",
+                    "qty": 8
+                  },
+                  {
+                    "ref": "cap-screw-m3x8",
+                    "qty": 8
+                  },
+                  {
+                    "ref": "dowel-m3x12",
+                    "qty": 4
+                  }
+                ]
+              },
+              "clamp-mounts": {
+                "label": "Upper boom clamp mounts (both sides)",
+                "items": [
+                  {
+                    "ref": "ruthex-m3-57",
+                    "qty": 12,
+                    "note": "6 per top section × 2 sides"
+                  }
+                ]
+              }
+            },
+            "checks": [
+              "RH side: bottom, mid, and top sections joined — 4 screws + 2 dowels",
+              "LH side: bottom, mid, and top sections joined — 4 screws + 2 dowels",
+              "6 clamp-mount inserts installed in top of each side",
+              "Both side halves square and rigid at joints"
+            ],
+            "imagePlaceholder": "One side half — 4 arrow callouts at bottom↔mid and mid↔top joints",
+            "configs": [
+              "single-sheave",
+              "dual-sheave"
+            ]
+          },
+          {
+            "id": "boom-03-top-bottom",
+            "title": "Assemble top & bottom panels",
+            "required": true,
+            "summary": "With both LH and RH side halves complete, assemble the top and bottom panel sections. The top section has a recess in the segment closest to the sheaves — orient toward the boom head. Use the same section-joint hardware as the side halves for joins within each panel run.",
+            "orientationNotes": [
+              "The top boom section has a recess in the segment closest to the sheaves — orient this toward the boom head",
+              "Assemble top and bottom panel runs (section-to-section) before final 4-way lattice join"
+            ],
+            "printedParts": [
+              {
+                "name": "Boom Section 1 — Top/Bottom",
+                "file": "BOOM SECTION 1 TOP_BOTTOM.stl",
+                "qty": 1
+              },
+              {
+                "name": "Boom Mid Section — Top/Bottom",
+                "file": "BOOM MID SECTION TOP_BOTTOM.stl",
+                "qty": 1
+              }
+            ],
+            "hardwarePerSide": [
+              {
+                "ref": "ruthex-m3-57",
+                "qty": 4,
+                "note": "Per panel run at internal section joints"
+              },
+              {
+                "ref": "cap-screw-m3x8",
+                "qty": 4,
+                "note": "Into RX-M3×5.7 at internal section joints"
+              },
+              {
+                "ref": "dowel-m3x12",
+                "qty": 2,
+                "note": "At internal section joints"
+              }
+            ],
+            "hardwareTotals": {
+              "internal-joints": {
+                "label": "Internal section joints (top + bottom combined)",
+                "items": [
+                  {
+                    "ref": "ruthex-m3-57",
+                    "qty": 8
+                  },
+                  {
+                    "ref": "cap-screw-m3x8",
+                    "qty": 8
+                  },
+                  {
+                    "ref": "dowel-m3x12",
+                    "qty": 4
+                  }
+                ]
+              }
+            },
+            "checks": [
+              "Top panel run assembled — recess faces toward sheaves / boom head",
+              "Bottom panel run assembled",
+              "Internal section joints secured on both panel runs"
+            ],
+            "imagePlaceholder": "Top panel — recess callout at sheave end",
+            "configs": [
+              "single-sheave",
+              "dual-sheave"
+            ]
+          },
+          {
+            "id": "boom-04-join-lattice",
+            "title": "Join all 4 sides — complete boom lattice",
+            "required": true,
+            "summary": "Final boom lattice step. Before joining, install Ruthex inserts and dowels on the mating edges of the top and bottom sections. Lay one side half (LH or RH) flat on a table, then mate the remaining three sides to close the lattice.",
+            "orientationNotes": [
+              "Install top/bottom edge prep BEFORE joining the four sides",
+              "Blue arrows = ruthex® RX-M3×5.7 insert locations on mating edges",
+              "Green arrows = M3×12 mm dowel locations on mating edges",
+              "Start by laying LH or RH side half flat on the table"
+            ],
+            "printedParts": [
+              {
+                "name": "Boom Section 1 — LH",
+                "file": "BOOM SECTION 1 LH.stl",
+                "qty": 1,
+                "note": "Completed side half"
+              },
+              {
+                "name": "Boom Section 1 — RH",
+                "file": "BOOM SECTION 1 RH.stl",
+                "qty": 1,
+                "note": "Completed side half"
+              },
+              {
+                "name": "Boom Section 1 — Top/Bottom",
+                "file": "BOOM SECTION 1 TOP_BOTTOM.stl",
+                "qty": 1,
+                "note": "Completed top/bottom runs"
+              },
+              {
+                "name": "Boom Mid Section — Top/Bottom",
+                "file": "BOOM MID SECTION TOP_BOTTOM.stl",
+                "qty": 1
+              }
+            ],
+            "hardwareTotals": {
+              "top-bottom-prep": {
+                "label": "Prep — top & bottom mating edges (before join)",
+                "items": [
+                  {
+                    "ref": "ruthex-m3-57",
+                    "qty": 28,
+                    "note": "Blue arrow locations — both top & bottom"
+                  },
+                  {
+                    "ref": "dowel-m3x12",
+                    "qty": 24,
+                    "note": "Green arrow locations — both top & bottom"
+                  }
+                ]
+              },
+              "final-join": {
+                "label": "Final 4-way assembly",
+                "items": [
+                  {
+                    "ref": "dowel-m3x12",
+                    "qty": 12,
+                    "note": "Optional — assists joining all 4 sides"
+                  }
+                ]
+              }
+            },
+            "checks": [
+              "28× ruthex® RX-M3×5.7 inserts installed on top & bottom mating edges",
+              "24 M3×12 dowels installed on top & bottom (green locations)",
+              "One side half laid flat as base — other three sides mated",
+              "12 optional dowels installed if used for final alignment",
+              "Full lattice closed, square, and rigid"
+            ],
+            "legend": [
+              {
+                "color": "blue",
+                "label": "ruthex® RX-M3×5.7 (GE-M3X5.7-001)"
+              },
+              {
+                "color": "green",
+                "label": "M3×12 mm dowel locations"
+              }
+            ],
+            "imagePlaceholder": "Mating edge — blue = Ruthex inserts, green = dowels",
+            "configs": [
+              "single-sheave",
+              "dual-sheave"
+            ]
+          },
+          {
+            "id": "boom-05-sheaves",
+            "title": "Assemble sheaves (pulleys)",
+            "required": true,
+            "summary": "Join each pulley half-pair, press in bearing, install 3× M3×8 cap screws per pulley (direct thread — no inserts).",
+            "printedParts": [],
+            "hardwarePerPulley": [
+              {
+                "ref": "bearing-5x14x5",
+                "qty": 1
+              },
+              {
+                "ref": "cap-screw-m3x8",
+                "qty": 3,
+                "note": "Direct thread into pulley halves — no insert"
+              }
+            ],
+            "hardwareTotals": {
+              "single-sheave": {
+                "bearings": 2,
+                "M3×8 screws": 6,
+                "pulleys": 2
+              },
+              "dual-sheave": {
+                "bearings": 4,
+                "M3×8 screws": 12,
+                "pulleys": 4
+              }
+            },
+            "checks": [
+              "Bearing fully seated in center hub",
+              "All 3 M3 screws installed per pulley",
+              "Pulley spins freely on bearing"
+            ],
+            "imagePlaceholder": "Pulley halves + bearing + M3 screw callouts",
+            "configs": [
+              "single-sheave",
+              "dual-sheave"
+            ]
+          },
+          {
+            "id": "boom-06-dual-head",
+            "title": "Install pins, sheaves & shaft retainers",
+            "required": true,
+            "summary": "With the boom lattice complete, slide two 150 mm × 5 mm pins through the sheave locations. Add dual sheave spacers as each pin goes in to position the sheaves. Bolt the four shaft retainers (upper boom clamps) with 12× M3×8 cap screws into the Ruthex inserts (yellow arrows).",
+            "configs": [
+              "dual-sheave"
+            ],
+            "orientationNotes": [
+              "Pre-assemble sheaves in Step 5 before installing on pins",
+              "Install spacers on the pin before each sheave — do not slide all sheaves on first",
+              "Two pins = two sheave rows (upper and lower shaft locations)"
+            ],
+            "legend": [
+              {
+                "color": "yellow",
+                "label": "M3×8 cap screw — shaft retainer (×12 total, 3 per retainer)"
+              },
+              {
+                "color": "blue",
+                "label": "ruthex® RX-M3×5.7 — retainer mount"
+              },
+              {
+                "color": "green",
+                "label": "Dual sheave spacers on pin"
+              }
+            ],
+            "printedParts": [
+              {
+                "name": "Upper Boom Clamp (shaft retainer)",
+                "file": "UPPER BOOM CLAMP.stl",
+                "qty": 4
+              },
+              {
+                "name": "Center 8 mm Spacer",
+                "file": "CENTER 8MM SPACER.stl",
+                "qty": 2
+              },
+              {
+                "name": "LH 48 mm Spacer",
+                "file": "LH 48MM SPACER.stl",
+                "qty": 2
+              },
+              {
+                "name": "RH 35 mm Spacer",
+                "file": "RH 35MM SPACER.stl",
+                "qty": 2
+              }
+            ],
+            "hardware": [
+              {
+                "ref": "pin-sheave-5x150",
+                "qty": 2,
+                "note": "Slide through sheave locations"
+              },
+              {
+                "ref": "cap-screw-m3x8",
+                "qty": 12,
+                "note": "Shaft retainers — yellow arrows, into RX-M3×5.7 inserts"
+              }
+            ],
+            "checks": [
+              "Both 150 mm × 5 mm pins fully inserted",
+              "Spacers installed between sheaves and frame as each pin was slid through",
+              "All 4 sheaves seated and spin freely on pins",
+              "All 4 shaft retainers bolted — 12× M3×8 at yellow arrow locations",
+              "Pins captured — retainers prevent pin from sliding out"
+            ],
+            "imagePlaceholder": "Boom head — yellow = retainer screws, green = spacers on pins"
+          },
+          {
+            "id": "boom-07-lower-support",
+            "title": "Install lower boom support",
+            "required": true,
+            "summary": "Install 8× ruthex® RX-M3×5.7 heat-set inserts in the lower boom support and bolt it to the lower boom lattice with 8× M3×8 cap screws. The 10 mm × 150 mm boom pin was installed through mounts and lower boom in Base Plates · Step 2 — verify it is still seated.",
+            "configs": [
+              "single-sheave",
+              "dual-sheave"
+            ],
+            "legend": [
+              {
+                "color": "blue",
+                "label": "ruthex® RX-M3×5.7 (×8) — P/N GE-M3X5.7-001"
+              }
+            ],
+            "printedParts": [
+              {
+                "name": "Boom End — Lower",
+                "file": "BOOM END LOWER.stl",
+                "qty": 1,
+                "note": "Already on boom pin from Base Plates · Step 2"
+              }
+            ],
+            "hardware": [
+              {
+                "ref": "ruthex-m3-57",
+                "qty": 8,
+                "note": "Install before bolting to lattice"
+              },
+              {
+                "ref": "cap-screw-m3x8",
+                "qty": 8,
+                "note": "Bolt lower boom support to lower boom lattice"
+              }
+            ],
+            "checks": [
+              "All 8× ruthex® RX-M3×5.7 inserts installed flush in lower boom support",
+              "Lower boom support bolted securely to lower boom lattice",
+              "10 mm × 150 mm boom pin still fully seated through mounts and lower boom",
+              "Pivot operates smoothly"
+            ],
+            "imagePlaceholder": "Lower boom support — blue arrows = Ruthex insert locations"
+          },
+          {
+            "id": "boom-08-boom-mount-inserts",
+            "title": "Install ruthex® RX-M6Sx6.8 in boom mounts",
+            "required": true,
+            "summary": "Install ruthex® RX-M6Sx6.8 heat-set inserts into both boom mounts for VRU mounting. Use 8 inserts if you want the option to mount the VRU on either side of the boom; 6 if VRU will only ever mount on one side.",
+            "configs": [
+              "single-sheave",
+              "dual-sheave"
+            ],
+            "usesVruConfig": true,
+            "legend": [
+              {
+                "color": "blue",
+                "label": "ruthex® RX-M6Sx6.8 (GE-M6X68-001)"
+              }
+            ],
+            "printedParts": [
+              {
+                "name": "Boom Mount",
+                "file": "BOOM MOUNT.stl",
+                "qty": 2
+              }
+            ],
+            "hardwareByVruConfig": {
+              "vru-both-sides": [
+                {
+                  "ref": "ruthex-m6-68",
+                  "qty": 8,
+                  "note": "Both mounts fully prepped — VRU can mount either side"
+                }
+              ],
+              "vru-one-side": [
+                {
+                  "ref": "ruthex-m6-68",
+                  "qty": 6,
+                  "note": "One side only — see blue arrow locations"
+                }
+              ]
+            },
+            "orientationNotes": [
+              "Install inserts before attaching VRU to boom mounts",
+              "Blue arrows show insert hole locations on each boom mount",
+              "Use 8.0 mm diameter holes for RX-M6Sx6.8 inserts"
+            ],
+            "checks": [
+              "All ruthex® RX-M6Sx6.8 inserts installed flush in boom mounts",
+              "Insert count matches VRU placement choice (6 or 8)",
+              "Inserts aligned for VRU mounting hardware"
+            ],
+            "imagePlaceholder": "Boom mounts — blue arrows = M6 Ruthex insert locations"
+          },
+          {
+            "id": "boom-09-vru",
+            "title": "Bolt VRU to boom mount",
+            "required": true,
+            "summary": "After installing RX-M6Sx6.8 inserts, bolt the VRU to the boom mount using 2× M6×20 cap screws into the Ruthex inserts (blue arrows on boom mount faces).",
+            "configs": [
+              "single-sheave",
+              "dual-sheave"
+            ],
+            "legend": [
+              {
+                "color": "blue",
+                "label": "M6×20 cap screw — VRU to boom mount (×2) · into RX-M6Sx6.8"
+              }
+            ],
+            "hardware": [
+              {
+                "ref": "cap-screw-m6x20",
+                "qty": 2,
+                "note": "Into ruthex® RX-M6Sx6.8 inserts on boom mount"
+              }
+            ],
+            "orientationNotes": [
+              "Requires boom-08 Ruthex inserts installed first",
+              "Mount VRU on LH or RH boom mount depending on your configuration"
+            ],
+            "checks": [
+              "VRU seated against boom mount",
+              "Both M6×20 screws threaded into RX-M6Sx6.8 inserts",
+              "VRU secure — no movement at mount interface"
+            ],
+            "imagePlaceholder": "Boom mount face — 2 blue arrows for VRU mounting screws"
+          },
+          {
+            "id": "boom-10-lr970b",
+            "title": "Install LR970B boom IMU mount",
+            "required": true,
+            "summary": "Mount the LR970B boom IMU bracket to the boom lattice. The bracket fits in multiple lattice openings — choose the location that works best for your build. Install 2× ruthex® RX-M6Sx6.8 inserts, then secure with 2× M6×30 cap screws.",
+            "configs": [
+              "single-sheave",
+              "dual-sheave"
+            ],
+            "legend": [
+              {
+                "color": "blue",
+                "label": "M6×30 cap screw + RX-M6Sx6.8 insert (×2)"
+              }
+            ],
+            "orientationNotes": [
+              "Mount location is flexible — bracket fits within multiple lattice areas",
+              "Install RX-M6Sx6.8 heat-set inserts at the two mounting holes (blue arrows) before bolting",
+              "Use 8.0 mm holes for RX-M6Sx6.8 inserts"
+            ],
+            "printedParts": [
+              {
+                "name": "Boom LR970B — Front Plate",
+                "file": "BOOM LR970B FRONT PLATE.stl",
+                "qty": 1
+              },
+              {
+                "name": "Boom LR970B — Back Plate",
+                "file": "BOOM LR970B BACK PLATE.stl",
+                "qty": 1
+              }
+            ],
+            "hardware": [
+              {
+                "ref": "ruthex-m6-68",
+                "qty": 2,
+                "note": "Heat-set at LR970B mounting holes on lattice"
+              },
+              {
+                "ref": "cap-screw-m6x30",
+                "qty": 2,
+                "note": "Through LR970B mount flange into inserts"
+              }
+            ],
+            "checks": [
+              "2× RX-M6Sx6.8 inserts installed flush at chosen mount location",
+              "LR970B front and back plates assembled on bracket",
+              "Bracket secured with 2× M6×30 cap screws",
+              "IMU mount solid — no flex at lattice interface"
+            ],
+            "imagePlaceholder": "LR970B mount in lattice opening — blue arrows = 2 screw/insert locations"
+          }
+        ]
+      },
+      "boom-spacers-dual-sheave": {
+        "id": "boom-spacers-dual-sheave",
+        "order": 4,
+        "title": "Boom Spacers for Dual Sheave",
+        "driveFolder": "BOOM SPACERS FOR DUAL SHEAVE",
+        "status": "placeholder",
+        "steps": [],
+        "placeholderMessage": "Content coming soon — add STL listing and assembly steps."
+      },
+      "boom-supports": {
+        "id": "boom-supports",
+        "order": 5,
+        "title": "Boom Supports",
+        "driveFolder": "BOOM SUPPORTS",
+        "status": "placeholder",
+        "steps": [],
+        "placeholderMessage": "Content coming soon — stays, braces, and support hardware."
+      },
+      "multi-turn-add-on": {
+        "id": "multi-turn-add-on",
+        "order": 6,
+        "title": "Multi Turn Add On",
+        "driveFolder": "MULTI TURN ADD ON",
+        "status": "placeholder",
+        "steps": [],
+        "placeholderMessage": "Content coming soon — winch, spool, and multi-turn adapter steps."
+      },
+      "bucket-attachment": {
+        "id": "bucket-attachment",
+        "order": 7,
+        "title": "Bucket Attachment",
+        "driveFolder": "CLAMSHELL",
+        "status": "in-progress",
+        "assemblyNote": "Optional clamshell bucket end-effector for the bench crane. Complete the main crane build before installing this attachment.",
+        "printingGuidance": {
+          "title": "Print tips",
+          "lines": [
+            "Orient the clamshell halves tipped back on their rear exterior surface — open interior faces up (see Step 1 reference image).",
+            "Optional: use PLA for interface/support contact layers and PETG for the main model so supports break away cleanly."
+          ]
+        },
+        "chapterHardware": [
+          {
+            "ref": "pin-sheave-5x150",
+            "qty": 1,
+            "note": "Bucket pivot — same 5 mm × 150 mm pin as boom sheave pins"
+          },
+          {
+            "ref": "bearing-5x14x5",
+            "qty": 1,
+            "note": "Same 5 mm × 14 mm × 5 mm bearing as boom sheave assembly"
+          },
+          {
+            "ref": "ruthex-m3-57",
+            "qty": 8,
+            "note": "Heat-set into 4.0 mm holes on bucket printed parts"
+          },
+          {
+            "ref": "cap-screw-m3x8",
+            "qty": 19,
+            "note": "Linkage and bucket assembly"
+          },
+          {
+            "ref": "dowel-m3x12",
+            "qty": 1,
+            "note": "M3 × 12 mm alignment pin"
+          }
+        ],
+        "printParts": [
+          {
+            "name": "Clamshell Half 1",
+            "file": "CLAMSHELL HALF 1.stl",
+            "qty": 1,
+            "note": "Recommended orientation — see Step 1"
+          },
+          {
+            "name": "Clamshell Half 2",
+            "file": "CLAMSHELL HALF 2.stl",
+            "qty": 1,
+            "note": "Recommended orientation — see Step 1"
+          },
+          {
+            "name": "Added Clearance Bucket Retainer",
+            "file": "ADDED CLEARANCE BUCKET RETAINER.stl",
+            "qty": 1
+          },
+          {
+            "name": "Hanger 1",
+            "file": "HANGER 1.stl",
+            "qty": 1
+          },
+          {
+            "name": "Hanger 2",
+            "file": "HANGER 2.stl",
+            "qty": 1
+          },
+          {
+            "name": "Keeper",
+            "file": "KEEPER.stl",
+            "qty": 1
+          },
+          {
+            "name": "Linkage Arm",
+            "file": "LINKAGE ARM.stl",
+            "qty": 4
+          },
+          {
+            "name": "Top Section",
+            "file": "TOP SECTION.stl",
+            "qty": 1
+          },
+          {
+            "name": "30 mm Pulley Half 1",
+            "file": "30MM PULLEY (PRIMARY SHEAVE) HALF 1.stl",
+            "qty": 1
+          },
+          {
+            "name": "30 mm Pulley Half 2",
+            "file": "30MM PULLEY (PRIMARY SHEAVE) HALF 2.stl",
+            "qty": 1
+          }
+        ],
+        "steps": [
+          {
+            "id": "bucket-01-print",
+            "title": "Print all bucket parts — recommended orientation",
+            "required": true,
+            "summary": "Print every STL in the CLAMSHELL folder. Lay the clamshell halves tipped back on their rear exterior surface with the open interior facing up, as shown in the reference image.",
+            "orientationNotes": [
+              "CLAMSHELL HALF 1 & 2: rear exterior on the build plate, open side up — matches the recommended slicer layout",
+              "Hangers, keeper, linkage arms, top section, retainer, and pulley halves: print flat on the build plate",
+              "LINKAGE ARM.stl — print 4 copies"
+            ],
+            "warnings": [
+              "Optional multi-material: PLA interface layers + PETG main model helps supports snap off cleanly"
+            ],
+            "printedParts": [],
+            "hardware": [],
+            "checks": [
+              "All bucket attachment STLs printed",
+              "Bucket halves oriented per reference image",
+              "Supports removed — no loose interface material in pivot or pin bores"
+            ],
+            "imageDriveId": "bucketPrintOrientation",
+            "imageAlt": "Recommended bucket print layout on the build plate — bucket halves tipped back, open side up",
+            "imagePlaceholder": "Upload slicer layout screenshot to Drive → bucketPrintOrientation in CRANE_DRIVE_IMAGES"
+          },
+          {
+            "id": "bucket-02-inserts",
+            "title": "Install ruthex® RX-M3×5.7 heat-set inserts",
+            "required": true,
+            "summary": "Install 8× ruthex® RX-M3×5.7 inserts (P/N GE-M3X5.7-001) in the bucket printed parts before assembly. Use 4.0 mm holes and the M3 ruthex tip — same inserts as the rest of the crane build.",
+            "orientationNotes": [
+              "Heat-set all inserts flush before mating linkage parts",
+              "Do not exceed 300°C when installing inserts"
+            ],
+            "printedParts": [],
+            "hardware": [
+              {
+                "ref": "ruthex-m3-57",
+                "qty": 8,
+                "note": "4.0 mm holes · GE-M3X5.7-001"
+              }
+            ],
+            "checks": [
+              "All 8× RX-M3×5.7 inserts installed flush",
+              "Threads clean — M3×8 cap screws start by hand"
+            ],
+            "imagePlaceholder": "Insert locations on bucket linkage parts — photo coming soon"
+          },
+          {
+            "id": "bucket-03-assemble",
+            "title": "Assemble bucket linkage & mount",
+            "required": true,
+            "summary": "Assemble the bucket linkage using the printed parts, 19× M3×8 cap screws, 1× M3×12 pin, 1× 5 mm × 150 mm pin, and 1× 5 mm × 14 mm × 5 mm bearing. Detailed step-by-step photos are being added.",
+            "orientationNotes": [
+              "Press the 5 mm × 14 mm × 5 mm bearing into the pivot bore before installing the 5 mm × 150 mm pin",
+              "Use the M3 × 12 mm pin where the linkage calls for a fixed alignment pin",
+              "Tighten all M3×8 cap screws into RX-M3×5.7 inserts — do not overtighten printed walls"
+            ],
+            "printedParts": [
+              {
+                "name": "Clamshell Half 1",
+                "file": "CLAMSHELL HALF 1.stl",
+                "qty": 1
+              },
+              {
+                "name": "Clamshell Half 2",
+                "file": "CLAMSHELL HALF 2.stl",
+                "qty": 1
+              },
+              {
+                "name": "Added Clearance Bucket Retainer",
+                "file": "ADDED CLEARANCE BUCKET RETAINER.stl",
+                "qty": 1
+              },
+              {
+                "name": "Hanger 1",
+                "file": "HANGER 1.stl",
+                "qty": 1
+              },
+              {
+                "name": "Hanger 2",
+                "file": "HANGER 2.stl",
+                "qty": 1
+              },
+              {
+                "name": "Keeper",
+                "file": "KEEPER.stl",
+                "qty": 1
+              },
+              {
+                "name": "Linkage Arm",
+                "file": "LINKAGE ARM.stl",
+                "qty": 4
+              },
+              {
+                "name": "Top Section",
+                "file": "TOP SECTION.stl",
+                "qty": 1
+              },
+              {
+                "name": "30 mm Pulley Half 1",
+                "file": "30MM PULLEY (PRIMARY SHEAVE) HALF 1.stl",
+                "qty": 1
+              },
+              {
+                "name": "30 mm Pulley Half 2",
+                "file": "30MM PULLEY (PRIMARY SHEAVE) HALF 2.stl",
+                "qty": 1
+              }
+            ],
+            "hardware": [
+              {
+                "ref": "cap-screw-m3x8",
+                "qty": 19
+              },
+              {
+                "ref": "dowel-m3x12",
+                "qty": 1
+              },
+              {
+                "ref": "pin-sheave-5x150",
+                "qty": 1
+              },
+              {
+                "ref": "bearing-5x14x5",
+                "qty": 1
+              }
+            ],
+            "checks": [
+              "Bucket halves joined and linkage moves without binding",
+              "5 mm × 150 mm pivot pin installed with bearing seated",
+              "All 19× M3×8 cap screws tight",
+              "Bucket attachment ready to mount to the crane"
+            ],
+            "imagePlaceholder": "Bucket assembly — step photos coming soon"
+          }
+        ]
+      }
+    }
+  },
+  "CRANE_DRIVE_IMAGES": {
+    "ruthexTipSet": "1es6bZtfu68YrNKheIwu9nM0c3LW4wfZr",
+    "base01Join": "1eHzC3z76X4utOGR7O3i42zuB1WMiqhbL",
+    "base02BoomMount": "1NytNrWaykBqriE_87UFKLq4RFcrmJXJK",
+    "base03AxioMount": "1P_uveZbafe54jDlvrlchW-tPoUi9u5JE",
+    "base04Extrusions": "16mX-ZVtX3UWbRuCr6iHM3m-zjwtUpehC",
+    "bucketPrintOrientation": ""
+  },
+  "HARDWARE_CATALOG": {
+    "ruthex-m3-57": {
+      "id": "ruthex-m3-57",
+      "formalName": "ruthex® RX-M3×5.7 Threaded Insert",
+      "partNumber": "GE-M3X5.7-001",
+      "category": "Heat-set insert",
+      "thread": "M3",
+      "length": "5.7 mm",
+      "installHole": "4.0 mm diameter",
+      "minHoleDepth": "6.7 mm",
+      "material": "Brass",
+      "shortLabel": "RX-M3×5.7",
+      "guideCallout": "ruthex® RX-M3×5.7 (P/N GE-M3X5.7-001)",
+      "annotationColor": "blue",
+      "usedIn": "Boom lattice, lower boom support, shaft retainers, upper clamp mounts, bucket attachment",
+      "notes": "Heat-set into 4.0 mm holes. Blue arrows in step images = this insert."
+    },
+    "ruthex-m6-68": {
+      "id": "ruthex-m6-68",
+      "formalName": "ruthex® RX-M6Sx6.8 Threaded Insert",
+      "partNumber": "GE-M6X68-001",
+      "category": "Heat-set insert",
+      "thread": "M6",
+      "length": "6.8 mm",
+      "installHole": "8.0 mm diameter",
+      "minHoleDepth": "7.8 mm",
+      "material": "Brass",
+      "shortLabel": "RX-M6Sx6.8",
+      "guideCallout": "ruthex® RX-M6Sx6.8 (P/N GE-M6X68-001)",
+      "annotationColor": "blue",
+      "usedIn": "Boom mounts (VRU) · LR970B boom IMU mount",
+      "notes": "Heat-set into 8.0 mm holes. Cd-free · Pb-free · RoHS compliant. Order 8–10 for VRU flexibility + 2 for LR970B."
+    },
+    "cap-screw-m3x8": {
+      "id": "cap-screw-m3x8",
+      "formalName": "M3 × 8 mm Socket Head Cap Screw",
+      "partNumber": null,
+      "category": "Fastener",
+      "shortLabel": "M3×8 SHCS",
+      "guideCallout": "M3×8 mm cap screw",
+      "usedIn": "Boom lattice joints, pulley halves, shaft retainers, lower boom support, bucket attachment",
+      "notes": "Into RX-M3×5.7 inserts where noted · direct thread into pulley halves where noted."
+    },
+    "cap-screw-m6x20": {
+      "id": "cap-screw-m6x20",
+      "formalName": "M6 × 20 mm Socket Head Cap Screw",
+      "partNumber": null,
+      "category": "Fastener",
+      "shortLabel": "M6×20 SHCS",
+      "guideCallout": "M6×20 mm cap screw",
+      "usedIn": "Base plates to extrusions (8) · boom mounts to base plate (4) · VRU to boom mount (2)",
+      "notes": "14× total for full build · also used with 8020 T-nuts on base extrusions."
+    },
+    "cap-screw-m6x30": {
+      "id": "cap-screw-m6x30",
+      "formalName": "M6 × 30 mm Socket Head Cap Screw",
+      "partNumber": null,
+      "category": "Fastener",
+      "shortLabel": "M6×30 SHCS",
+      "guideCallout": "M6×30 mm cap screw",
+      "usedIn": "LR970B boom IMU mount — 2× into RX-M6Sx6.8 inserts",
+      "notes": "Longer M6 screw for LR970B mount through boom lattice flange."
+    },
+    "dowel-m3x12": {
+      "id": "dowel-m3x12",
+      "formalName": "M3 × 12 mm Steel Dowel Pin",
+      "partNumber": null,
+      "category": "Alignment dowel",
+      "shortLabel": "M3×12 dowel",
+      "guideCallout": "M3×12 mm steel dowel pin",
+      "annotationColor": "green",
+      "usedIn": "Base plate joint (optional), boom lattice section alignment, bucket attachment",
+      "notes": "Green arrows in step images · press-fit for alignment and joint support."
+    },
+    "bearing-5x14x5": {
+      "id": "bearing-5x14x5",
+      "formalName": "5 mm ID × 14 mm OD × 5 mm Ball Bearing",
+      "partNumber": null,
+      "category": "Bearing",
+      "shortLabel": "5×14×5 bearing",
+      "guideCallout": "5 mm ID × 14 mm OD × 5 mm bearing",
+      "usedIn": "Sheave (pulley) assembly — one per pulley; bucket attachment pivot"
+    },
+    "pin-sheave-5x150": {
+      "id": "pin-sheave-5x150",
+      "formalName": "5 mm × 150 mm Sheave Pin",
+      "partNumber": null,
+      "category": "Shaft / pin",
+      "shortLabel": "5×150 sheave pin",
+      "guideCallout": "150 mm × 5 mm pin",
+      "usedIn": "Boom head — sheaves slide on these pins; bucket attachment pivot"
+    },
+    "pin-boom-10x150": {
+      "id": "pin-boom-10x150",
+      "formalName": "10 mm × 150 mm Boom Pivot Pin",
+      "partNumber": null,
+      "category": "Shaft / pin",
+      "shortLabel": "10×150 boom pin",
+      "guideCallout": "10 mm × 150 mm boom pin",
+      "usedIn": "Lower boom support — main boom pivot",
+      "notes": "Not the same as the 5 mm sheave pins."
+    },
+    "extrusion-4040-500": {
+      "id": "extrusion-4040-500",
+      "formalName": "40 mm × 40 mm Lite T-Slotted Profile — 500 mm",
+      "partNumber": "40-4040-LITE-BLACK",
+      "vendor": "8020.net",
+      "vendorUrl": "https://8020.net/40-4040-lite-black",
+      "category": "Structural",
+      "shortLabel": "40×40×500 extrusion",
+      "guideCallout": "8020 P/N 40-4040-LITE-BLACK · 40 Series · 500 mm · Black",
+      "length": "500 mm (19.69 in)",
+      "profile": "40 mm × 40 mm Lite · four open T-slots · black anodized",
+      "usedIn": "Base plate foundation rails — qty 2",
+      "notes": "40 Series (metric) · compatible with all 40 series fasteners · order cut to 500 mm length.",
+      "imageRef": "8020 product page — 40-4040-Lite-Black cross-section"
+    },
+    "tnut-m6-rollin": {
+      "id": "tnut-m6-rollin",
+      "formalName": "M6 Short Self-Aligning Roll-in T-Nut with Spring Leaf",
+      "partNumber": "13093",
+      "category": "Extrusion hardware",
+      "shortLabel": "M6 roll-in T-nut",
+      "guideCallout": "P/N 13093 · M6 roll-in T-nut with spring leaf",
+      "thread": "M6",
+      "usedIn": "Base plates to extrusion — one per M6×20 screw · qty 8",
+      "notes": "Roll into T-slot before inserting cap screw. Replaces generic hammer nuts / inserts."
+    },
+    "endcap-40-series": {
+      "id": "endcap-40-series",
+      "formalName": "40 Series End Cap with Molded Push-In Stem",
+      "partNumber": "12260",
+      "category": "Extrusion hardware",
+      "shortLabel": "40 series end cap",
+      "guideCallout": "P/N 12260 · 40 series push-in end cap",
+      "usedIn": "Extrusion rail ends — qty 4 (both ends of both rails)",
+      "notes": "Push-in stem · finishes open extrusion ends."
+    }
+  },
+  "MASTER_HARDWARE_KIT": [
+    {
+      "ref": "ruthex-m3-57",
+      "note": "Primary insert — used throughout boom assembly"
+    },
+    {
+      "ref": "ruthex-m6-68",
+      "note": "Boom mounts only — order 8 for VRU flexibility, 6 minimum"
+    },
+    {
+      "ref": "cap-screw-m3x8",
+      "note": "Single M3 screw size for entire build"
+    },
+    {
+      "ref": "cap-screw-m6x20",
+      "note": "14× total — 8 base · 4 boom mount · 2 VRU"
+    },
+    {
+      "ref": "cap-screw-m6x30",
+      "note": "2× — LR970B boom IMU mount"
+    },
+    {
+      "ref": "dowel-m3x12",
+      "note": "Single dowel size for entire build"
+    },
+    {
+      "ref": "bearing-5x14x5",
+      "note": "4× for dual sheave · 2× for single sheave"
+    },
+    {
+      "ref": "pin-sheave-5x150",
+      "note": "2× for dual sheave boom head"
+    },
+    {
+      "ref": "pin-boom-10x150",
+      "note": "1× main boom pivot"
+    },
+    {
+      "ref": "extrusion-4040-500",
+      "note": "2× 500 mm rails — P/N 40-4040-LITE-BLACK"
+    },
+    {
+      "ref": "tnut-m6-rollin",
+      "note": "8× — P/N 13093 · base plate to extrusion"
+    },
+    {
+      "ref": "endcap-40-series",
+      "note": "4× — P/N 12260 · extrusion rail ends"
+    }
+  ],
+  "INSERT_CALLOUTS": {
+    "m3": "ruthex® RX-M3×5.7 · P/N GE-M3X5.7-001 · M3 · 5.7 mm · 4.0 mm hole",
+    "m6": "ruthex® RX-M6Sx6.8 · P/N GE-M6X68-001 · M6 · 6.8 mm · 8.0 mm hole"
+  }
+}
