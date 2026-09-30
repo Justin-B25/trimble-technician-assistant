@@ -915,7 +915,7 @@ function renderGroundworksDimensions(options) {
       '<div class="pd25-dimensions__b5-callout" role="note">' +
       '<strong>Critical — B5</strong><br>' +
       esc(data.b5Callout);
-    if (data.b5Image) {
+    if (!options.omitImages && data.b5Image) {
       html +=
         '<figure class="pd25-dimensions__b5-figure">' +
         '<img class="pd25-dimensions__b5-image pd25-expandable-img" src="' +
@@ -931,7 +931,7 @@ function renderGroundworksDimensions(options) {
         '</figcaption>' +
         '</figure>';
     }
-    if (data.mtImage) {
+    if (!options.omitImages && data.mtImage) {
       html +=
         '<figure class="pd25-dimensions__b5-figure">' +
         '<img class="pd25-dimensions__b5-image pd25-expandable-img" src="' +
@@ -946,6 +946,11 @@ function renderGroundworksDimensions(options) {
         esc(data.mtImageCaption || 'Where to shoot MT') +
         '</figcaption>' +
         '</figure>';
+    }
+    if (options.omitImages) {
+      html +=
+        '<p class="note" style="margin:10px 0 0;">Target placement photos: see the ' +
+        '<a href="guide.html#phase-2">pre measure-up guide</a>.</p>';
     }
     html += '</div>';
   }
@@ -1120,6 +1125,23 @@ function renderPhases() {
 
   markExpandableImages(root);
   updateWorkflowProgress();
+  openPhaseFromHash();
+}
+
+function openPhaseFromHash() {
+  var hash = (location.hash || '').replace(/^#/, '');
+  if (!hash) return;
+  var section = document.querySelector('[data-phase-id="' + hash + '"]');
+  if (!section) return;
+  var body = section.querySelector('.pd25-phase__body');
+  if (body) body.hidden = false;
+  state.expandedPhases[hash] = true;
+  saveProgress();
+  try {
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    section.scrollIntoView(true);
+  }
 }
 
 function switchTab(panelId) {
@@ -1309,8 +1331,6 @@ function syncRodUi() {
 
   if (rodSection) rodSection.hidden = !shotWithRod;
   if (rodField) rodField.hidden = !shotWithRod || !rodInSwNo;
-  var measureupFigure = document.getElementById('measureupToolFigure');
-  if (measureupFigure) measureupFigure.hidden = !shotWithRod;
   updateRodHeightDefault();
 }
 
@@ -1573,10 +1593,11 @@ function initGuide() {
   renderTooling();
   renderPhases();
   initImageLightbox();
+  window.addEventListener('hashchange', openPhaseFromHash);
 }
 
 function initCalculator() {
-  mountGroundworksDimensions('groundworksDimensions');
+  mountGroundworksDimensions('groundworksDimensions', { omitImages: true });
   bindCsv();
   bindRodUi();
   bindHcUi();

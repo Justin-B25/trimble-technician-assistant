@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/report-upload.css?v=1" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=34" />
+  <link rel="stylesheet" href="styles.css?v=35" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
@@ -31,300 +31,215 @@
 
   <main class="tc-main">
     <div class="card">
-      <div class="pd25-survey-requirement" role="note">
-        <strong>Measure-up prerequisites</strong>
-        <ul class="pd25-survey-requirement__list">
-          <li>All shots must use <strong>zero rod height</strong> in Siteworks and be recorded as <strong>control</strong> points.</li>
-          <li><strong>Plumb the mast</strong> in X and Y before shooting.</li>
-          <li>Move the X slide <strong>all the way left</strong> (toward the engine bay).</li>
-          <li>Retract the Y slide <strong>all the way in</strong> (toward the rear of the machine).</li>
-          <li>Lower the <strong>mast foot as far down as possible</strong>.</li>
-          <li>Place the machine on a <strong>firm, level surface</strong> for measure-up.</li>
-        </ul>
-        <p class="pd25-survey-requirement__note">
-          Do not enter rod height on MB or H in Siteworks — enter post height below (MB &amp; H rod height section) before you hit <strong>Calculate Results</strong>. The calculator adds post height and APC offset behind the scenes.
+      <nav class="pd25-calc-nav" aria-label="Calculator steps">
+        <p class="pd25-calc-nav__intro">
+          Work top to bottom: set units, upload survey, choose B5 method, set MB/H rod height, then calculate.
+          Target placement photos and machine setup steps live in the guide — not here.
         </p>
-      </div>
+        <a class="pd25-calc-guide-link" href="guide.html#phase-2">
+          Open pre measure-up target placement guide
+          <span class="pd25-calc-guide-link__hint">ML, MR, MT, MB, H, HC photos &amp; setup checklist</span>
+        </a>
+      </nav>
 
-      <div class="pd25-calc-hint" id="calcHint">
-        <strong>COGO calculator</strong> — upload your survey CSV anytime. Values assume standard PD25 layout:
-        <ul class="pd25-assumptions">
-          <li><strong>MB</strong> = moving-base antenna <em>closest to the mast</em></li>
-          <li><strong>H</strong> = heading antenna at the <em>rear</em> of the machine</li>
-          <li>Antenna brackets are <em>left of the mast</em> (MB and H mounting)</li>
-        </ul>
-        If you are new to PD25 or chasing accuracy issues, use the
-        <a href="guide.html">guided pre measure-up workflow</a> first.
-      </div>
+      <details class="pd25-dimensions-panel pd25-section" id="prereqSection">
+        <summary class="pd25-dimensions-panel__summary">Measure-up prerequisites (quick check)</summary>
+        <div class="pd25-dimensions-panel__body">
+          <ul class="pd25-survey-requirement__list" style="margin:0;">
+            <li>All shots: <strong>zero rod height</strong> in Siteworks, recorded as <strong>control</strong> points.</li>
+            <li><strong>Plumb the mast</strong> in X and Y before shooting.</li>
+            <li>X slide <strong>all the way left</strong> (engine bay); Y slide <strong>all the way in</strong> (rear).</li>
+            <li>Mast foot <strong>fully down</strong>; machine on a <strong>firm, level</strong> surface.</li>
+            <li>Do not enter MB/H rod height in Siteworks — use Step 3 below before Calculate.</li>
+          </ul>
+        </div>
+      </details>
 
       <details class="pd25-dimensions-panel pd25-section" id="groundworksDimensionsSection">
-        <summary class="pd25-dimensions-panel__summary">Groundworks dimensions reference</summary>
+        <summary class="pd25-dimensions-panel__summary">Groundworks dimensions reference (OEM defaults)</summary>
         <div class="pd25-dimensions-panel__body">
           <p class="note" style="margin:0 0 12px;">
-            OEM default values from the Vermeer PD25R measure-up guide. Enter all <strong>Use default</strong> rows in Groundworks;
-            <strong>Measure</strong> rows come from your survey and the calculator below. Tap <strong>Copy</strong> beside any value to paste into Groundworks.
+            Enter all <strong>Use default</strong> rows in Groundworks.
+            <strong>Measure</strong> rows come from your survey and this calculator. Tap <strong>Copy</strong> to paste.
           </p>
           <div id="groundworksDimensions"></div>
         </div>
       </details>
 
-      <div id="calcContent">
-        <p class="note">
-          Upload Siteworks CSV with <strong>ML</strong>, <strong>MR</strong>, <strong>MB</strong>, and <strong>H</strong>.
-          Optional <strong>MF</strong> (mast foot) enables <strong>T5</strong>. Optional <strong>HC</strong> (hammer center) enables <strong>T1</strong>.
-          When measuring B5, also include <strong>MT</strong> (Mast Tilt). The app builds CENTER REF and outputs
-          <strong>G6, G5, G2, G1, G7</strong>, plus <strong>B5</strong> when measured, and <strong>T5</strong> / <strong>T1</strong> when those points are present.
-        </p>
-
-        <div class="tc-field">
-          <label class="tc-label" for="units">Units</label>
-          <select id="units" class="tc-input">
-            <option value="US FT">US FT</option>
-            <option value="METRIC">METRIC</option>
-          </select>
-          <p class="note" style="margin-top:6px;">
-            Match your Siteworks project units before computing results.
+      <div id="calcContent" class="pd25-calc-flow">
+        <section class="pd25-calc-step" id="stepUnitsUpload" aria-labelledby="step1Title">
+          <h2 class="pd25-calc-step__title" id="step1Title">
+            <span class="pd25-calc-step__num">1</span>
+            Units &amp; survey upload
+          </h2>
+          <p class="pd25-calc-step__lead">
+            Match Siteworks project units, then upload CSV with <strong>ML</strong>, <strong>MR</strong>, <strong>MB</strong>, and <strong>H</strong>.
+            Optional: <strong>MF</strong> (T5), <strong>HC</strong> (T1), <strong>MT</strong> (measured B5 — BETA).
           </p>
-        </div>
 
-        <div class="tc-field">
-          <label class="tc-label" for="csvFormat">CSV format (if header is missing)</label>
-          <select id="csvFormat" class="tc-input">
-            <option value="PNEZ">P, N, E, Z</option>
-            <option value="PENZ">P, E, N, Z</option>
-          </select>
-        </div>
-
-        <div class="drop-zone" id="dropZone">
-          <span class="drop-zone__prompt">Drag survey CSV here or <b>click to upload</b></span>
-          <input type="file" id="csvFile" class="drop-zone__input" accept=".csv" hidden />
-        </div>
-
-        <div id="pointCheckList" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;"></div>
-
-        <div id="viz-container" aria-label="3D survey and COGO point preview"></div>
-
-        <div class="pd25-rod-callout" id="b5MethodCallout">
-          <p class="pd25-rod-callout__title">
-            B5 — Mast Tilt / Mast Pivot
-            <span class="pd25-beta-badge" title="Measured B5 is in testing — verify results before relying on guidance">BETA</span>
-          </p>
-          <p class="pd25-rod-callout__lead">
-            <strong>Mast Pivot (Y)</strong> is the front/back X-pin center (from ML/MR on the flange face, plus a horizontal offset to pin center).
-            <strong>Mast Tilt (MT / X)</strong> is the left/right tilt pin center.
-            <strong>B5</strong> is the vertical from Mast Pivot to Mast Tilt — always negative on the PD25 because MT is above the pivot.
-          </p>
-          <div class="pd25-ml-mr-refs" id="mlMrTargetFigures">
-            <figure class="pd25-measureup-tool pd25-ml-target" id="mlTargetFigure">
-              <img
-                class="pd25-measureup-tool__img pd25-ml-target__img"
-                src="assets/images/pd25-ml-flange-face-level.png"
-                alt="PD25 ML reference — spirit level on flange face; shoot acrylic at X-pin center elevation (arrow)"
-                width="480"
-                height="360"
-                loading="lazy"
-              />
-              <figcaption class="pd25-measureup-tool__caption">
-                <strong>ML</strong> — level on the flange face to find X-pin center height, then shoot the acrylic on the
-                flange face at that elevation (arrow).
-              </figcaption>
-            </figure>
-            <figure class="pd25-measureup-tool pd25-mr-target" id="mrTargetFigure">
-              <img
-                class="pd25-measureup-tool__img pd25-mr-target__img"
-                src="assets/images/pd25-mr-flange-face-target.png"
-                alt="PD25 MR reference — acrylic on mast-right flange face at X-pin center elevation (arrow)"
-                width="480"
-                height="360"
-                loading="lazy"
-              />
-              <figcaption class="pd25-measureup-tool__caption">
-                <strong>MR</strong> — same elevation as ML; shoot the acrylic on the mast-right flange face at X-pin
-                center height (arrow / crosshair).
-              </figcaption>
-            </figure>
+          <div class="pd25-calc-step__fields">
+            <div class="tc-field">
+              <label class="tc-label" for="units">Project units</label>
+              <select id="units" class="tc-input">
+                <option value="US FT">US FT</option>
+                <option value="METRIC">METRIC</option>
+              </select>
+            </div>
+            <div class="tc-field">
+              <label class="tc-label" for="csvFormat">CSV format (if header is missing)</label>
+              <select id="csvFormat" class="tc-input">
+                <option value="PNEZ">P, N, E, Z</option>
+                <option value="PENZ">P, E, N, Z</option>
+              </select>
+            </div>
           </div>
+
+          <div class="drop-zone" id="dropZone">
+            <span class="drop-zone__prompt">Drag survey CSV here or <b>click to upload</b></span>
+            <input type="file" id="csvFile" class="drop-zone__input" accept=".csv" hidden />
+          </div>
+
+          <div id="pointCheckList" class="pd25-point-check"></div>
+          <div id="viz-container" aria-label="3D survey and COGO point preview"></div>
+        </section>
+
+        <section class="pd25-calc-step" id="b5MethodCallout" aria-labelledby="step2Title">
+          <h2 class="pd25-calc-step__title" id="step2Title">
+            <span class="pd25-calc-step__num">2</span>
+            B5 — Mast Pivot / Mast Tilt
+            <span class="pd25-beta-badge" title="Measured B5 is in testing — verify results before relying on guidance">BETA</span>
+          </h2>
+          <p class="pd25-calc-step__lead">
+            <strong>Default:</strong> use OEM B5 (−1.056&nbsp;ft / −0.321&nbsp;m).
+            <strong>Measure (BETA):</strong> shoot <strong>MT</strong>, enter flange→X-pin offset; calculator rebuilds B5 and G1/G2/G5/G6.
+            See the <a href="guide.html#phase-2">target placement guide</a> for where to shoot ML/MR/MT.
+          </p>
+
           <fieldset class="pd25-rod-fieldset">
             <legend class="pd25-rod-legend">How do you want to enter B5?</legend>
             <label class="pd25-rod-option">
               <input type="radio" name="b5Method" id="b5MethodDefault" value="default" checked />
-              Use prepopulated OEM dimensions (assumed MT from prior-machine offsets)
+              Default — prepopulated OEM dimensions (recommended until measure path is validated)
             </label>
             <label class="pd25-rod-option">
               <input type="radio" name="b5Method" id="b5MethodMeasure" value="measure" />
-              Measure B5 during measure-up (shoot MT)
+              Measure during measure-up (shoot MT)
               <span class="pd25-beta-badge" title="Needs field testing — compare against OEM B5 before trusting antenna left/back">BETA</span>
             </label>
           </fieldset>
+
           <div id="b5MeasureSection" hidden>
-            <p class="pd25-survey-requirement pd25-beta-note" role="note" style="margin:12px 0;">
+            <p class="pd25-survey-requirement pd25-beta-note" role="note">
               <strong>BETA — needs testing</strong>
-              Measured B5 and rebuilt G1/G2/G5/G6 are available for field trials. Compare against prepopulated OEM values
-              before relying on guidance. No special access required.
+              Compare measured B5 and rebuilt G1/G2/G5/G6 against OEM before relying on guidance. No special access required.
+              Usually resect to the <strong>rear</strong> to see MT. Missing MT falls back to OEM.
             </p>
-            <p class="pd25-survey-requirement" role="note" style="margin:12px 0;">
-              <strong>Resection required</strong>
-              Shooting <b>MT</b> (Mast Tilt) usually requires resecting the total station to the
-              <b>rear of the machine</b> so the mast tilt center is visible. Include point <b>MT</b> in your CSV
-              to compute measured B5 and updated antenna left/back values. If <b>MT</b> is missing, the calculator
-              still runs using prepopulated OEM B5 and antenna offsets.
-            </p>
-            <figure class="pd25-measureup-tool pd25-mt-target" id="mtTargetFigure">
-              <img
-                class="pd25-measureup-tool__img pd25-mt-target__img"
-                src="assets/images/pd25-mt-mast-tilt-target.png"
-                alt="PD25 Mast Tilt (MT) target — acrylic on the center of the X tilt pin / mast tilt flange at the rear of the machine"
-                width="480"
-                height="360"
-                loading="lazy"
-              />
-              <figcaption class="pd25-measureup-tool__caption">
-                Shoot <strong>MT</strong> on the acrylic target at the <strong>center of the Mast Tilt (X) pin</strong>
-                (rear of machine). Mast Pivot (Y / X-slide pin) is below this assembly.
-              </figcaption>
-            </figure>
             <div class="tc-field">
               <label class="tc-label" for="xPinHorizontalOffset">Horizontal offset — ML/MR flange face → X-pin center</label>
               <input type="number" id="xPinHorizontalOffset" class="tc-input" step="0.001" value="0" />
               <p class="note pd25-rod-note" id="xPinOffsetHint">
-                Positive when ML is left and MR is right (offset to the right of the ML→MR line). Example: <strong>0.086&nbsp;m</strong>.
+                Positive when ML is left and MR is right. Example: <strong>0.086&nbsp;m</strong>.
                 Enter <strong>0</strong> if ML/MR are already on the X-pin centerline.
               </p>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="pd25-rod-callout" id="rodCallout">
-          <p class="pd25-rod-callout__title">MB &amp; H rod height — APC required for G7</p>
-          <p class="pd25-rod-callout__lead">
-            <strong>Did you shoot MB and H with the measure-up rod/post?</strong> Groundworks needs
-            <strong> antenna phase center (APC)</strong>, not the prism height on top of the post.
+        <section class="pd25-calc-step" id="rodCallout" aria-labelledby="step3Title">
+          <h2 class="pd25-calc-step__title" id="step3Title">
+            <span class="pd25-calc-step__num">3</span>
+            MB &amp; H rod height (APC for G7)
+          </h2>
+          <p class="pd25-calc-step__lead">
+            Groundworks needs <strong>antenna phase center (APC)</strong>, not prism height on the post.
+            If the bracket is angled, use a <strong>vertical</strong> post or acrylic at APC — see the
+            <a href="guide.html#phase-2">guide</a>.
           </p>
-          <figure class="pd25-measureup-tool pd25-mb-target" id="mbTargetFigure">
-            <img
-              class="pd25-measureup-tool__img pd25-mb-target__img"
-              src="assets/images/pd25-mb-moving-base-post.png"
-              alt="PD25 MB reference — shoot top of measure-up post on mast-side moving base antenna mount (arrow)"
-              width="480"
-              height="360"
-              loading="lazy"
-            />
-            <figcaption class="pd25-measureup-tool__caption">
-              <strong>MB</strong> — mast-side moving base; shoot the top of the measure-up post (arrow). Keep the post vertical.
-            </figcaption>
-          </figure>
-          <fieldset class="pd25-rod-fieldset pd25-rod-fieldset--measureup">
+
+          <fieldset class="pd25-rod-fieldset">
             <legend class="pd25-rod-legend">Measure-up rod used on MB &amp; H?</legend>
-            <div class="pd25-rod-yes-block" id="measureupToolBlock">
-              <label class="pd25-rod-option">
-                <input type="radio" name="shotWithRod" id="shotWithRodYes" value="yes" checked />
-                Yes — EW rod / vertical post
-              </label>
-              <figure class="pd25-measureup-tool" id="measureupToolFigure">
-                <img
-                  class="pd25-measureup-tool__img"
-                  src="assets/images/pd25-measure-up-tool.png"
-                  alt="Trimble Earthworks measure-up rod and vertical post for PD25 MB and H antenna shots"
-                  width="200"
-                  height="320"
-                  loading="lazy"
-                />
-                <figcaption class="pd25-measureup-tool__caption">
-                  Earthworks measure-up tool P/N 105568 — used with this option
-                </figcaption>
-              </figure>
-            </div>
+            <label class="pd25-rod-option">
+              <input type="radio" name="shotWithRod" id="shotWithRodYes" value="yes" checked />
+              Yes — EW rod / vertical post (P/N 105568)
+            </label>
             <label class="pd25-rod-option">
               <input type="radio" name="shotWithRod" id="shotWithRodNo" value="no" />
               No — acrylic target at APC only
             </label>
           </fieldset>
-          <figure class="pd25-measureup-tool pd25-leaned-post" id="leanedPostFigure">
-            <img
-              class="pd25-measureup-tool__img pd25-leaned-post__img"
-              src="assets/images/pd25-antenna-leaned-post.png"
-              alt="PD25 antenna on angled bracket — do not measure along a leaned post; use vertical post or acrylic at APC"
-              width="480"
-              height="360"
-              loading="lazy"
-            />
-            <figcaption class="pd25-measureup-tool__caption">
-              <strong>Leaned post</strong> — if the antenna bracket is angled, do not shoot along the leaned post.
-              Use a <strong>vertical</strong> measure-up post at APC center, or acrylic above APC
-              (P/N 133676 recommended for Z3R).
-            </figcaption>
-          </figure>
+
           <div id="rodHeightSection">
             <fieldset class="pd25-rod-fieldset">
               <legend class="pd25-rod-legend">Rod height entered in Siteworks for MB &amp; H?</legend>
-              <label class="pd25-rod-option"><input type="radio" name="rodInSw" id="rodInSwYes" value="yes" checked /> Yes — Siteworks already has rod height (APC in CSV)</label>
-              <label class="pd25-rod-option"><input type="radio" name="rodInSw" id="rodInSwNo" value="no" /> No — CSV is prism height; correct to APC below</label>
+              <label class="pd25-rod-option">
+                <input type="radio" name="rodInSw" id="rodInSwYes" value="yes" checked />
+                Yes — Siteworks already has rod height (APC in CSV)
+              </label>
+              <label class="pd25-rod-option">
+                <input type="radio" name="rodInSw" id="rodInSwNo" value="no" />
+                No — CSV is prism height; correct to APC below
+              </label>
             </fieldset>
             <div class="tc-field" id="rodHeightField" hidden>
               <label class="tc-label" for="rodHeight">Measure-up post height (rod only)</label>
               <input type="number" id="rodHeight" class="tc-input" step="0.001" min="0" />
               <p class="note pd25-rod-note" id="rodHeightHint">
-                Enter <strong>post height only</strong> — not APC. The calculator adds
-                <strong>4&nbsp;mm</strong> (Zephyr 3 Rugged target center → APC) behind the scenes.
-                P/N 105568 default: 0.200&nbsp;m / 0.656&nbsp;ft.
+                Enter <strong>post height only</strong> — not APC. Calculator adds <strong>4&nbsp;mm</strong>
+                (Zephyr 3 Rugged → APC). P/N 105568 default: 0.200&nbsp;m / 0.656&nbsp;ft.
               </p>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="pd25-rod-callout pd25-hc-callout" id="hcOffsetSection" hidden>
-          <p class="pd25-rod-callout__title">HC — hammer center offset</p>
-          <p class="pd25-rod-callout__lead">
-            <strong>HC</strong> is the <strong>hammer center</strong> (pile guide / jaw opening center). If you shot the
-            hammer face instead, enter the offset to the true center, measured <strong>toward or away from ML/MR</strong>.
+        <section class="pd25-calc-step pd25-hc-callout" id="hcOffsetSection" hidden aria-labelledby="stepHcTitle">
+          <h2 class="pd25-calc-step__title" id="stepHcTitle">
+            <span class="pd25-calc-step__num">+</span>
+            HC — hammer center offset (optional T1)
+          </h2>
+          <p class="pd25-calc-step__lead">
+            HC appeared in your CSV. If you shot the hammer face instead of center, enter the offset toward/away from ML/MR.
+            Placement photos: <a href="guide.html#phase-2">target guide</a>.
           </p>
-          <figure class="pd25-measureup-tool pd25-hc-target" id="hcTargetFigure">
-            <img
-              class="pd25-measureup-tool__img pd25-hc-target__img"
-              src="assets/images/pd25-hc-hammer-center-plumb.png"
-              alt="PD25 HC reference — plumb bob on hammer-center line with mast held plumb (arrow)"
-              width="480"
-              height="360"
-              loading="lazy"
-            />
-            <figcaption class="pd25-measureup-tool__caption">
-              <strong>HC</strong> — keep the mast plumb (digital level), hang a plumb on the hammer-center line (arrow),
-              and shoot that vertical (or shoot the face and enter the center offset below).
-            </figcaption>
-          </figure>
           <div class="tc-field">
             <label class="tc-label" for="hcFaceOffset">HC center offset (+ / −)</label>
             <input type="number" id="hcFaceOffset" class="tc-input" step="0.001" value="0" />
             <p class="note pd25-rod-note" id="hcOffsetHint">
-              <strong>Positive (+)</strong> — shot is on the face, <em>ahead</em> of hammer center (farther from ML/MR). Example: face shot 160&nbsp;mm toward ML/MR → enter <strong>+0.160&nbsp;m</strong>.<br />
-              <strong>Zero (0)</strong> — shot is at hammer center.<br />
-              <strong>Negative (−)</strong> — shot is between hammer center and ML/MR.
+              <strong>Positive (+)</strong> — shot on the face, ahead of hammer center (farther from ML/MR). Example: <strong>+0.160&nbsp;m</strong>.<br />
+              <strong>Zero (0)</strong> — shot at hammer center.<br />
+              <strong>Negative (−)</strong> — shot between hammer center and ML/MR.
             </p>
           </div>
-        </div>
+        </section>
 
-        <div class="pd25-rod-callout pd25-t-pile-callout">
-          <p class="pd25-rod-callout__title">T1, T2 &amp; T3 — plumb pile tuning</p>
-          <p class="pd25-rod-callout__lead">
-            Correct <strong>T2</strong> and <strong>T3</strong> (and verify <strong>T1</strong>) on a
-            <strong>plumb installed pile</strong>, not from survey COGO alone.
+        <section class="pd25-calc-step" id="stepCalculate" aria-labelledby="step4Title">
+          <h2 class="pd25-calc-step__title" id="step4Title">
+            <span class="pd25-calc-step__num">4</span>
+            Calculate Groundworks values
+          </h2>
+          <p class="pd25-calc-step__lead">
+            Outputs <strong>G6, G5, G2, G1, G7</strong>, plus <strong>B5</strong> when measured, and <strong>T5</strong> / <strong>T1</strong> when MF / HC are present.
+            Tune <strong>T1–T3</strong> on a plumb pile after install — not from COGO alone.
           </p>
-          <ol class="pd25-t-pile-callout__steps">
-            <li>Set the machine on a plumb pile and zero guidance in one direction.</li>
-            <li>Rotate the machine <strong>180°</strong>, set back on the same pile, and verify guidance.</li>
-            <li>Adjust T1, T2, and T3 until error is minimized in both orientations.</li>
-          </ol>
-          <p class="note pd25-rod-note" style="margin:0;">
-            If residual error cannot be zeroed and you must enter values much greater than
-            <strong>0.10&nbsp;ft (30.48&nbsp;mm)</strong>, revisit Phase&nbsp;1 calibrations and your full measure-up before relying on guidance.
-          </p>
-        </div>
+          <div class="mu-actions">
+            <button type="button" class="btn btn-primary" id="analyzeBtn" disabled>Calculate Results</button>
+          </div>
+          <div id="calcResults" class="pd25-results" hidden></div>
+        </section>
 
-        <div class="mu-actions" style="margin-top:16px;">
-          <button type="button" class="btn btn-primary" id="analyzeBtn" disabled>Calculate Results</button>
-        </div>
-
-        <div id="calcResults" class="pd25-results" hidden></div>
+        <details class="pd25-dimensions-panel pd25-section" id="tPileTuningSection">
+          <summary class="pd25-dimensions-panel__summary">After install — T1, T2 &amp; T3 plumb-pile tuning</summary>
+          <div class="pd25-dimensions-panel__body">
+            <ol class="pd25-t-pile-callout__steps">
+              <li>Set the machine on a plumb pile and zero guidance in one direction.</li>
+              <li>Rotate the machine <strong>180°</strong>, set back on the same pile, and verify guidance.</li>
+              <li>Adjust T1, T2, and T3 until error is minimized in both orientations.</li>
+            </ol>
+            <p class="note pd25-rod-note" style="margin:0;">
+              If you must enter values much greater than <strong>0.10&nbsp;ft (30.48&nbsp;mm)</strong>, revisit Phase&nbsp;1
+              calibrations and your full measure-up before relying on guidance.
+            </p>
+          </div>
+        </details>
 
         <div id="exportPrompt" class="pd25-export-prompt" hidden>
           <button
@@ -365,7 +280,7 @@
           <div class="tc-field">
             <label class="tc-label">Dealer logo (optional)</label>
             <p class="note" style="margin: 0 0 10px;">
-              Upload your dealer logo for the PDF header — same optional branding as CTL measure-up and install deliverable. Stored <strong>on this device only</strong>.
+              Upload your dealer logo for the PDF header — stored <strong>on this device only</strong>.
             </p>
             <div class="dealer-logo-row">
               <div id="dealerLogoPreview" class="dealer-logo-preview dealer-logo-preview--empty">No dealer logo</div>
@@ -408,11 +323,11 @@
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/brand/trimble-pdf-logo.js?v=1"></script>
   <script src="pdf.js?v=4"></script>
-  <script src="guide-data.js?v=42"></script>
-  <script src="groundworks-dimensions-data.js?v=7"></script>
+  <script src="guide-data.js?v=43"></script>
+  <script src="groundworks-dimensions-data.js?v=8"></script>
   <script src="viz.js?v=5"></script>
-  <script src="calc.js?v=22"></script>
-  <script src="app.js?v=48"></script>
+  <script src="calc.js?v=23"></script>
+  <script src="app.js?v=49"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
 </body>
