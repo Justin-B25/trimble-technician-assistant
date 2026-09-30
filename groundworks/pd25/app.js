@@ -879,20 +879,31 @@ function bindTabs() {
   });
 }
 
+function isB5MeasureMode() {
+  var el = document.getElementById('b5MethodMeasure');
+  return !!(el && el.checked);
+}
+
 function renderPointBadges(points, missing) {
   var box = document.getElementById('pointCheckList');
   if (!box) return;
   box.innerHTML = '';
+  var measureB5 = isB5MeasureMode();
   PD25_GUIDE.surveyPoints.forEach(function (sp) {
     var badge = document.createElement('span');
     badge.className = 'pt-badge';
-    var found = points[sp.id];
+    var found = points && points[sp.id];
+    // MT is preferred for measure mode but never blocks Calculate — calc falls back to OEM without MT.
+    var required = !!sp.required;
     if (found) {
       badge.classList.add('found');
       badge.textContent = sp.id + ' ✓';
-    } else if (sp.required) {
+    } else if (required) {
       badge.classList.add('missing');
       badge.textContent = sp.id + ' ✗';
+    } else if (measureB5 && sp.b5MeasureRequired) {
+      badge.classList.add('optional');
+      badge.textContent = sp.id + ' (needed for measured B5)';
     } else {
       badge.classList.add('optional');
       badge.textContent = sp.id + ' (opt)';
@@ -900,13 +911,16 @@ function renderPointBadges(points, missing) {
     box.appendChild(badge);
   });
   var analyzeBtn = document.getElementById('analyzeBtn');
-  if (analyzeBtn) analyzeBtn.disabled = missing.length > 0;
+  if (analyzeBtn) {
+    analyzeBtn.disabled = !state.csvText || (missing && missing.length > 0);
+  }
 }
 
 function getSurveyOptions() {
   var shotWithRod = document.getElementById('shotWithRodYes').checked;
   var rodEntered = document.getElementById('rodInSwYes').checked;
   var rodHeightEl = document.getElementById('rodHeight');
+  var xPinEl = document.getElementById('xPinHorizontalOffset');
   return {
     shotWithRod: shotWithRod,
     rodEnteredInSiteworks: !shotWithRod || rodEntered,
@@ -917,6 +931,8 @@ function getSurveyOptions() {
     csvFormat: document.getElementById('csvFormat')
       ? document.getElementById('csvFormat').value
       : 'PNEZ',
+    b5Method: isB5MeasureMode() ? 'measure' : 'default',
+    xPinHorizontalOffset: xPinEl ? xPinEl.value : '0',
   };
 }
 
@@ -968,6 +984,60 @@ function updateRodHeightDefault() {
 
 function formatRodHint(apcFt, unit) {
   return apcFt + '&nbsp;' + unit;
+}
+
+function syncB5Ui() {
+  var measure = isB5MeasureMode();
+  var section = document.getElementById('b5MeasureSection');
+  if (section) section.hidden = !measure;
+  updateXPinOffsetHint();
+  if (state.csvText) {
+    try {
+      var analysis = runAnalysis();
+      if (analysis) {
+        renderPointBadges(analysis.points, analysis.missing || []);
+        if (!document.getElementById('calcResults').hidden) {
+          renderCalcResults(analysis);
+        }
+      }
+    } catch (e) {}
+  } else {
+    renderPointBadges({}, []);
+  }
+}
+
+function updateXPinOffsetHint() {
+  var hint = document.getElementById('xPinOffsetHint');
+  if (!hint) return;
+  var units = document.getElementById('units').value;
+  if (units === 'METRIC') {
+    hint.innerHTML =
+      'Positive when ML is left and MR is right (offset to the right of the ML→MR line). Example: <strong>0.086&nbsp;m</strong>. ' +
+      'Enter <strong>0</strong> if ML/MR are already on the X-pin centerline.';
+  } else {
+    hint.innerHTML =
+      'Positive when ML is left and MR is right (offset to the right of the ML→MR line). Example: <strong>0.282&nbsp;ft</strong> (~0.086&nbsp;m). ' +
+      'Enter <strong>0</strong> if ML/MR are already on the X-pin centerline.';
+  }
+}
+
+function bindB5Ui() {
+  ['b5MethodDefault', 'b5MethodMeasure'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', syncB5Ui);
+  });
+  var xPin = document.getElementById('xPinHorizontalOffset');
+  if (xPin) {
+    xPin.addEventListener('input', function () {
+      if (state.csvText && !document.getElementById('calcResults').hidden && isB5MeasureMode()) {
+        try {
+          renderCalcResults(runAnalysis());
+        } catch (e) {}
+      }
+    });
+  }
+  syncB5Ui();
 }
 
 function syncRodUi() {
@@ -1059,7 +1129,7 @@ function renderCalcResults(analysis) {
       '</div>';
   }
 
-  var GROUNDWORKS_ORDER = ['G6', 'G5', 'G2', 'G1', 'G7', 'T1', 'T5'];
+  var GROUNDWORKS_ORDER = ['G6', 'G5', 'G2', 'G1', 'G7', 'B5', 'T1', 'T5'];
 
   html += '<h3 class="pd25-results__h">Groundworks measure-up values</h3>';
   html += '<div class="pd25-dim-cards pd25-result-cards">';
@@ -1068,7 +1138,9 @@ function renderCalcResults(analysis) {
     if (!row) return;
     var valueStr = Number(row.value).toFixed(3);
     html +=
-      '<article class="pd25-dim-card pd25-result-card">' +
+      '<article class="pd25-dim-card pd25-result-card' +
+      (key === 'B5' ? ' pd25-dim-card--critical' : '') +
+      '">' +
       '<div class="pd25-dim-card__head">' +
       '<strong class="pd25-dim-card__id">' +
       esc(key) +
@@ -1200,6 +1272,7 @@ function bindCsv() {
     unitsEl.addEventListener('change', function () {
       updateRodHeightDefault();
       updateHcOffsetHint();
+      updateXPinOffsetHint();
       revalidateCsvIfLoaded();
     });
   }
@@ -1241,6 +1314,7 @@ function initCalculator() {
   bindCsv();
   bindRodUi();
   bindHcUi();
+  bindB5Ui();
   bindPdfExport();
   loadSavedDealerBranding();
   updateHcOffsetHint();

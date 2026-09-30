@@ -52,10 +52,16 @@ var PD25_GUIDE = {
   },
 
   surveyPoints: [
-    { id: 'ML', label: 'Mast Left — inside left pin flange, middle of X pin (ML)', required: true },
-    { id: 'MR', label: 'Mast Right — inside right pin flange, middle of X pin (MR)', required: true },
+    { id: 'ML', label: 'Mast Left — flange face at X-pin elevation (ML)', required: true },
+    { id: 'MR', label: 'Mast Right — flange face at X-pin elevation (MR)', required: true },
     { id: 'MB', label: 'Moving Base antenna APC (MB)', required: true },
     { id: 'H', label: 'Heading antenna APC (H)', required: true },
+    {
+      id: 'MT',
+      label: 'Mast Tilt — X tilt pin center (MT — required when measuring B5)',
+      required: false,
+      b5MeasureRequired: true,
+    },
     { id: 'MF', label: 'Mast foot (MF — optional T5)', required: false },
     { id: 'HC', label: 'Hammer center (HC — optional T1)', required: false },
   ],
@@ -196,13 +202,20 @@ var PD25_GUIDE = {
           id: 'p2-ml',
           title: 'Target ML — mast left X-slide pin flange',
           body:
-            'Target the inside face of the left pin flange — at the middle of the X pin (not the outer face). Center the acrylic target on that inside flange surface.',
+            'Target the flange face at the elevation of the X-pin center (Mast Pivot / Y). The calculator offsets this line horizontally to the X-pin centerline (or use 0 if you shoot the centerline directly).',
         },
         {
           id: 'p2-mr',
           title: 'Target MR — mast right X-slide pin flange',
           body:
-            'Target the inside face of the right pin flange — at the middle of the X pin (not the outer face). Center the acrylic target on that inside flange surface.',
+            'Target the flange face at the elevation of the X-pin center (Mast Pivot / Y), matching ML. Together ML/MR define the flange-face line used for the horizontal offset to pin center.',
+        },
+        {
+          id: 'p2-mt',
+          title: 'Target MT — Mast Tilt / X tilt pin center (when measuring B5)',
+          body:
+            'Mast Tilt (MT) is the pin where the mast tilts left/right (X). Mast Pivot is the front/back (Y) X-pin axis from ML/MR. Shooting MT usually requires resecting the total station to the rear of the machine. Required only if you choose Measure B5 in the calculator; otherwise B5 uses prepopulated OEM offsets.',
+          optional: true,
         },
         {
           id: 'p2-mf',
@@ -249,12 +262,13 @@ var PD25_GUIDE = {
           id: 'p3-settings',
           title: 'Target settings',
           body:
-            'Rod height 0.00 for all control points (ML, MR, MF, MB, H, HC). Target type: acrylic. Add MB/H post height in the calculator — not in Siteworks.',
+            'Rod height 0.00 for all control points (ML, MR, MF, MB, H, HC, MT). Target type: acrylic. Add MB/H post height in the calculator — not in Siteworks.',
         },
         {
           id: 'p3-shoot',
           title: 'Measure & record',
-          body: 'Shoot ML, MR, MB, H, and MF or HC if used. Record all as control points. Export CSV for calculator below.',
+          body:
+            'Shoot ML, MR, MB, H, and MF or HC if used. If measuring B5, resect to the rear and shoot MT (Mast Tilt). Record all as control points. Export CSV for calculator below.',
         },
       ],
     },

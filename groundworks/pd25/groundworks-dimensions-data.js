@@ -6,11 +6,11 @@ var PD25_GROUNDWORKS_DIMENSIONS = {
   intro:
     'Values marked Measure come from your survey CSV and this calculator. Values marked Use default are fixed PD25R dimensions from the OEM measure-up guide — enter them in Groundworks before relying on guidance on slope.',
   b5Callout:
-    'B5 is the vertical offset from the center of the Y pivot pin to the X tilt pin. Enter as a negative value: −1.056 ft or −0.321 m. Groundworks may show a positive inverse distance from CENTER REF to ML — change the sign before entering B5. Wrong sign or magnitude degrades tool position accuracy on slope (with G7, B5 locates mast geometry).',
+    'B5 is the vertical from Mast Pivot (X-pin / Y) to Mast Tilt (X tilt pin). On the PD25 it is always negative because Mast Tilt is above the pivot. Choose prepopulated OEM (−1.056 ft / −0.321 m) or measure MT during measure-up (resect to the rear, enter flange→X-pin horizontal offset, shoot MT). Measuring B5 also rebuilds Moving Base and Heading left/back (G6, G5, G2, G1). Wrong sign or magnitude degrades tool position accuracy on slope (with G7, B5 locates mast geometry).',
   b5Image: 'assets/images/pd25-b5-callout.png',
   b5ImageAlt:
-    'B5 on PD25 — vertical offset from the center of the Y pivot pin to the X tilt pin',
-  b5ImageCaption: 'B5 — center of Y pivot pin to X tilt pin',
+    'B5 on PD25 — Mast Tilt (X) relative to Mast Pivot / X-pin center (Y)',
+  b5ImageCaption: 'B5 — Mast Pivot (Y) to Mast Tilt (X); always negative on PD25',
   sections: [
     {
       id: 'gnss',
@@ -78,12 +78,13 @@ var PD25_GROUNDWORKS_DIMENSIONS = {
         { id: 'B4', name: 'Stick length', entry: 'na', notes: 'Not used on PD25' },
         {
           id: 'B5',
-          name: 'Y pivot pin center to X tilt pin',
+          name: 'Y pivot pin center to X tilt pin (Mast Tilt)',
           entry: 'default',
           defaultFt: -1.056,
           defaultM: -0.321,
           emphasize: true,
-          notes: 'Vertical offset — always negative on PD25',
+          notes:
+            'Vertical — always negative on PD25. Or measure MT in the calculator (Measure B5) instead of this OEM default.',
         },
       ],
     },

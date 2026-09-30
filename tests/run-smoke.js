@@ -81,6 +81,54 @@ function testPd25() {
   });
   assert(analysis.status === 'ok', 'PD25 analysis status ok');
   assert(analysis.groundworks && analysis.groundworks.G6, 'PD25 produces G6 groundworks value');
+  assert(!analysis.groundworks.B5, 'PD25 default path does not compute B5 from CSV');
+
+  var missingMt = calcSandbox.PD25Calc.analyzeCsv(csv, 'METRIC', {
+    rodEnteredInSiteworks: true,
+    shotWithRod: true,
+    b5Method: 'measure',
+    xPinHorizontalOffset: '0.086',
+  });
+  assert(missingMt.status === 'ok', 'PD25 without MT still computes using OEM defaults');
+  assert(!missingMt.groundworks.B5, 'PD25 without MT does not invent measured B5');
+  assert(
+    missingMt.warnings &&
+      missingMt.warnings.some(function (w) {
+        return /MT/i.test(w) && /prepopulated|OEM/i.test(w);
+      }),
+    'PD25 without MT warns and falls back to OEM'
+  );
+
+  var mtCsv = fs.readFileSync(path.join(__dirname, 'fixtures/pd25-mt.csv'), 'utf8');
+  var measured = calcSandbox.PD25Calc.analyzeCsv(mtCsv, 'METRIC', {
+    rodEnteredInSiteworks: true,
+    shotWithRod: true,
+    b5Method: 'measure',
+    xPinHorizontalOffset: '0.086',
+  });
+  assert(measured.status === 'ok', 'PD25 measure B5 status ok');
+  assert(measured.groundworks && measured.groundworks.B5, 'PD25 measure path produces B5');
+  var b5Val = parseFloat(measured.groundworks.B5.value);
+  assert(b5Val < 0, 'PD25 measured B5 is negative');
+  assert(Math.abs(b5Val - -1.056) < 0.002, 'PD25 measured B5 ≈ −1.056 m for fixture');
+  assert(
+    measured.intermediate &&
+      Math.abs(measured.intermediate.offsetConstants.horizontal - 0.086) < 1e-9,
+    'PD25 measure path uses typed X-pin horizontal offset'
+  );
+
+  var zeroOffset = calcSandbox.PD25Calc.analyzeCsv(mtCsv, 'METRIC', {
+    rodEnteredInSiteworks: true,
+    shotWithRod: true,
+    b5Method: 'measure',
+    xPinHorizontalOffset: '0',
+  });
+  assert(zeroOffset.status === 'ok', 'PD25 measure B5 allows zero horizontal offset');
+  assert(
+    zeroOffset.intermediate &&
+      Math.abs(zeroOffset.intermediate.offsetConstants.horizontal) < 1e-12,
+    'PD25 zero offset is applied'
+  );
 
   var penzLayout = calcSandbox.PD25Calc.detectCsvLayout([['ML', '200', '100', '10']], 'PENZ');
   assert(penzLayout.idxE === 1 && penzLayout.idxN === 2, 'PD25 PENZ column order');

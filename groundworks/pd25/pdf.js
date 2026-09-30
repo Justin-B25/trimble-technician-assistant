@@ -2,7 +2,7 @@
  * PD25 Groundworks measure-up PDF — matches CTL / pre-inspection report layout.
  */
 var PD25Pdf = (function () {
-  var PDF_RESULT_ROW_ORDER = ['G6', 'G5', 'G2', 'G1', 'G7', 'T1', 'T5'];
+  var PDF_RESULT_ROW_ORDER = ['G6', 'G5', 'G2', 'G1', 'G7', 'B5', 'T1', 'T5'];
 
   function trimblePdfLogoSrc() {
     return typeof TRIMBLE_PDF_LOGO_SRC !== 'undefined'

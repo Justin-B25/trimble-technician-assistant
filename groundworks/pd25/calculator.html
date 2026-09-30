@@ -70,7 +70,10 @@
 
       <div id="calcContent">
         <p class="note">
-          Upload Siteworks CSV with <strong>ML</strong>, <strong>MR</strong>, <strong>MB</strong>, and <strong>H</strong>. Optional <strong>MF</strong> (mast foot) enables <strong>T5</strong>. Optional <strong>HC</strong> (hammer center) enables <strong>T1</strong>. The app builds CENTER REF and outputs <strong>G6, G5, G2, G1, G7</strong>, plus <strong>T5</strong> and/or <strong>T1</strong> when those points are present.
+          Upload Siteworks CSV with <strong>ML</strong>, <strong>MR</strong>, <strong>MB</strong>, and <strong>H</strong>.
+          Optional <strong>MF</strong> (mast foot) enables <strong>T5</strong>. Optional <strong>HC</strong> (hammer center) enables <strong>T1</strong>.
+          When measuring B5, also include <strong>MT</strong> (Mast Tilt). The app builds CENTER REF and outputs
+          <strong>G6, G5, G2, G1, G7</strong>, plus <strong>B5</strong> when measured, and <strong>T5</strong> / <strong>T1</strong> when those points are present.
         </p>
 
         <div class="tc-field">
@@ -100,6 +103,43 @@
         <div id="pointCheckList" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;"></div>
 
         <div id="viz-container" aria-label="3D survey and COGO point preview"></div>
+
+        <div class="pd25-rod-callout" id="b5MethodCallout">
+          <p class="pd25-rod-callout__title">B5 — Mast Tilt / Mast Pivot</p>
+          <p class="pd25-rod-callout__lead">
+            <strong>Mast Pivot (Y)</strong> is the front/back X-pin center (from ML/MR on the flange face, plus a horizontal offset to pin center).
+            <strong>Mast Tilt (MT / X)</strong> is the left/right tilt pin center.
+            <strong>B5</strong> is the vertical from Mast Pivot to Mast Tilt — always negative on the PD25 because MT is above the pivot.
+          </p>
+          <fieldset class="pd25-rod-fieldset">
+            <legend class="pd25-rod-legend">How do you want to enter B5?</legend>
+            <label class="pd25-rod-option">
+              <input type="radio" name="b5Method" id="b5MethodDefault" value="default" checked />
+              Use prepopulated OEM dimensions (assumed MT from prior-machine offsets)
+            </label>
+            <label class="pd25-rod-option">
+              <input type="radio" name="b5Method" id="b5MethodMeasure" value="measure" />
+              Measure B5 during measure-up (shoot MT)
+            </label>
+          </fieldset>
+          <div id="b5MeasureSection" hidden>
+            <p class="pd25-survey-requirement" role="note" style="margin:12px 0;">
+              <strong>Resection required</strong>
+              Shooting <b>MT</b> (Mast Tilt) usually requires resecting the total station to the
+              <b>rear of the machine</b> so the mast tilt center is visible. Include point <b>MT</b> in your CSV
+              to compute measured B5 and updated antenna left/back values. If <b>MT</b> is missing, the calculator
+              still runs using prepopulated OEM B5 and antenna offsets.
+            </p>
+            <div class="tc-field">
+              <label class="tc-label" for="xPinHorizontalOffset">Horizontal offset — ML/MR flange face → X-pin center</label>
+              <input type="number" id="xPinHorizontalOffset" class="tc-input" step="0.001" value="0" />
+              <p class="note pd25-rod-note" id="xPinOffsetHint">
+                Positive when ML is left and MR is right (offset to the right of the ML→MR line). Example: <strong>0.086&nbsp;m</strong>.
+                Enter <strong>0</strong> if ML/MR are already on the X-pin centerline.
+              </p>
+            </div>
+          </div>
+        </div>
 
         <div class="pd25-rod-callout" id="rodCallout">
           <p class="pd25-rod-callout__title">MB &amp; H rod height — APC required for G7</p>

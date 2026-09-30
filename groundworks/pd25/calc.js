@@ -51,6 +51,7 @@ var PD25Calc = (function () {
     MB: ['MB'],
     H: ['H', 'HEADING'],
     HC: ['HC', 'HAMMER CENTER', 'HAMMERCENTER', 'HF', 'MHF', 'HAMMERFACE', 'HAMMER FACE'],
+    MT: ['MT', 'MAST TILT', 'MASTTILT', 'MAST_TILT'],
     LINEPT1: ['LINEPT1', 'LINE PT1', 'LINE PT 1', 'LINE_PT1'],
     LINEPT2: ['LINEPT2', 'LINE PT2', 'LINE PT 2', 'LINE_PT2'],
     'CENTER REF': ['CENTER REF', 'CENTERREF', 'CENTER_REF'],
@@ -219,30 +220,45 @@ var PD25Calc = (function () {
    * Siteworks offset line — mirrors COGO in two steps on ML and MR:
    *   1) Horizontal offset perpendicular to ML→MR (right positive)
    *   2) Vertical offset on that horizontally shifted line (up positive)
+   * Optional overrides.horizontal / overrides.vertical replace OEM constants (measure-B5 path).
    */
-  function buildOffsetLine(ml, mr, coordUnits) {
+  function buildOffsetLine(ml, mr, coordUnits, overrides) {
     var c = cogoConstantsForCoords(coordUnits);
+    overrides = overrides || {};
+    var horizontal =
+      overrides.horizontal != null && !isNaN(overrides.horizontal)
+        ? Number(overrides.horizontal)
+        : c.horizontal;
+    var vertical =
+      overrides.vertical != null && !isNaN(overrides.vertical)
+        ? Number(overrides.vertical)
+        : c.vertical;
     var dN = mr.n - ml.n;
     var dE = mr.e - ml.e;
     var mlToMr = bearingRad(dN, dE);
     var rightBearing = mlToMr + Math.PI / 2;
 
-    var mlHoriz = offsetByBearing(ml, rightBearing, c.horizontal, 0);
-    var mrHoriz = offsetByBearing(mr, rightBearing, c.horizontal, 0);
+    var mlHoriz = offsetByBearing(ml, rightBearing, horizontal, 0);
+    var mrHoriz = offsetByBearing(mr, rightBearing, horizontal, 0);
 
     return {
       linePt1: {
         n: mlHoriz.n,
         e: mlHoriz.e,
-        z: mlHoriz.z + c.vertical,
+        z: mlHoriz.z + vertical,
       },
       linePt2: {
         n: mrHoriz.n,
         e: mrHoriz.e,
-        z: mrHoriz.z + c.vertical,
+        z: mrHoriz.z + vertical,
       },
       bearingMlMrDeg: (mlToMr * 180) / Math.PI,
-      constants: c,
+      constants: {
+        horizontal: horizontal,
+        vertical: vertical,
+        centerRefDist: c.centerRefDist,
+        unitLabel: c.unitLabel,
+      },
     };
   }
 
@@ -469,6 +485,18 @@ var PD25Calc = (function () {
       warnings.push('HC not in CSV — T1 (CENTER REF to hammer center) will be skipped.');
     }
 
+    var b5Method = surveyOptions.b5Method === 'measure' ? 'measure' : 'default';
+    var mt = findPoint(rows, 'MT', layout);
+    if (mt) points.MT = mt;
+    if (b5Method === 'measure' && !mt) {
+      // No MT in CSV — keep computing with OEM / prepopulated COGO (same as default path).
+      warnings.push(
+        'MT (Mast Tilt) was not found in the CSV. Using prepopulated OEM B5 and antenna offsets. ' +
+          'To measure B5, resect to the rear, shoot MT, and re-import the CSV.'
+      );
+      b5Method = 'default';
+    }
+
     var refLinePt1 = findPoint(rows, 'LINEPT1', layout);
     var refLinePt2 = findPoint(rows, 'LINEPT2', layout);
     var refCenter = findPoint(rows, 'CENTER REF', layout);
@@ -481,6 +509,7 @@ var PD25Calc = (function () {
         units: units,
         status: 'incomplete',
         message: 'Missing required points: ' + missing.join(', ') + '. Need ML, MR, MB, and H from Siteworks.',
+        b5Method: b5Method,
       };
     }
 
@@ -493,20 +522,55 @@ var PD25Calc = (function () {
       rodSubtractNative = totalApcSubtractFromPost(rodPostHeight, coordUnits);
     }
 
-    var offset = buildOffsetLine(points.ML, points.MR, coordUnits);
+    var pivot = yPivotCenter(points.ML, points.MR);
+    var offsetOverrides = null;
+    var measuredB5 = null;
+    var xPinHorizontalOffset = null;
+
+    if (b5Method === 'measure') {
+      var parsedHoriz = parseFloat(surveyOptions.xPinHorizontalOffset);
+      if (isNaN(parsedHoriz)) {
+        return {
+          points: points,
+          missing: [],
+          warnings: warnings,
+          units: units,
+          status: 'incomplete',
+          message:
+            'Enter a horizontal offset from the ML/MR flange-face line to the X-pin center (0 is allowed if ML/MR are on the pin centerline).',
+          b5Method: b5Method,
+        };
+      }
+      xPinHorizontalOffset = parsedHoriz;
+      var pinZ = pivot.z;
+      var verticalUp = points.MT.z - pinZ;
+      measuredB5 = pinZ - points.MT.z;
+      if (measuredB5 >= 0) {
+        warnings.push(
+          'Measured B5 is not negative — Mast Tilt (MT) is at or below the X-pin center elevation. On PD25, MT should be above the mast pivot; check the MT shot and resection.'
+        );
+      }
+      offsetOverrides = {
+        horizontal: xPinHorizontalOffset,
+        vertical: verticalUp,
+      };
+    }
+
+    var offset = buildOffsetLine(points.ML, points.MR, coordUnits, offsetOverrides);
     var linePt1 = offset.linePt1;
     var linePt2 = offset.linePt2;
     var centerRef = buildCenterRef(linePt1, linePt2, coordUnits);
 
     /**
-     * Prefer Siteworks COGO points from CSV.
-     * Otherwise snap computed COGO to Siteworks coordinate storage (ft or metric).
+     * Prefer Siteworks COGO points from CSV in prepopulated mode.
+     * Measure-B5 mode always uses calculator COGO so G* match measured MT/B5.
      */
-    var dnoCenterRef = refCenter || snapCogoPoint(centerRef, coordUnits);
-    var dnoLinePt2 = refLinePt2 || snapCogoPoint(linePt2, coordUnits);
-    if (refLinePt1) linePt1 = refLinePt1;
-
-    var pivot = yPivotCenter(points.ML, points.MR);
+    var useCsvCogo = b5Method !== 'measure';
+    var dnoCenterRef =
+      useCsvCogo && refCenter ? refCenter : snapCogoPoint(centerRef, coordUnits);
+    var dnoLinePt2 =
+      useCsvCogo && refLinePt2 ? refLinePt2 : snapCogoPoint(linePt2, coordUnits);
+    if (useCsvCogo && refLinePt1) linePt1 = refLinePt1;
 
     var mbApc = applyApcCorrection(points.MB, rodSubtractNative);
     var hApc = applyApcCorrection(points.H, rodSubtractNative);
@@ -581,6 +645,20 @@ var PD25Calc = (function () {
       },
     };
 
+    if (measuredB5 != null) {
+      results.B5 = {
+        label: 'Y pivot pin center to X tilt pin (Mast Tilt)',
+        value: measuredB5,
+        signedInverse: measuredB5,
+        source:
+          'Measured — X-pin center elev − MT elev (flange→pin horizontal ' +
+          formatGroundworksValue(xPinHorizontalOffset) +
+          ' ' +
+          displayConstants.unitLabel +
+          ')',
+      };
+    }
+
     if (hammerCenter) {
       var t1Horiz = horizDist(dnoCenterRef, hammerCenter);
       var t1Dno = downAndOutFromBaseline(dnoCenterRef, dnoLinePt2, hammerCenter);
@@ -614,6 +692,20 @@ var PD25Calc = (function () {
 
     applyGroundworksDisplay(results);
 
+    var okMessage =
+      b5Method === 'measure'
+        ? 'Survey parsed. B5 measured from MT; G1, G2, G5, and G6 rebuilt from measured CENTER REF.'
+        : validation.hasReferencePoints
+          ? 'Survey parsed. Computed COGO points compared to optional reference points in CSV.'
+          : 'Survey parsed. G1, G2, G5, G6, and G7 calculated from ML, MR, MB, and H.';
+    if (b5Method !== 'measure') {
+      okMessage +=
+        (hammerCenter ? ' T1 included from HC.' : '') + (points.MF ? ' T5 included from MF.' : '');
+    } else {
+      okMessage +=
+        (hammerCenter ? ' T1 included from HC.' : '') + (points.MF ? ' T5 included from MF.' : '');
+    }
+
     return {
       points: points,
       missing: [],
@@ -622,11 +714,8 @@ var PD25Calc = (function () {
       coordUnits: coordUnits,
       unitLabel: displayConstants.unitLabel,
       status: 'ok',
-      message: validation.hasReferencePoints
-        ? 'Survey parsed. Computed COGO points compared to optional reference points in CSV.'
-        : 'Survey parsed. G1, G2, G5, G6, and G7 calculated from ML, MR, MB, and H.' +
-          (hammerCenter ? ' T1 included from HC.' : '') +
-          (points.MF ? ' T5 included from MF.' : ''),
+      message: okMessage,
+      b5Method: b5Method,
       intermediate: {
         linePt1: linePt1,
         linePt2: linePt2,
@@ -634,6 +723,9 @@ var PD25Calc = (function () {
         dnoCenterRef: dnoCenterRef,
         dnoLinePt2: dnoLinePt2,
         yPivotCenter: pivot,
+        mt: points.MT || null,
+        measuredB5: measuredB5,
+        xPinHorizontalOffset: xPinHorizontalOffset,
         hcMeasured: points.HC || null,
         hcCenter: hcCenter,
         hcFaceOffset: hcCorrection ? hcCorrection.offsetApplied : 0,
