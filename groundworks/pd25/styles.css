@@ -593,14 +593,14 @@
   padding: 10px 12px 8px;
   border: 1px solid var(--tc-grey-300);
   border-radius: var(--tc-radius-lg);
-  background: #fff;
+  background: var(--tc-surface);
 }
 
 .pd25-rod-legend {
   font-size: 0.8rem;
   font-weight: 700;
   padding: 0 6px;
-  color: var(--tc-blue);
+  color: var(--tc-blue-dark);
 }
 
 .pd25-rod-option {
@@ -609,6 +609,7 @@
   line-height: 1.45;
   margin: 6px 0;
   cursor: pointer;
+  color: var(--tc-text);
 }
 
 .pd25-rod-option input {
@@ -618,11 +619,40 @@
 .pd25-rod-note {
   margin: 6px 0 0;
   font-size: 0.8rem;
+  color: var(--tc-grey-600);
+}
+
+[data-theme="dark"] .pd25-rod-fieldset {
+  background: var(--tc-grey-100);
+  border-color: var(--tc-grey-400);
+}
+
+[data-theme="dark"] .pd25-rod-legend {
+  color: #9fd0ef;
+}
+
+[data-theme="dark"] .pd25-rod-option {
+  color: var(--tc-text);
+}
+
+[data-theme="dark"] .pd25-rod-yes-block {
+  background: var(--tc-blue-tint);
+  border-color: var(--tc-grey-400);
+}
+
+[data-theme="dark"] .pd25-rod-yes-block .pd25-rod-option {
+  color: #cfe8f8;
 }
 
 .pd25-hc-callout {
   background: #eef6ff;
   border-color: #c9def7;
+  border-left-color: var(--tc-blue);
+}
+
+[data-theme="dark"] .pd25-hc-callout {
+  background: var(--tc-blue-tint);
+  border-color: var(--tc-grey-400);
   border-left-color: var(--tc-blue);
 }
 
