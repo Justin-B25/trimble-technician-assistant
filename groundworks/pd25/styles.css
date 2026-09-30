@@ -527,9 +527,14 @@
   margin: 8px 0 0;
   padding: 10px;
   text-align: center;
-  background: #fff;
+  background: var(--tc-surface);
   border: 1px solid var(--tc-grey-300);
   border-radius: var(--tc-radius-lg);
+}
+
+[data-theme="dark"] .pd25-measureup-tool {
+  background: var(--tc-grey-100);
+  border-color: var(--tc-grey-400);
 }
 
 .pd25-measureup-tool__img {
