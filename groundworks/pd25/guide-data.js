@@ -58,7 +58,7 @@ var PD25_GUIDE = {
     { id: 'H', label: 'Heading antenna APC (H)', required: true },
     {
       id: 'MT',
-      label: 'Mast Tilt — X tilt pin center (MT — required when measuring B5)',
+      label: 'Mast Tilt — X tilt pin center (MT — required for Measure B5 BETA)',
       required: false,
       b5MeasureRequired: true,
     },
@@ -134,6 +134,15 @@ var PD25_GUIDE = {
         'Do not skip. Groundworks relies on Vermeer internal sensors for mast position relative to the chassis.',
       steps: [
         {
+          id: 'p1-mast-terms',
+          title: 'PD25 mast terms — Z slide vs carriage slide',
+          body:
+            'Two vertical mast sections matter in Vermeer / PD25 talk: the Z slide is the outer mast rail (furthest from the chassis — often with the chain visible). The carriage slide is the inner mast rail (closer to the machine body) that the hammer carriage rides on. Knowing these names helps when following Vermeer calibrations and depth-sensor work.',
+          image: 'assets/images/pd25-z-slide-carriage-slide.png',
+          imageAlt:
+            'PD25R side view labeled Z slide (outer mast rail) and carriage slide (inner mast rail)',
+        },
+        {
           id: 'p1-depth-high',
           title: 'Depth sensor adjustment — high-left',
           body:
@@ -156,6 +165,18 @@ var PD25_GUIDE = {
             'Tighten mast slides to minimize left/right movement of the hammer on the mast without binding.',
           image: 'assets/images/pd25-mast-slide-calibration.png',
           imageAlt: 'Technician adjusting mast slide hardware on the PD25 mast',
+        },
+        {
+          id: 'p1-x-slide-gap',
+          title: 'Mast ↔ X-slide carrier gap (mental note)',
+          body:
+            'Look at the gap between the mast and the X-slide carrier (see photo — arrow). Make a mental note of how large it is. A gap larger than 1/8" (≈3 mm) can show up later as auto target / guidance repeatability issues. This is a check, not a field adjustment — flag excessive play before relying on measure-up results.',
+          image: 'assets/images/pd25-mast-x-slide-gap.png',
+          imageAlt:
+            'Gap between PD25 mast and X-slide carrier — note size; over 1/8 inch risks auto target repeatability issues',
+          noteWarning: true,
+          note:
+            'Gap > 1/8" (3 mm) between mast and X-slide carrier may cause auto target repeatability problems. Document and escalate if the gap is excessive.',
         },
         {
           id: 'p1-xy-slide-cal',
@@ -202,19 +223,28 @@ var PD25_GUIDE = {
           id: 'p2-ml',
           title: 'Target ML — mast left X-slide pin flange',
           body:
-            'Target the flange face at the elevation of the X-pin center (Mast Pivot / Y). The calculator offsets this line horizontally to the X-pin centerline (or use 0 if you shoot the centerline directly).',
+            'Use a spirit level on the flange face to find the elevation of the X-pin center (Mast Pivot / Y), then place the acrylic target on the flange face at that height (see photo — arrow marks the shot). The calculator offsets the ML→MR line horizontally to the X-pin centerline (or use 0 if you shoot the centerline directly).',
+          image: 'assets/images/pd25-ml-flange-face-level.png',
+          imageAlt:
+            'PD25 ML reference — spirit level on flange face; shoot acrylic at X-pin center elevation',
         },
         {
           id: 'p2-mr',
           title: 'Target MR — mast right X-slide pin flange',
           body:
-            'Target the flange face at the elevation of the X-pin center (Mast Pivot / Y), matching ML. Together ML/MR define the flange-face line used for the horizontal offset to pin center.',
+            'Match ML height: place the acrylic on the mast-right flange face at the elevation of the X-pin center (Mast Pivot / Y) — see photo; arrow marks the shot center. Together ML/MR define the flange-face line used for the horizontal offset to pin center.',
+          image: 'assets/images/pd25-mr-flange-face-target.png',
+          imageAlt:
+            'PD25 MR reference — acrylic on mast-right flange face at X-pin center elevation',
         },
         {
           id: 'p2-mt',
-          title: 'Target MT — Mast Tilt / X tilt pin center (when measuring B5)',
+          title: 'Target MT — Mast Tilt / X tilt pin center (Measure B5 — BETA)',
           body:
-            'Mast Tilt (MT) is the pin where the mast tilts left/right (X). Mast Pivot is the front/back (Y) X-pin axis from ML/MR. Shooting MT usually requires resecting the total station to the rear of the machine. Required only if you choose Measure B5 in the calculator; otherwise B5 uses prepopulated OEM offsets.',
+            'Mast Tilt (MT) is the pin where the mast tilts left/right (X). Place the acrylic target on the center of the mast tilt flange (see photo). Mast Pivot is the front/back (Y) X-pin axis from ML/MR. Shooting MT usually requires resecting the total station to the rear of the machine. Required only if you choose Measure B5 (BETA) in the calculator; otherwise B5 uses prepopulated OEM offsets. Compare measured B5 and rebuilt antenna left/back against OEM before relying on guidance.',
+          image: 'assets/images/pd25-mt-mast-tilt-target.png',
+          imageAlt:
+            'PD25 Mast Tilt target — acrylic on the center of the X tilt pin / mast tilt flange',
           optional: true,
         },
         {
@@ -226,7 +256,11 @@ var PD25_GUIDE = {
         {
           id: 'p2-mb',
           title: 'Target MB — moving base Zephyr 3 (mast side)',
-          body: 'Use EW measure-up tool P/N 105568; post vertical. Rod height 0.200 m / 0.656 ft (post only).',
+          body:
+            'Moving base antenna on the mast side. Shoot the top of the measure-up post (see photo — arrow). Use EW measure-up tool P/N 105568; post vertical. Rod height 0.200 m / 0.656 ft (post only).',
+          image: 'assets/images/pd25-mb-moving-base-post.png',
+          imageAlt:
+            'PD25 MB reference — shoot top of measure-up post on mast-side moving base antenna mount',
         },
         {
           id: 'p2-h',
@@ -236,14 +270,21 @@ var PD25_GUIDE = {
         {
           id: 'p2-hc',
           title: 'Target HC — hammer center (optional)',
-          body: 'Hammer center (pile guide / jaw opening center) for T1. Optional if tuning T1 on pile later.',
+          body:
+            'Hammer center (pile guide / jaw opening center) for T1. Plumb the mast (digital level) and hang a plumb bob on the hammer-center line (see photo — arrow marks the string attach / vertical). Shoot acrylic on that vertical, or shoot the face and enter a center offset in the calculator. Optional if tuning T1 on pile later.',
+          image: 'assets/images/pd25-hc-hammer-center-plumb.png',
+          imageAlt:
+            'PD25 HC reference — plumb bob on hammer-center line with mast held plumb',
           optional: true,
         },
         {
           id: 'p2-antenna',
-          title: 'Antenna mounting note',
+          title: 'Antenna mounting note — do not measure a leaned post',
           body:
-            'If brackets are angled, do not measure a leaned post — use vertical post at APC center or acrylic target above APC. Recommend Trimble P/N 133676 for Z3R on PD25R.',
+            'When brackets are angled (see photo), do not measure along the leaned post. Use a vertical measure-up post at APC center, or place an acrylic target above APC. Recommend Trimble P/N 133676 for Z3R on PD25R.',
+          image: 'assets/images/pd25-antenna-leaned-post.png',
+          imageAlt:
+            'PD25 antenna on angled bracket — do not measure along a leaned post; use vertical post or acrylic at APC',
         },
       ],
     },

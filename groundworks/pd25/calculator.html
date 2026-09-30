@@ -105,12 +105,45 @@
         <div id="viz-container" aria-label="3D survey and COGO point preview"></div>
 
         <div class="pd25-rod-callout" id="b5MethodCallout">
-          <p class="pd25-rod-callout__title">B5 — Mast Tilt / Mast Pivot</p>
+          <p class="pd25-rod-callout__title">
+            B5 — Mast Tilt / Mast Pivot
+            <span class="pd25-beta-badge" title="Measured B5 is in testing — verify results before relying on guidance">BETA</span>
+          </p>
           <p class="pd25-rod-callout__lead">
             <strong>Mast Pivot (Y)</strong> is the front/back X-pin center (from ML/MR on the flange face, plus a horizontal offset to pin center).
             <strong>Mast Tilt (MT / X)</strong> is the left/right tilt pin center.
             <strong>B5</strong> is the vertical from Mast Pivot to Mast Tilt — always negative on the PD25 because MT is above the pivot.
           </p>
+          <div class="pd25-ml-mr-refs" id="mlMrTargetFigures">
+            <figure class="pd25-measureup-tool pd25-ml-target" id="mlTargetFigure">
+              <img
+                class="pd25-measureup-tool__img pd25-ml-target__img"
+                src="assets/images/pd25-ml-flange-face-level.png"
+                alt="PD25 ML reference — spirit level on flange face; shoot acrylic at X-pin center elevation (arrow)"
+                width="480"
+                height="360"
+                loading="lazy"
+              />
+              <figcaption class="pd25-measureup-tool__caption">
+                <strong>ML</strong> — level on the flange face to find X-pin center height, then shoot the acrylic on the
+                flange face at that elevation (arrow).
+              </figcaption>
+            </figure>
+            <figure class="pd25-measureup-tool pd25-mr-target" id="mrTargetFigure">
+              <img
+                class="pd25-measureup-tool__img pd25-mr-target__img"
+                src="assets/images/pd25-mr-flange-face-target.png"
+                alt="PD25 MR reference — acrylic on mast-right flange face at X-pin center elevation (arrow)"
+                width="480"
+                height="360"
+                loading="lazy"
+              />
+              <figcaption class="pd25-measureup-tool__caption">
+                <strong>MR</strong> — same elevation as ML; shoot the acrylic on the mast-right flange face at X-pin
+                center height (arrow / crosshair).
+              </figcaption>
+            </figure>
+          </div>
           <fieldset class="pd25-rod-fieldset">
             <legend class="pd25-rod-legend">How do you want to enter B5?</legend>
             <label class="pd25-rod-option">
@@ -120,9 +153,15 @@
             <label class="pd25-rod-option">
               <input type="radio" name="b5Method" id="b5MethodMeasure" value="measure" />
               Measure B5 during measure-up (shoot MT)
+              <span class="pd25-beta-badge" title="Needs field testing — compare against OEM B5 before trusting antenna left/back">BETA</span>
             </label>
           </fieldset>
           <div id="b5MeasureSection" hidden>
+            <p class="pd25-survey-requirement pd25-beta-note" role="note" style="margin:12px 0;">
+              <strong>BETA — needs testing</strong>
+              Measured B5 and rebuilt G1/G2/G5/G6 are available for field trials. Compare against prepopulated OEM values
+              before relying on guidance. No special access required.
+            </p>
             <p class="pd25-survey-requirement" role="note" style="margin:12px 0;">
               <strong>Resection required</strong>
               Shooting <b>MT</b> (Mast Tilt) usually requires resecting the total station to the
@@ -130,6 +169,20 @@
               to compute measured B5 and updated antenna left/back values. If <b>MT</b> is missing, the calculator
               still runs using prepopulated OEM B5 and antenna offsets.
             </p>
+            <figure class="pd25-measureup-tool pd25-mt-target" id="mtTargetFigure">
+              <img
+                class="pd25-measureup-tool__img pd25-mt-target__img"
+                src="assets/images/pd25-mt-mast-tilt-target.png"
+                alt="PD25 Mast Tilt (MT) target — acrylic on the center of the X tilt pin / mast tilt flange at the rear of the machine"
+                width="480"
+                height="360"
+                loading="lazy"
+              />
+              <figcaption class="pd25-measureup-tool__caption">
+                Shoot <strong>MT</strong> on the acrylic target at the <strong>center of the Mast Tilt (X) pin</strong>
+                (rear of machine). Mast Pivot (Y / X-slide pin) is below this assembly.
+              </figcaption>
+            </figure>
             <div class="tc-field">
               <label class="tc-label" for="xPinHorizontalOffset">Horizontal offset — ML/MR flange face → X-pin center</label>
               <input type="number" id="xPinHorizontalOffset" class="tc-input" step="0.001" value="0" />
@@ -147,6 +200,19 @@
             <strong>Did you shoot MB and H with the measure-up rod/post?</strong> Groundworks needs
             <strong> antenna phase center (APC)</strong>, not the prism height on top of the post.
           </p>
+          <figure class="pd25-measureup-tool pd25-mb-target" id="mbTargetFigure">
+            <img
+              class="pd25-measureup-tool__img pd25-mb-target__img"
+              src="assets/images/pd25-mb-moving-base-post.png"
+              alt="PD25 MB reference — shoot top of measure-up post on mast-side moving base antenna mount (arrow)"
+              width="480"
+              height="360"
+              loading="lazy"
+            />
+            <figcaption class="pd25-measureup-tool__caption">
+              <strong>MB</strong> — mast-side moving base; shoot the top of the measure-up post (arrow). Keep the post vertical.
+            </figcaption>
+          </figure>
           <fieldset class="pd25-rod-fieldset pd25-rod-fieldset--measureup">
             <legend class="pd25-rod-legend">Measure-up rod used on MB &amp; H?</legend>
             <div class="pd25-rod-yes-block" id="measureupToolBlock">
@@ -173,6 +239,21 @@
               No — acrylic target at APC only
             </label>
           </fieldset>
+          <figure class="pd25-measureup-tool pd25-leaned-post" id="leanedPostFigure">
+            <img
+              class="pd25-measureup-tool__img pd25-leaned-post__img"
+              src="assets/images/pd25-antenna-leaned-post.png"
+              alt="PD25 antenna on angled bracket — do not measure along a leaned post; use vertical post or acrylic at APC"
+              width="480"
+              height="360"
+              loading="lazy"
+            />
+            <figcaption class="pd25-measureup-tool__caption">
+              <strong>Leaned post</strong> — if the antenna bracket is angled, do not shoot along the leaned post.
+              Use a <strong>vertical</strong> measure-up post at APC center, or acrylic above APC
+              (P/N 133676 recommended for Z3R).
+            </figcaption>
+          </figure>
           <div id="rodHeightSection">
             <fieldset class="pd25-rod-fieldset">
               <legend class="pd25-rod-legend">Rod height entered in Siteworks for MB &amp; H?</legend>
@@ -197,6 +278,20 @@
             <strong>HC</strong> is the <strong>hammer center</strong> (pile guide / jaw opening center). If you shot the
             hammer face instead, enter the offset to the true center, measured <strong>toward or away from ML/MR</strong>.
           </p>
+          <figure class="pd25-measureup-tool pd25-hc-target" id="hcTargetFigure">
+            <img
+              class="pd25-measureup-tool__img pd25-hc-target__img"
+              src="assets/images/pd25-hc-hammer-center-plumb.png"
+              alt="PD25 HC reference — plumb bob on hammer-center line with mast held plumb (arrow)"
+              width="480"
+              height="360"
+              loading="lazy"
+            />
+            <figcaption class="pd25-measureup-tool__caption">
+              <strong>HC</strong> — keep the mast plumb (digital level), hang a plumb on the hammer-center line (arrow),
+              and shoot that vertical (or shoot the face and enter the center offset below).
+            </figcaption>
+          </figure>
           <div class="tc-field">
             <label class="tc-label" for="hcFaceOffset">HC center offset (+ / −)</label>
             <input type="number" id="hcFaceOffset" class="tc-input" step="0.001" value="0" />

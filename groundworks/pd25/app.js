@@ -488,29 +488,167 @@ function renderBodyCalibrationSigns() {
   );
 }
 
-var bodySignExampleModal = null;
+var imageLightbox = null;
 
-function ensureBodySignExampleModal() {
-  if (bodySignExampleModal) return bodySignExampleModal;
+function ensureImageLightbox() {
+  if (imageLightbox) return imageLightbox;
+
   var modalEl = document.createElement('div');
-  modalEl.className = 'pd25-target-modal pd25-body-sign-modal';
+  modalEl.className = 'pd25-target-modal pd25-image-lightbox';
   modalEl.hidden = true;
   modalEl.innerHTML =
     '<div class="pd25-target-modal__backdrop" data-close="1"></div>' +
-    '<div class="pd25-target-modal__panel" role="dialog" aria-modal="true" aria-labelledby="pd25BodySignModalTitle">' +
+    '<div class="pd25-target-modal__panel" role="dialog" aria-modal="true" aria-labelledby="pd25ImageLightboxTitle">' +
     '<button type="button" class="pd25-target-modal__close" data-close="1" aria-label="Close">&times;</button>' +
-    '<h3 class="pd25-target-modal__title" id="pd25BodySignModalTitle"></h3>' +
-    '<div class="pd25-target-modal__media">' +
-    '<img class="pd25-target-modal__img" alt="" />' +
+    '<h3 class="pd25-target-modal__title" id="pd25ImageLightboxTitle"></h3>' +
+    '<div class="pd25-target-modal__viewport" tabindex="0">' +
+    '<img class="pd25-target-modal__img" alt="" draggable="false" />' +
     '</div>' +
+    '<p class="pd25-target-modal__zoom-hint">Pinch or scroll to zoom · drag to pan · double-tap to reset</p>' +
     '<p class="pd25-target-modal__caption"></p>' +
     '</div>';
   document.body.appendChild(modalEl);
 
+  var viewport = modalEl.querySelector('.pd25-target-modal__viewport');
+  var img = modalEl.querySelector('.pd25-target-modal__img');
+  var titleEl = modalEl.querySelector('.pd25-target-modal__title');
+  var captionEl = modalEl.querySelector('.pd25-target-modal__caption');
+
+  var zoom = { scale: 1, x: 0, y: 0, min: 1, max: 6 };
+  var pointers = Object.create(null);
+  var pinchStartDist = 0;
+  var pinchStartScale = 1;
+  var panLast = null;
+  var lastTap = 0;
+
+  function applyZoom() {
+    img.style.transform =
+      'translate(' + zoom.x + 'px, ' + zoom.y + 'px) scale(' + zoom.scale + ')';
+  }
+
+  function resetZoom() {
+    zoom.scale = 1;
+    zoom.x = 0;
+    zoom.y = 0;
+    applyZoom();
+  }
+
+  function clampPan() {
+    var rect = viewport.getBoundingClientRect();
+    var maxX = (rect.width * (zoom.scale - 1)) / 2 + 40;
+    var maxY = (rect.height * (zoom.scale - 1)) / 2 + 40;
+    if (zoom.scale <= 1) {
+      zoom.x = 0;
+      zoom.y = 0;
+      return;
+    }
+    if (zoom.x > maxX) zoom.x = maxX;
+    if (zoom.x < -maxX) zoom.x = -maxX;
+    if (zoom.y > maxY) zoom.y = maxY;
+    if (zoom.y < -maxY) zoom.y = -maxY;
+  }
+
   function closeModal() {
     modalEl.hidden = true;
     document.body.classList.remove('pd25-target-modal-open');
+    resetZoom();
+    img.removeAttribute('src');
+    pointers = Object.create(null);
+    panLast = null;
   }
+
+  function pointerCount() {
+    return Object.keys(pointers).length;
+  }
+
+  function distanceBetween(a, b) {
+    var dx = a.x - b.x;
+    var dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function activePointers() {
+    return Object.keys(pointers).map(function (id) {
+      return pointers[id];
+    });
+  }
+
+  viewport.addEventListener(
+    'wheel',
+    function (e) {
+      e.preventDefault();
+      var delta = e.deltaY > 0 ? -0.12 : 0.12;
+      var next = Math.min(zoom.max, Math.max(zoom.min, zoom.scale + delta * zoom.scale));
+      zoom.scale = next;
+      clampPan();
+      applyZoom();
+    },
+    { passive: false }
+  );
+
+  viewport.addEventListener('pointerdown', function (e) {
+    viewport.setPointerCapture(e.pointerId);
+    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var pts = activePointers();
+    if (pts.length === 2) {
+      pinchStartDist = distanceBetween(pts[0], pts[1]);
+      pinchStartScale = zoom.scale;
+      panLast = null;
+    } else if (pts.length === 1) {
+      panLast = { x: e.clientX, y: e.clientY };
+      var now = Date.now();
+      if (now - lastTap < 300) {
+        if (zoom.scale > 1.05) {
+          resetZoom();
+        } else {
+          zoom.scale = 2.5;
+          clampPan();
+          applyZoom();
+        }
+        lastTap = 0;
+      } else {
+        lastTap = now;
+      }
+    }
+  });
+
+  viewport.addEventListener('pointermove', function (e) {
+    if (!pointers[e.pointerId]) return;
+    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var pts = activePointers();
+    if (pts.length === 2 && pinchStartDist > 0) {
+      var dist = distanceBetween(pts[0], pts[1]);
+      zoom.scale = Math.min(
+        zoom.max,
+        Math.max(zoom.min, pinchStartScale * (dist / pinchStartDist))
+      );
+      clampPan();
+      applyZoom();
+    } else if (pts.length === 1 && panLast && zoom.scale > 1.01) {
+      zoom.x += e.clientX - panLast.x;
+      zoom.y += e.clientY - panLast.y;
+      panLast = { x: e.clientX, y: e.clientY };
+      clampPan();
+      applyZoom();
+    }
+  });
+
+  function endPointer(e) {
+    delete pointers[e.pointerId];
+    if (pointerCount() < 2) pinchStartDist = 0;
+    if (pointerCount() === 1) {
+      var remaining = activePointers()[0];
+      panLast = remaining ? { x: remaining.x, y: remaining.y } : null;
+    } else {
+      panLast = null;
+    }
+  }
+
+  viewport.addEventListener('pointerup', endPointer);
+  viewport.addEventListener('pointercancel', endPointer);
+  viewport.addEventListener('pointerleave', function (e) {
+    if (pointers[e.pointerId]) endPointer(e);
+  });
 
   modalEl.addEventListener('click', function (e) {
     if (e.target.getAttribute('data-close') === '1') closeModal();
@@ -519,20 +657,22 @@ function ensureBodySignExampleModal() {
     if (e.key === 'Escape' && !modalEl.hidden) closeModal();
   });
 
-  bodySignExampleModal = {
+  imageLightbox = {
     el: modalEl,
-    title: modalEl.querySelector('.pd25-target-modal__title'),
-    img: modalEl.querySelector('.pd25-target-modal__img'),
-    caption: modalEl.querySelector('.pd25-target-modal__caption'),
+    title: titleEl,
+    img: img,
+    caption: captionEl,
     close: closeModal,
+    resetZoom: resetZoom,
+    applyZoom: applyZoom,
   };
-  return bodySignExampleModal;
+  return imageLightbox;
 }
 
-function openBodySignExampleModal(example) {
-  var modal = ensureBodySignExampleModal();
+function openImageLightbox(example) {
+  var modal = ensureImageLightbox();
+  modal.resetZoom();
   modal.title.textContent = example.title || '';
-  modal.img.src = example.image;
   modal.img.alt = example.alt || example.title || '';
   modal.caption.textContent = example.caption || '';
   if (example.maxDisplayWidth) {
@@ -540,28 +680,124 @@ function openBodySignExampleModal(example) {
   } else {
     modal.img.style.maxWidth = '';
   }
+  modal.img.onload = function () {
+    modal.resetZoom();
+  };
+  modal.img.src = example.image;
   modal.el.hidden = false;
   document.body.classList.add('pd25-target-modal-open');
+  try {
+    modal.el.querySelector('.pd25-target-modal__viewport').focus();
+  } catch (err) {
+    /* ignore */
+  }
+}
+
+/** @deprecated alias — body-sign examples use the shared lightbox */
+function ensureBodySignExampleModal() {
+  return ensureImageLightbox();
+}
+
+function openBodySignExampleModal(example) {
+  openImageLightbox(example);
+}
+
+function figureCaptionNear(el) {
+  var fig = el.closest('figure');
+  if (!fig) return '';
+  var cap = fig.querySelector('figcaption');
+  return cap ? (cap.textContent || '').replace(/\s+/g, ' ').trim() : '';
+}
+
+function markExpandableImages(root) {
+  root = root || document;
+  var nodes = root.querySelectorAll(
+    '.pd25-step__image, .pd25-measureup-tool__img, .pd25-dimensions__b5-image'
+  );
+  for (var i = 0; i < nodes.length; i++) {
+    var img = nodes[i];
+    img.classList.add('pd25-expandable-img');
+    if (!img.hasAttribute('tabindex')) img.setAttribute('tabindex', '0');
+    img.setAttribute('role', 'button');
+    var baseAlt = img.getAttribute('alt') || 'Image';
+    img.setAttribute('aria-label', baseAlt + ' — tap to enlarge');
+    var fig = img.closest('figure');
+    if (fig && !fig.querySelector('.pd25-expand-hint')) {
+      var hint = document.createElement('span');
+      hint.className = 'pd25-expand-hint';
+      hint.setAttribute('aria-hidden', 'true');
+      hint.textContent = 'Tap to enlarge';
+      var cap = fig.querySelector('figcaption');
+      if (cap) fig.insertBefore(hint, cap);
+      else fig.appendChild(hint);
+    }
+  }
+}
+
+function initImageLightbox() {
+  if (initImageLightbox._bound) return;
+  initImageLightbox._bound = true;
+
+  document.addEventListener(
+    'click',
+    function (e) {
+      var btn = e.target.closest('.pd25-body-signs__view, .pd25-image-expand');
+      if (btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        openImageLightbox({
+          image: btn.getAttribute('data-body-example-image'),
+          alt: btn.getAttribute('data-body-example-alt'),
+          title: btn.getAttribute('data-body-example-title'),
+          caption: btn.getAttribute('data-body-example-caption'),
+          maxDisplayWidth: btn.getAttribute('data-body-example-max-width')
+            ? Number(btn.getAttribute('data-body-example-max-width'))
+            : 0,
+        });
+        return;
+      }
+
+      var img = e.target.closest('.pd25-expandable-img');
+      if (!img) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var caption = figureCaptionNear(img);
+      openImageLightbox({
+        image: img.currentSrc || img.src,
+        alt: img.getAttribute('alt') || '',
+        title: img.getAttribute('alt') || 'Photo',
+        caption: caption,
+      });
+    },
+    true
+  );
+
+  document.addEventListener(
+    'mousedown',
+    function (e) {
+      if (e.target.closest('.pd25-expandable-img, .pd25-image-expand, .pd25-body-signs__view')) {
+        e.stopPropagation();
+      }
+    },
+    true
+  );
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var img = e.target.closest('.pd25-expandable-img');
+    if (!img) return;
+    e.preventDefault();
+    openImageLightbox({
+      image: img.currentSrc || img.src,
+      alt: img.getAttribute('alt') || '',
+      title: img.getAttribute('alt') || 'Photo',
+      caption: figureCaptionNear(img),
+    });
+  });
 }
 
 function initBodySignExampleModal() {
-  if (initBodySignExampleModal._bound) return;
-  initBodySignExampleModal._bound = true;
-  document.addEventListener('click', function (e) {
-    var btn = e.target.closest('.pd25-body-signs__view, .pd25-image-expand');
-    if (!btn) return;
-    e.preventDefault();
-    e.stopPropagation();
-    openBodySignExampleModal({
-      image: btn.getAttribute('data-body-example-image'),
-      alt: btn.getAttribute('data-body-example-alt'),
-      title: btn.getAttribute('data-body-example-title'),
-      caption: btn.getAttribute('data-body-example-caption'),
-      maxDisplayWidth: btn.getAttribute('data-body-example-max-width')
-        ? Number(btn.getAttribute('data-body-example-max-width'))
-        : 0,
-    });
-  });
+  initImageLightbox();
 }
 
 function renderGroundworksDimensions(options) {
@@ -682,13 +918,32 @@ function renderGroundworksDimensions(options) {
     if (data.b5Image) {
       html +=
         '<figure class="pd25-dimensions__b5-figure">' +
-        '<img class="pd25-dimensions__b5-image" src="' +
+        '<img class="pd25-dimensions__b5-image pd25-expandable-img" src="' +
         esc(data.b5Image) +
         '" alt="' +
         esc(data.b5ImageAlt || 'B5 measure-up location on PD25') +
-        '" loading="lazy" />' +
+        '" loading="lazy" tabindex="0" role="button" aria-label="' +
+        esc((data.b5ImageAlt || 'B5') + ' — tap to enlarge') +
+        '" />' +
+        '<span class="pd25-expand-hint" aria-hidden="true">Tap to enlarge</span>' +
         '<figcaption class="pd25-dimensions__b5-caption">' +
         esc(data.b5ImageCaption || 'B5 — center of Y pivot pin to X tilt pin') +
+        '</figcaption>' +
+        '</figure>';
+    }
+    if (data.mtImage) {
+      html +=
+        '<figure class="pd25-dimensions__b5-figure">' +
+        '<img class="pd25-dimensions__b5-image pd25-expandable-img" src="' +
+        esc(data.mtImage) +
+        '" alt="' +
+        esc(data.mtImageAlt || 'PD25 Mast Tilt (MT) measurement target') +
+        '" loading="lazy" tabindex="0" role="button" aria-label="' +
+        esc((data.mtImageAlt || 'MT') + ' — tap to enlarge') +
+        '" />' +
+        '<span class="pd25-expand-hint" aria-hidden="true">Tap to enlarge</span>' +
+        '<figcaption class="pd25-dimensions__b5-caption">' +
+        esc(data.mtImageCaption || 'Where to shoot MT') +
         '</figcaption>' +
         '</figure>';
     }
@@ -727,6 +982,7 @@ function mountGroundworksDimensions(targetId, options) {
   var el = document.getElementById(targetId);
   if (!el) return;
   el.innerHTML = renderGroundworksDimensions(options);
+  markExpandableImages(el);
 }
 
 function renderPhases() {
@@ -781,14 +1037,18 @@ function renderPhases() {
           '" data-body-example-caption="' +
           esc(step.imageModalCaption || '') +
           '">View diagnostics example</button>';
-      } else if (step.image) {
+      }
+      if (step.image) {
         imageHtml =
           '<figure class="pd25-step__figure">' +
-          '<img class="pd25-step__image" src="' +
+          '<img class="pd25-step__image pd25-expandable-img" src="' +
           esc(step.image) +
           '" alt="' +
           esc(step.imageAlt || step.title) +
-          '" loading="lazy" />' +
+          '" loading="lazy" tabindex="0" role="button" aria-label="' +
+          esc((step.imageAlt || step.title) + ' — tap to enlarge') +
+          '" />' +
+          '<span class="pd25-expand-hint" aria-hidden="true">Tap to enlarge</span>' +
           (step.imageCaption
             ? '<figcaption class="pd25-step__caption">' + esc(step.imageCaption) + '</figcaption>'
             : '') +
@@ -858,6 +1118,7 @@ function renderPhases() {
     root.appendChild(section);
   });
 
+  markExpandableImages(root);
   updateWorkflowProgress();
 }
 
@@ -1137,6 +1398,7 @@ function renderCalcResults(analysis) {
     var row = analysis.groundworks[key];
     if (!row) return;
     var valueStr = Number(row.value).toFixed(3);
+    var isMeasuredB5 = key === 'B5' && analysis.b5Method === 'measure';
     html +=
       '<article class="pd25-dim-card pd25-result-card' +
       (key === 'B5' ? ' pd25-dim-card--critical' : '') +
@@ -1144,11 +1406,15 @@ function renderCalcResults(analysis) {
       '<div class="pd25-dim-card__head">' +
       '<strong class="pd25-dim-card__id">' +
       esc(key) +
+      (isMeasuredB5
+        ? ' <span class="pd25-beta-badge" title="Measured B5 is BETA — verify before relying on guidance">BETA</span>'
+        : '') +
       '</strong>' +
       '<span class="pd25-dim-entry pd25-dim-entry--measure">Result</span>' +
       '</div>' +
       '<p class="pd25-dim-card__name">' +
       esc(row.label) +
+      (isMeasuredB5 ? ' <span class="pd25-beta-inline">(measured — verify vs OEM)</span>' : '') +
       '</p>' +
       '<div class="pd25-dim-card__values">' +
       '<div class="pd25-dim-card__value">' +
@@ -1306,7 +1572,7 @@ function initGuide() {
   loadProgress();
   renderTooling();
   renderPhases();
-  initBodySignExampleModal();
+  initImageLightbox();
 }
 
 function initCalculator() {
@@ -1318,6 +1584,8 @@ function initCalculator() {
   bindPdfExport();
   loadSavedDealerBranding();
   updateHcOffsetHint();
+  initImageLightbox();
+  markExpandableImages(document);
 }
 
 function init() {

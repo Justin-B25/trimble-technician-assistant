@@ -651,7 +651,7 @@ var PD25Calc = (function () {
         value: measuredB5,
         signedInverse: measuredB5,
         source:
-          'Measured — X-pin center elev − MT elev (flange→pin horizontal ' +
+          'Measured (BETA) — X-pin center elev − MT elev (flange→pin horizontal ' +
           formatGroundworksValue(xPinHorizontalOffset) +
           ' ' +
           displayConstants.unitLabel +
@@ -694,7 +694,7 @@ var PD25Calc = (function () {
 
     var okMessage =
       b5Method === 'measure'
-        ? 'Survey parsed. B5 measured from MT; G1, G2, G5, and G6 rebuilt from measured CENTER REF.'
+        ? 'Survey parsed. B5 measured from MT (BETA — verify vs OEM); G1, G2, G5, and G6 rebuilt from measured CENTER REF.'
         : validation.hasReferencePoints
           ? 'Survey parsed. Computed COGO points compared to optional reference points in CSV.'
           : 'Survey parsed. G1, G2, G5, G6, and G7 calculated from ML, MR, MB, and H.';
