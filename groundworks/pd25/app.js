@@ -336,9 +336,15 @@ function isCalculatorUnlocked() {
 }
 
 function guidePhases() {
-  return PD25_GUIDE.phases.filter(function (p) {
+  var phases = PD25_GUIDE.phases.filter(function (p) {
     return !p.calculator;
   });
+  if (getPageMode() === 'targets') {
+    return phases.filter(function (p) {
+      return p.id === 'phase-2';
+    });
+  }
+  return phases;
 }
 
 function ensureExpandedDefaults() {
@@ -410,6 +416,7 @@ function updateWorkflowProgress() {
 
 function renderTooling() {
   var ul = document.getElementById('toolingList');
+  if (!ul) return;
   ul.innerHTML = PD25_GUIDE.requiredTooling.map(function (t) {
     return '<li>' + esc(t) + '</li>';
   }).join('');
@@ -950,7 +957,7 @@ function renderGroundworksDimensions(options) {
     if (options.omitImages) {
       html +=
         '<p class="note" style="margin:10px 0 0;">Target placement photos: see the ' +
-        '<a href="guide.html#phase-2">pre measure-up guide</a>.</p>';
+        '<a href="targets.html">target placement help</a>.</p>';
     }
     html += '</div>';
   }
@@ -1003,11 +1010,17 @@ function renderPhases() {
 
     var head = document.createElement('div');
     head.className = 'pd25-phase__head' + (phase.critical ? ' pd25-phase__head--critical' : '');
+    var phaseTitle = phase.title;
+    var phaseSummary = phase.summary;
+    if (getPageMode() === 'targets' && phase.id === 'phase-2') {
+      phaseTitle = 'Where to place & shoot targets';
+      phaseSummary = 'Reference position, then ML · MR · MT · MB · H · HC (and optional MF). Tap photos to enlarge.';
+    }
     head.innerHTML =
       '<div><div class="pd25-phase__title">' +
-      esc(phase.title) +
+      esc(phaseTitle) +
       '</div><div class="pd25-phase__summary">' +
-      esc(phase.summary) +
+      esc(phaseSummary) +
       '</div></div>' +
       '<span class="pd25-phase__badge' +
       (done ? ' pd25-phase__badge--done' : '') +
@@ -1596,6 +1609,13 @@ function initGuide() {
   window.addEventListener('hashchange', openPhaseFromHash);
 }
 
+function initTargets() {
+  loadProgress();
+  state.expandedPhases['phase-2'] = true;
+  renderPhases();
+  initImageLightbox();
+}
+
 function initCalculator() {
   mountGroundworksDimensions('groundworksDimensions', { omitImages: true });
   bindCsv();
@@ -1612,6 +1632,10 @@ function initCalculator() {
 function init() {
   var page = getPageMode();
   bindCopyResults();
+  if (page === 'targets') {
+    initTargets();
+    return;
+  }
   if (page === 'guide' || page === 'combined') {
     initGuide();
     if (page === 'combined') bindTabs();

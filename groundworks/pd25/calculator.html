@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/report-upload.css?v=1" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=35" />
+  <link rel="stylesheet" href="styles.css?v=36" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
@@ -36,9 +36,9 @@
           Work top to bottom: set units, upload survey, choose B5 method, set MB/H rod height, then calculate.
           Target placement photos and machine setup steps live in the guide — not here.
         </p>
-        <a class="pd25-calc-guide-link" href="guide.html#phase-2">
-          Open pre measure-up target placement guide
-          <span class="pd25-calc-guide-link__hint">ML, MR, MT, MB, H, HC photos &amp; setup checklist</span>
+        <a class="pd25-calc-guide-link" href="targets.html">
+          Open target placement help
+          <span class="pd25-calc-guide-link__hint">ML, MR, MT, MB, H, HC photos — then return here</span>
         </a>
       </nav>
 
@@ -112,7 +112,7 @@
           <p class="pd25-calc-step__lead">
             <strong>Default:</strong> use OEM B5 (−1.056&nbsp;ft / −0.321&nbsp;m).
             <strong>Measure (BETA):</strong> shoot <strong>MT</strong>, enter flange→X-pin offset; calculator rebuilds B5 and G1/G2/G5/G6.
-            See the <a href="guide.html#phase-2">target placement guide</a> for where to shoot ML/MR/MT.
+            See the <a href="targets.html">target placement help</a> for where to shoot ML/MR/MT.
           </p>
 
           <fieldset class="pd25-rod-fieldset">
@@ -153,7 +153,7 @@
           <p class="pd25-calc-step__lead">
             Groundworks needs <strong>antenna phase center (APC)</strong>, not prism height on the post.
             If the bracket is angled, use a <strong>vertical</strong> post or acrylic at APC — see the
-            <a href="guide.html#phase-2">guide</a>.
+            <a href="targets.html">target placement help</a>.
           </p>
 
           <fieldset class="pd25-rod-fieldset">
@@ -198,7 +198,7 @@
           </h2>
           <p class="pd25-calc-step__lead">
             HC appeared in your CSV. If you shot the hammer face instead of center, enter the offset toward/away from ML/MR.
-            Placement photos: <a href="guide.html#phase-2">target guide</a>.
+            Placement photos: <a href="targets.html">target placement help</a>.
           </p>
           <div class="tc-field">
             <label class="tc-label" for="hcFaceOffset">HC center offset (+ / −)</label>
@@ -327,7 +327,7 @@
   <script src="groundworks-dimensions-data.js?v=8"></script>
   <script src="viz.js?v=5"></script>
   <script src="calc.js?v=23"></script>
-  <script src="app.js?v=49"></script>
+  <script src="app.js?v=50"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
 </body>

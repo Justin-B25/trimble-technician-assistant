@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="../../assets/theme-init.js"></script>
-  <title>Guided pre measure-up — Vermeer PD25</title>
+  <title>Target placement — Vermeer PD25</title>
   <meta name="theme-color" content="#005f9e" />
   <link rel="icon" type="image/png" sizes="32x32" href="../../favicon-32.png" />
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
@@ -12,36 +12,38 @@
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
   <link rel="stylesheet" href="styles.css?v=36" />
 </head>
-<body data-pd25-page="guide">
+<body data-pd25-page="targets">
   <header class="tc-app-header">
-    <a class="tc-back-link" href="index.html">&larr; Vermeer PD25</a>
+    <a class="tc-back-link" href="calculator.html">&larr; Measure-up calculator</a>
     <div class="tc-header__inner">
       <div class="tc-header__brand">
         <img class="tc-header__logo" src="../../assets/brand/trimble-logo-white.png" alt="Trimble" />
         <div class="tc-header__titles">
-          <h1 class="tc-header__product">Guided pre measure-up workflow</h1>
-          <p class="tc-header__sub">Vermeer PD25 · Trimble Groundworks</p>
+          <h1 class="tc-header__product">Target placement</h1>
+          <p class="tc-header__sub">Vermeer PD25 · where to shoot ML, MR, MT, MB, H, HC</p>
         </div>
       </div>
     </div>
   </header>
 
+  <div class="pd25-return-bar" role="navigation" aria-label="Return to calculator">
+    <p class="pd25-return-bar__text">Review target photos, then continue your COGO workflow.</p>
+    <a class="btn btn-primary pd25-return-bar__btn" href="calculator.html">Return to measure-up calculator</a>
+  </div>
+
   <main class="tc-main">
     <div class="card">
-      <div class="pd25-accuracy" id="accuracyBanner"></div>
-
       <p class="note pd25-page-crosslink">
-        Target placement photos are here. When survey is complete, open the
-        <a href="calculator.html">measure-up calculator</a> for units, B5 method, rod height, and COGO results.
+        This page is only the <strong>reference position &amp; target</strong> steps from the measure-up guide.
+        Full workflow (mechanical calibrations, Siteworks, body cal):
+        <a href="guide.html">guided pre measure-up</a>.
       </p>
 
-      <h2 class="tc-panel h2-like">Required tooling</h2>
-      <ul class="pd25-tooling" id="toolingList"></ul>
-
-      <h2 class="tc-panel h2-like" style="margin-top:20px;">Verification phases</h2>
-      <p class="note">Recommended path for first-time setup or troubleshooting. Check each step as you complete it on the machine — phases stay open while you work through the list.</p>
-      <div class="pd25-workflow-progress" id="workflowProgress"></div>
       <div id="phaseList"></div>
+
+      <div class="pd25-return-footer">
+        <a class="btn btn-primary" href="calculator.html">Return to measure-up calculator</a>
+      </div>
     </div>
   </main>
 
