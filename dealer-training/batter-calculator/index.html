@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=1" />
+  <link rel="stylesheet" href="styles.css?v=2" />
 </head>
 <body data-gw-page="batter-calculator" class="batter-calc">
   <header class="tc-app-header">
@@ -30,8 +30,9 @@
     <p class="batter-intro">
       Drag a Siteworks point CSV here. Name points
       <strong>{PileID}B1–B3</strong> (bottom rim) and <strong>{PileID}T1–T3</strong> (top rim),
-      e.g. <code>1001B1</code> … <code>1001T3</code>. The calculator averages each ring, then reports
-      <strong>ΔN</strong>, <strong>ΔE</strong>, plan offset, rise, batter, and lean direction — no hand math.
+      e.g. <code>1001B1</code> … <code>1001T3</code>. The calculator averages each ring to get
+      <strong>bottom of pile center</strong> and <strong>top of pile center</strong>, then the
+      <strong>vector</strong> between them as measured ΔN / ΔE / ΔZ (top − bottom).
     </p>
 
     <section class="card">
@@ -71,6 +72,14 @@
 
     <div id="results" class="hidden">
       <section class="card">
+        <h2>Measured pile centers &amp; vector (primary result)</h2>
+        <p class="muted naming-help">
+          Bottom / top centers = average of three rim shots. Vector = top center − bottom center (measured coordinates).
+        </p>
+        <div id="pile-cards"></div>
+      </section>
+
+      <section class="card">
         <h2>Summary</h2>
         <div class="stats">
           <div class="stat">
@@ -82,17 +91,15 @@
             <div class="value" id="stat-points">—</div>
           </div>
           <div class="stat">
-            <div class="label">Avg ΔN</div>
+            <div class="label">Avg vector ΔN</div>
             <div class="value" id="stat-dn">—</div>
-            <div class="note">Top − bottom center</div>
           </div>
           <div class="stat">
-            <div class="label">Avg ΔE</div>
+            <div class="label">Avg vector ΔE</div>
             <div class="value" id="stat-de">—</div>
-            <div class="note">Top − bottom center</div>
           </div>
           <div class="stat">
-            <div class="label">Avg ΔXY</div>
+            <div class="label">Avg |XY|</div>
             <div class="value" id="stat-dxy">—</div>
           </div>
           <div class="stat">
@@ -102,13 +109,13 @@
           <div class="stat">
             <div class="label">Avg batter</div>
             <div class="value value-sm" id="stat-batter">—</div>
-            <div class="note">ΔXY ÷ |ΔZ|</div>
+            <div class="note">|XY| ÷ |ΔZ|</div>
           </div>
         </div>
       </section>
 
       <section class="card">
-        <h2>Per-pile results</h2>
+        <h2>Detail table</h2>
         <div class="table-wrap">
           <table class="qc-table">
             <thead>
@@ -120,12 +127,12 @@
                 <th>Top N</th>
                 <th>Top E</th>
                 <th>Top Z</th>
-                <th>ΔN</th>
-                <th>ΔE</th>
-                <th>ΔXY</th>
-                <th>ΔZ</th>
+                <th>Vec ΔN</th>
+                <th>Vec ΔE</th>
+                <th>Vec ΔZ</th>
+                <th>|XY|</th>
+                <th>|3D|</th>
                 <th>Batter</th>
-                <th>Angle°</th>
                 <th>Lean</th>
                 <th>Status</th>
               </tr>
@@ -133,10 +140,6 @@
             <tbody id="table-body"></tbody>
           </table>
         </div>
-        <p class="muted">
-          ΔN / ΔE = how the pile top center sits relative to the bottom center in plan (pile deviation).
-          Units match your Siteworks CSV. Batter = plan offset ÷ vertical rise.
-        </p>
       </section>
     </div>
   </main>
@@ -144,15 +147,15 @@
   <footer class="tc-footer">Battered Pile / Batter Calculator · Dealer Training · Technician Assistant</footer>
 
   <script src="../../assets/workspace-config.js?v=5"></script>
-  <script src="../../assets/workspace-api.js?v=12"></script>
+  <script src="../../assets/workspace-api.js?v=13"></script>
   <script src="../../assets/app-access.js?v=10"></script>
   <script src="../../assets/theme-toggle.js"></script>
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
-  <script src="js/parsers.js?v=1"></script>
-  <script src="js/calc.js?v=1"></script>
-  <script src="js/pdf.js?v=1"></script>
-  <script src="js/app.js?v=1"></script>
+  <script src="js/parsers.js?v=2"></script>
+  <script src="js/calc.js?v=2"></script>
+  <script src="js/pdf.js?v=2"></script>
+  <script src="js/app.js?v=2"></script>
 </body>
 </html>

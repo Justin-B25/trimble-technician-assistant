@@ -70,6 +70,57 @@
     $('btn-pdf').disabled = !has;
   }
 
+  function renderPileCards(report) {
+    var host = $('pile-cards');
+    host.innerHTML = '';
+    report.rows.forEach(function (r) {
+      var card = document.createElement('div');
+      card.className = 'pile-result-card' + (r.ok ? '' : ' pile-result-card--bad');
+
+      var title = document.createElement('div');
+      title.className = 'pile-result-card__title';
+      title.textContent = 'Pile ' + r.pileId + (r.ok ? '' : ' — incomplete');
+      card.appendChild(title);
+
+      function row(label, value, highlight) {
+        var line = document.createElement('div');
+        line.className = 'pile-result-card__row' + (highlight ? ' pile-result-card__row--vec' : '');
+        var lab = document.createElement('div');
+        lab.className = 'pile-result-card__label';
+        lab.textContent = label;
+        var val = document.createElement('div');
+        val.className = 'pile-result-card__value';
+        val.textContent = value;
+        line.appendChild(lab);
+        line.appendChild(val);
+        card.appendChild(line);
+      }
+
+      if (r.ok) {
+        row('Bottom of pile center', BatterCalc.fmtCoord(r.bottom));
+        row('Top of pile center', BatterCalc.fmtCoord(r.top));
+        row('Vector bottom → top (measured)', BatterCalc.fmtVector(r), true);
+        row(
+          'Vector magnitudes',
+          '|XY| ' +
+            BatterCalc.fmt(r.dxy) +
+            '   |3D| ' +
+            BatterCalc.fmt(r.length3d) +
+            '   Batter ' +
+            BatterCalc.fmtBatter(r.batter) +
+            '   ' +
+            (r.favor || '')
+        );
+      } else {
+        row('Status', (r.warnings || ['Need B1–B3 and T1–T3']).join(' · '));
+        if (r.bottom) row('Bottom center (partial)', BatterCalc.fmtCoord(r.bottom));
+        if (r.top) row('Top center (partial)', BatterCalc.fmtCoord(r.top));
+      }
+
+      host.appendChild(card);
+    });
+  }
+
   function renderResults() {
     var wrap = $('results');
     var report = state.report;
@@ -87,6 +138,8 @@
     $('stat-dxy').textContent = BatterCalc.fmt(report.avg.dxy);
     $('stat-dz').textContent = BatterCalc.fmt(report.avg.dz);
     $('stat-batter').textContent = BatterCalc.fmtBatter(report.avg.batter);
+
+    renderPileCards(report);
 
     var tbody = $('table-body');
     tbody.innerHTML = '';
@@ -108,10 +161,10 @@
       td(BatterCalc.fmt(r.top && r.top.z));
       td(BatterCalc.fmt(r.dn), 'delta');
       td(BatterCalc.fmt(r.de), 'delta');
+      td(BatterCalc.fmt(r.dz), 'delta');
       td(BatterCalc.fmt(r.dxy));
-      td(BatterCalc.fmt(r.dz));
+      td(BatterCalc.fmt(r.length3d));
       td(BatterCalc.fmtBatter(r.batter));
-      td(BatterCalc.fmt(r.angleDeg, 2));
       td(r.favor || '—');
       td(r.ok ? 'OK' : 'Incomplete', r.ok ? 'ok' : 'bad');
       tbody.appendChild(tr);

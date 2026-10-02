@@ -115,6 +115,7 @@ var BatterCalc = (function () {
     var de = top.e - bottom.e;
     var dz = top.z - bottom.z;
     var dxy = Math.sqrt(dn * dn + de * de);
+    var length3d = Math.sqrt(dn * dn + de * de + dz * dz);
     var batter = null;
     var angleDeg = null;
     if (Math.abs(dz) > 1e-12) {
@@ -127,6 +128,18 @@ var BatterCalc = (function () {
     var botOd = chordOdEstimate(bPts);
     var topOd = chordOdEstimate(tPts);
 
+    var vector = {
+      from: 'bottom_center',
+      to: 'top_center',
+      dn: dn,
+      de: de,
+      dz: dz,
+      dxy: dxy,
+      length3d: length3d,
+      // Same values as measured coordinate deltas (top − bottom)
+      asCoordinates: { dN: dn, dE: de, dZ: dz },
+    };
+
     return {
       pileId: pile.pileId,
       ok: true,
@@ -135,10 +148,15 @@ var BatterCalc = (function () {
       topPts: tPts,
       bottom: bottom,
       top: top,
+      // Primary deliverable
+      bottomCenter: { n: bottom.n, e: bottom.e, z: bottom.z },
+      topCenter: { n: top.n, e: top.e, z: top.z },
+      vector: vector,
       dn: dn,
       de: de,
       dz: dz,
       dxy: dxy,
+      length3d: length3d,
       batter: batter,
       angleDeg: angleDeg,
       favor: favorLabel(dn, de),
@@ -203,16 +221,17 @@ var BatterCalc = (function () {
   function rowsToCsv(report) {
     var header = [
       'PileID',
-      'Bottom_N',
-      'Bottom_E',
-      'Bottom_Z',
-      'Top_N',
-      'Top_E',
-      'Top_Z',
-      'Delta_N',
-      'Delta_E',
-      'Delta_XY',
-      'Delta_Z',
+      'BottomCenter_N',
+      'BottomCenter_E',
+      'BottomCenter_Z',
+      'TopCenter_N',
+      'TopCenter_E',
+      'TopCenter_Z',
+      'Vector_dN_top_minus_bottom',
+      'Vector_dE_top_minus_bottom',
+      'Vector_dZ_top_minus_bottom',
+      'Vector_plan_XY',
+      'Vector_3D_length',
       'Batter_XY_over_Z',
       'Batter_Angle_deg',
       'Lean_Direction',
@@ -237,8 +256,9 @@ var BatterCalc = (function () {
           nz(r.top, 'z'),
           r.dn != null ? r.dn : '',
           r.de != null ? r.de : '',
-          r.dxy != null ? r.dxy : '',
           r.dz != null ? r.dz : '',
+          r.dxy != null ? r.dxy : '',
+          r.length3d != null ? r.length3d : '',
           r.batter != null ? r.batter : '',
           r.angleDeg != null ? r.angleDeg : '',
           r.favor || '',
@@ -252,12 +272,24 @@ var BatterCalc = (function () {
     return lines.join('\r\n');
   }
 
+  function fmtCoord(p) {
+    if (!p) return '—';
+    return 'N ' + fmt(p.n) + '   E ' + fmt(p.e) + '   Z ' + fmt(p.z);
+  }
+
+  function fmtVector(r) {
+    if (!r || r.dn == null) return '—';
+    return 'ΔN ' + fmt(r.dn) + '   ΔE ' + fmt(r.de) + '   ΔZ ' + fmt(r.dz);
+  }
+
   return {
     buildReport: buildReport,
     computePile: computePile,
     favorLabel: favorLabel,
     fmt: fmt,
     fmtBatter: fmtBatter,
+    fmtCoord: fmtCoord,
+    fmtVector: fmtVector,
     rowsToCsv: rowsToCsv,
   };
 })();
