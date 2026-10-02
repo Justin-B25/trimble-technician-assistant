@@ -43,6 +43,12 @@
           name: 'Pile QC / Deviation Calculator',
           summary: 'Design vs rover stakeout vs machine as-built — XY/Z deltas, median ΔZ, bullseye, and PDF report',
         },
+        {
+          href: './groundworks/batter-calculator/index.html',
+          icon: 'BT',
+          name: 'Battered Pile / Batter Calculator',
+          summary: 'Siteworks CSV rim shots (PileID B1–B3 / T1–T3) — centers, ΔN/ΔE, batter, and PDF report',
+        },
       ],
     },
     {

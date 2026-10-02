@@ -203,6 +203,57 @@ function testGwCsvFormatter() {
   assert(swSkip.dataRows.length === 5, 'Ignore rows removes a data row from export');
 }
 
+function testBatterCalculator() {
+  var parserSandbox = loadGlobalScript(
+    path.join(root, 'groundworks/batter-calculator/js/parsers.js'),
+    'BatterParsers'
+  );
+  var calcSandbox = {
+    console: console,
+    Math: Math,
+    Date: Date,
+    Number: Number,
+    String: String,
+    Object: Object,
+    Array: Array,
+    parseFloat: parseFloat,
+    isNaN: isNaN,
+    BatterParsers: parserSandbox.BatterParsers,
+  };
+  vm.createContext(calcSandbox);
+  vm.runInContext(
+    fs.readFileSync(path.join(root, 'groundworks/batter-calculator/js/calc.js'), 'utf8'),
+    calcSandbox,
+    { filename: 'calc.js' }
+  );
+
+  var parsed = parserSandbox.BatterParsers.parsePointName('1001T2');
+  assert(parsed && parsed.pileId === '1001' && parsed.ring === 'T' && parsed.idx === 2, 'Batter parses 1001T2');
+  assert(!parserSandbox.BatterParsers.parsePointName('CP100'), 'Batter rejects non-rim names');
+
+  var csv = fs.readFileSync(path.join(__dirname, 'fixtures/batter-siteworks.csv'), 'utf8');
+  var loaded = parserSandbox.BatterParsers.parseSiteworksCsv(csv, 'batter-siteworks.csv');
+  assert(loaded.points.length === 12, 'Batter fixture loads 12 rim points');
+
+  var report = calcSandbox.BatterCalc.buildReport(loaded.points);
+  assert(report.pileCount === 2, 'Batter finds two pile IDs');
+  assert(report.okCount === 2, 'Batter both piles OK');
+
+  var p1001 = report.rows.filter(function (r) {
+    return r.pileId === '1001';
+  })[0];
+  assert(p1001 && p1001.ok, 'Pile 1001 computed');
+  assert(Math.abs(p1001.dn - 6) < 0.01, 'Pile 1001 ΔN ≈ 6');
+  assert(Math.abs(p1001.de) < 0.01, 'Pile 1001 ΔE ≈ 0');
+  assert(Math.abs(p1001.dxy - 6) < 0.01, 'Pile 1001 ΔXY ≈ 6');
+  assert(Math.abs(p1001.dz - 47.624) < 0.01, 'Pile 1001 ΔZ ≈ 47.624');
+  assert(p1001.batter > 0.12 && p1001.batter < 0.13, 'Pile 1001 batter ≈ 0.126');
+  assert(/N/.test(p1001.favor), 'Pile 1001 leans N');
+
+  var csvOut = calcSandbox.BatterCalc.rowsToCsv(report);
+  assert(csvOut.indexOf('Delta_N') !== -1 && csvOut.indexOf('1001') !== -1, 'Batter CSV export includes ΔN + pile ID');
+}
+
 function testExcavator() {
   var sandbox = loadGlobalScript(path.join(root, 'measure-up/excavator/calc.js'), 'ExcavatorMeasureUpCalc');
   var csv = fs.readFileSync(path.join(__dirname, 'fixtures/ctl-min.csv'), 'utf8');
@@ -258,6 +309,14 @@ try {
 } catch (err) {
   failed++;
   console.error('FAIL: GW CSV formatter threw', err.message);
+}
+
+console.log('--- Battered pile / batter calculator ---');
+try {
+  testBatterCalculator();
+} catch (err) {
+  failed++;
+  console.error('FAIL: Batter calculator threw', err.message);
 }
 
 if (failed) {

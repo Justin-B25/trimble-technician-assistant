@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="../../assets/theme-init.js"></script>
+  <title>Battered Pile / Batter Calculator — Trimble Technician Assistant</title>
+  <meta name="theme-color" content="#005f9e" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../../favicon-32.png" />
+  <link rel="stylesheet" href="../../assets/trimble-connect.css" />
+  <link rel="stylesheet" href="../../assets/app-access.css" />
+  <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
+  <link rel="stylesheet" href="styles.css?v=1" />
+</head>
+<body data-gw-page="batter-calculator" class="batter-calc">
+  <header class="tc-app-header">
+    <a class="tc-back-link" href="../index.html">&larr; Groundworks</a>
+    <div class="tc-header__inner">
+      <div class="tc-header__brand">
+        <img class="tc-header__logo" src="../../assets/brand/trimble-logo-white.png" alt="Trimble" />
+        <div class="tc-header__titles">
+          <h1 class="tc-header__product">Battered Pile / Batter Calculator</h1>
+          <p class="tc-header__sub">Siteworks CSV · Top Mount rim shots · ΔN / ΔE / batter</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="tc-main batter-main">
+    <p class="batter-intro">
+      Drag a Siteworks point CSV here. Name points
+      <strong>{PileID}B1–B3</strong> (bottom rim) and <strong>{PileID}T1–T3</strong> (top rim),
+      e.g. <code>1001B1</code> … <code>1001T3</code>. The calculator averages each ring, then reports
+      <strong>ΔN</strong>, <strong>ΔE</strong>, plan offset, rise, batter, and lean direction — no hand math.
+    </p>
+
+    <section class="card">
+      <h2>Job</h2>
+      <div class="job-grid">
+        <div>
+          <label class="muted" for="job-name">Job / site</label>
+          <input id="job-name" type="text" placeholder="e.g. Bootcamp Station 4" />
+        </div>
+        <div>
+          <label class="muted" for="job-notes">Notes</label>
+          <input id="job-notes" type="text" placeholder="Optional — tube size, design batter, etc." />
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Siteworks CSV</h2>
+      <p class="muted naming-help">
+        Required columns: Point Name (or Point ID), Northing, Easting, Elevation.
+        Headerless Name,N,E,Z also works. Multiple CSVs merge by pile ID.
+      </p>
+      <div class="dropzone" id="dz-csv">
+        <h3>Drop Siteworks CSV here</h3>
+        <p>Or click to browse · .csv from Siteworks point export</p>
+        <input id="file-csv" type="file" accept=".csv,text/csv,text/plain" multiple />
+        <ul class="file-list" id="list-csv"></ul>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-secondary" id="btn-clear">Clear</button>
+        <button type="button" class="btn btn-secondary" id="btn-csv" disabled>Export CSV</button>
+        <button type="button" class="btn btn-primary" id="btn-pdf" disabled>Export PDF report</button>
+      </div>
+    </section>
+
+    <div id="alert" class="alert hidden"></div>
+
+    <div id="results" class="hidden">
+      <section class="card">
+        <h2>Summary</h2>
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Piles OK</div>
+            <div class="value" id="stat-piles">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">Rim points</div>
+            <div class="value" id="stat-points">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">Avg ΔN</div>
+            <div class="value" id="stat-dn">—</div>
+            <div class="note">Top − bottom center</div>
+          </div>
+          <div class="stat">
+            <div class="label">Avg ΔE</div>
+            <div class="value" id="stat-de">—</div>
+            <div class="note">Top − bottom center</div>
+          </div>
+          <div class="stat">
+            <div class="label">Avg ΔXY</div>
+            <div class="value" id="stat-dxy">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">Avg ΔZ</div>
+            <div class="value" id="stat-dz">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">Avg batter</div>
+            <div class="value value-sm" id="stat-batter">—</div>
+            <div class="note">ΔXY ÷ |ΔZ|</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Per-pile results</h2>
+        <div class="table-wrap">
+          <table class="qc-table">
+            <thead>
+              <tr>
+                <th class="id">Pile ID</th>
+                <th>Bot N</th>
+                <th>Bot E</th>
+                <th>Bot Z</th>
+                <th>Top N</th>
+                <th>Top E</th>
+                <th>Top Z</th>
+                <th>ΔN</th>
+                <th>ΔE</th>
+                <th>ΔXY</th>
+                <th>ΔZ</th>
+                <th>Batter</th>
+                <th>Angle°</th>
+                <th>Lean</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+        <p class="muted">
+          ΔN / ΔE = how the pile top center sits relative to the bottom center in plan (pile deviation).
+          Units match your Siteworks CSV. Batter = plan offset ÷ vertical rise.
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <footer class="tc-footer">Battered Pile / Batter Calculator · Groundworks · Technician Assistant</footer>
+
+  <script src="../../assets/workspace-config.js?v=5"></script>
+  <script src="../../assets/workspace-api.js?v=12"></script>
+  <script src="../../assets/app-access.js?v=10"></script>
+  <script src="../../assets/theme-toggle.js"></script>
+  <script src="../../assets/header-home.js"></script>
+  <script src="../../assets/feedback-config.js?v=3"></script>
+  <script src="../../assets/feedback.js?v=4"></script>
+  <script src="js/parsers.js?v=1"></script>
+  <script src="js/calc.js?v=1"></script>
+  <script src="js/pdf.js?v=1"></script>
+  <script src="js/app.js?v=1"></script>
+</body>
+</html>
