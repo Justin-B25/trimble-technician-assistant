@@ -117,12 +117,14 @@ var BatterCalc = (function () {
     var dxy = Math.sqrt(dn * dn + de * de);
     var length3d = Math.sqrt(dn * dn + de * de + dz * dz);
     var batter = null;
-    var angleDeg = null;
+    var angleDeg = null; // from vertical
+    var inclineFromHorizontalDeg = null; // smart level along pile shaft
     if (Math.abs(dz) > 1e-12) {
       batter = dxy / Math.abs(dz);
       angleDeg = (Math.atan2(dxy, Math.abs(dz)) * 180) / Math.PI;
+      inclineFromHorizontalDeg = 90 - angleDeg;
     } else {
-      warnings.push('ΔZ ≈ 0 — cannot compute batter ratio');
+      warnings.push('ΔZ ≈ 0 — cannot compute batter / inclination');
     }
 
     var botOd = chordOdEstimate(bPts);
@@ -136,8 +138,22 @@ var BatterCalc = (function () {
       dz: dz,
       dxy: dxy,
       length3d: length3d,
-      // Same values as measured coordinate deltas (top − bottom)
       asCoordinates: { dN: dn, dE: de, dZ: dz },
+    };
+
+    var inclination = {
+      fromVerticalDeg: angleDeg,
+      fromHorizontalDeg: inclineFromHorizontalDeg,
+      // Smart level check: lay level along pile (tube axis)
+      smartLevelAlongPileDeg: inclineFromHorizontalDeg,
+      smartLevelNote:
+        inclineFromHorizontalDeg != null
+          ? 'Place smart level along the tube. Expect ' +
+            inclineFromHorizontalDeg.toFixed(2) +
+            '° from horizontal (or ' +
+            angleDeg.toFixed(2) +
+            '° from vertical/plumb).'
+          : 'Need ΔZ to compute inclination',
     };
 
     return {
@@ -148,10 +164,10 @@ var BatterCalc = (function () {
       topPts: tPts,
       bottom: bottom,
       top: top,
-      // Primary deliverable
       bottomCenter: { n: bottom.n, e: bottom.e, z: bottom.z },
       topCenter: { n: top.n, e: top.e, z: top.z },
       vector: vector,
+      inclination: inclination,
       dn: dn,
       de: de,
       dz: dz,
@@ -159,6 +175,7 @@ var BatterCalc = (function () {
       length3d: length3d,
       batter: batter,
       angleDeg: angleDeg,
+      inclineFromHorizontalDeg: inclineFromHorizontalDeg,
       favor: favorLabel(dn, de),
       bottomOd: botOd,
       topOd: topOd,
@@ -232,6 +249,8 @@ var BatterCalc = (function () {
       'Vector_dZ_top_minus_bottom',
       'Vector_plan_XY',
       'Vector_3D_length',
+      'Incline_from_vertical_deg',
+      'Incline_from_horizontal_deg_smart_level',
       'Batter_XY_over_Z',
       'Batter_Angle_deg',
       'Lean_Direction',
@@ -259,6 +278,8 @@ var BatterCalc = (function () {
           r.dz != null ? r.dz : '',
           r.dxy != null ? r.dxy : '',
           r.length3d != null ? r.length3d : '',
+          r.angleDeg != null ? r.angleDeg : '',
+          r.inclineFromHorizontalDeg != null ? r.inclineFromHorizontalDeg : '',
           r.batter != null ? r.batter : '',
           r.angleDeg != null ? r.angleDeg : '',
           r.favor || '',
@@ -282,6 +303,16 @@ var BatterCalc = (function () {
     return 'ΔN ' + fmt(r.dn) + '   ΔE ' + fmt(r.de) + '   ΔZ ' + fmt(r.dz);
   }
 
+  function fmtInclination(r) {
+    if (!r || r.angleDeg == null) return '—';
+    return (
+      r.angleDeg.toFixed(2) +
+      '° from vertical  ·  smart level along pile: ' +
+      r.inclineFromHorizontalDeg.toFixed(2) +
+      '° from horizontal'
+    );
+  }
+
   return {
     buildReport: buildReport,
     computePile: computePile,
@@ -290,6 +321,7 @@ var BatterCalc = (function () {
     fmtBatter: fmtBatter,
     fmtCoord: fmtCoord,
     fmtVector: fmtVector,
+    fmtInclination: fmtInclination,
     rowsToCsv: rowsToCsv,
   };
 })();

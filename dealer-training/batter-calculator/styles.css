@@ -275,3 +275,56 @@
   color: #7a5b00;
   font-size: 11px;
 }
+
+.batter-calc .pile-result-card {
+  border: 1px solid var(--tc-blue, #005f9e);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: var(--tc-blue-soft, #f4f9fc);
+}
+
+.batter-calc .pile-result-card--bad {
+  border-color: #f5c2c0;
+  background: #fff5f5;
+}
+
+.batter-calc .pile-result-card__title {
+  font-weight: 800;
+  color: var(--tc-blue, #005f9e);
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.batter-calc .pile-result-card__row {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(0, 84, 140, 0.15);
+  font-size: 13px;
+}
+
+.batter-calc .pile-result-card__row--vec {
+  background: #fff8e8;
+  margin: 4px -6px;
+  padding: 8px 6px;
+  border-radius: 4px;
+}
+
+.batter-calc .pile-result-card__label {
+  font-weight: 700;
+  color: var(--tc-grey-800, #252a2e);
+}
+
+.batter-calc .pile-result-card__value {
+  font-family: "Open Sans", Arial, sans-serif;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+@media (max-width: 700px) {
+  .batter-calc .pile-result-card__row {
+    grid-template-columns: 1fr;
+  }
+}

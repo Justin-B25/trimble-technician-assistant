@@ -1,5 +1,5 @@
 /**
- * Batter calculator PDF / print report — Technician Assistant style (logo top-left).
+ * Batter calculator PDF — centers, vector, smart-level inclination.
  */
 var BatterPdf = (function () {
   function logoUrl() {
@@ -26,60 +26,47 @@ var BatterPdf = (function () {
     return BatterCalc.fmt(n, d == null ? 3 : d);
   }
 
-  function buildTable(report) {
-    var html =
-      '<table class="data"><thead><tr>' +
-      '<th>Pile ID</th>' +
-      '<th>Bot N</th><th>Bot E</th><th>Bot Z</th>' +
-      '<th>Top N</th><th>Top E</th><th>Top Z</th>' +
-      '<th>ΔN</th><th>ΔE</th><th>ΔXY</th><th>ΔZ</th>' +
-      '<th>Batter</th><th>Angle°</th><th>Lean</th>' +
-      '</tr></thead><tbody>';
+  function pileBlocks(report) {
+    var html = '';
     report.rows.forEach(function (r) {
-      html +=
-        '<tr>' +
-        '<td><strong>' +
-        escapeHtml(r.pileId) +
-        '</strong></td>' +
-        '<td>' +
-        fmt(r.bottom && r.bottom.n) +
-        '</td><td>' +
-        fmt(r.bottom && r.bottom.e) +
-        '</td><td>' +
-        fmt(r.bottom && r.bottom.z) +
-        '</td>' +
-        '<td>' +
-        fmt(r.top && r.top.n) +
-        '</td><td>' +
-        fmt(r.top && r.top.e) +
-        '</td><td>' +
-        fmt(r.top && r.top.z) +
-        '</td>' +
-        '<td>' +
-        fmt(r.dn) +
-        '</td><td>' +
-        fmt(r.de) +
-        '</td><td>' +
-        fmt(r.dxy) +
-        '</td><td>' +
-        fmt(r.dz) +
-        '</td>' +
-        '<td>' +
-        escapeHtml(BatterCalc.fmtBatter(r.batter)) +
-        '</td><td>' +
-        fmt(r.angleDeg, 2) +
-        '</td><td>' +
-        escapeHtml(r.favor || '—') +
-        '</td>' +
-        '</tr>';
-      if (r.warnings && r.warnings.length) {
+      html += '<div class="pile">';
+      html += '<h3>Pile ' + escapeHtml(r.pileId) + (r.ok ? '' : ' — incomplete') + '</h3>';
+      if (r.ok) {
         html +=
-          '<tr class="warn"><td colspan="14">' +
-          escapeHtml(r.warnings.join(' · ')) +
-          '</td></tr>';
+          '<table class="data"><tbody>' +
+          '<tr><td class="lbl">Bottom of pile center</td><td>' +
+          escapeHtml(BatterCalc.fmtCoord(r.bottom)) +
+          '</td></tr>' +
+          '<tr><td class="lbl">Top of pile center</td><td>' +
+          escapeHtml(BatterCalc.fmtCoord(r.top)) +
+          '</td></tr>' +
+          '<tr><td class="lbl">Vector bottom → top</td><td><strong>' +
+          escapeHtml(BatterCalc.fmtVector(r)) +
+          '</strong></td></tr>' +
+          '<tr><td class="lbl">|XY| / |3D| / Batter</td><td>' +
+          fmt(r.dxy) +
+          ' / ' +
+          fmt(r.length3d) +
+          ' / ' +
+          escapeHtml(BatterCalc.fmtBatter(r.batter)) +
+          ' · ' +
+          escapeHtml(r.favor || '—') +
+          '</td></tr>' +
+          '<tr><td class="lbl">Smart level check</td><td><strong>' +
+          escapeHtml(BatterCalc.fmtInclination(r)) +
+          '</strong></td></tr>' +
+          '<tr><td class="lbl">How to check</td><td>' +
+          escapeHtml(r.inclination ? r.inclination.smartLevelNote : '') +
+          '</td></tr>' +
+          '</tbody></table>';
+      } else {
+        html +=
+          '<p class="note">' +
+          escapeHtml((r.warnings || ['Need B1–B3 and T1–T3']).join(' · ')) +
+          '</p>';
       }
+      html += '</div>';
     });
-    html += '</tbody></table>';
     return html;
   }
 
@@ -90,7 +77,6 @@ var BatterPdf = (function () {
       alert('Allow pop-ups to export the PDF report.');
       return;
     }
-    var avg = report.avg || {};
     var html =
       '<!DOCTYPE html><html><head><meta charset="UTF-8"/>' +
       '<title>Battered Pile Report</title>' +
@@ -102,55 +88,30 @@ var BatterPdf = (function () {
       '.hdr h1{margin:0;font-size:18px;color:#00548C;}' +
       '.hdr .sub{margin:4px 0 0;font-size:12px;color:#555;}' +
       '.meta{font-size:12px;margin-bottom:14px;}' +
-      '.stats{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 18px;}' +
-      '.stat{border:1px solid #c8c8c8;border-radius:6px;padding:10px 12px;min-width:110px;}' +
-      '.stat .label{font-size:10px;text-transform:uppercase;color:#00548C;letter-spacing:.04em;}' +
-      '.stat .value{font-size:16px;font-weight:700;margin-top:4px;}' +
-      'table.data{width:100%;border-collapse:collapse;font-size:10px;}' +
-      'table.data th{background:#00548C;color:#fff;padding:6px 5px;text-align:left;}' +
+      '.pile{border:1px solid #c8c8c8;border-radius:6px;padding:10px 12px;margin:10px 0;}' +
+      'h3{margin:0 0 8px;color:#00548C;font-size:14px;}' +
+      'table.data{width:100%;border-collapse:collapse;font-size:11px;}' +
       'table.data td{border:1px solid #ddd;padding:5px;}' +
-      'table.data tr.warn td{background:#fff8e6;color:#7a5b00;font-size:9px;}' +
+      'table.data td.lbl{width:34%;background:#E8F1F8;font-weight:600;}' +
       '.note{font-size:11px;color:#555;margin-top:14px;}' +
       '@media print{body{margin:12px;} .noprint{display:none;}}' +
       '</style></head><body>' +
       '<div class="hdr">' +
       '<div><img src="' +
       escapeHtml(logoUrl()) +
-      '" alt="Trimble"/><p class="sub">Technician Assistant · Groundworks</p></div>' +
-      '<div style="text-align:right"><h1>Battered Pile / Batter Report</h1>' +
+      '" alt="Trimble"/><p class="sub">Technician Assistant · Dealer Training</p></div>' +
+      '<div style="text-align:right"><h1>Battered Pile — Centers, Vector &amp; Inclination</h1>' +
       '<p class="sub">' +
       escapeHtml(meta.job || 'Field report') +
       ' · ' +
       escapeHtml(meta.date || new Date().toLocaleString()) +
       '</p></div></div>' +
-      '<div class="meta">Naming: {PileID}B1–B3 (bottom) · {PileID}T1–T3 (top) &nbsp;|&nbsp; Centers = average of 3 rim shots &nbsp;|&nbsp; Batter = ΔXY ÷ |ΔZ|</div>' +
+      '<div class="meta">Centers from B1–B3 / T1–T3 averages. Vector = top − bottom (ΔN/ΔE/ΔZ). Smart level: place along tube; compare to “from horizontal.”</div>' +
       (meta.notes
         ? '<p class="meta"><strong>Notes:</strong> ' + escapeHtml(meta.notes) + '</p>'
         : '') +
-      '<div class="stats">' +
-      '<div class="stat"><div class="label">Piles OK</div><div class="value">' +
-      report.okCount +
-      ' / ' +
-      report.pileCount +
-      '</div></div>' +
-      '<div class="stat"><div class="label">Avg ΔN</div><div class="value">' +
-      fmt(avg.dn) +
-      '</div></div>' +
-      '<div class="stat"><div class="label">Avg ΔE</div><div class="value">' +
-      fmt(avg.de) +
-      '</div></div>' +
-      '<div class="stat"><div class="label">Avg ΔXY</div><div class="value">' +
-      fmt(avg.dxy) +
-      '</div></div>' +
-      '<div class="stat"><div class="label">Avg ΔZ</div><div class="value">' +
-      fmt(avg.dz) +
-      '</div></div>' +
-      '<div class="stat"><div class="label">Avg Batter</div><div class="value" style="font-size:13px">' +
-      escapeHtml(BatterCalc.fmtBatter(avg.batter)) +
-      '</div></div>' +
-      '</div>' +
-      buildTable(report) +
-      '<p class="note">ΔN / ΔE show how the pile top center deviates in plan from the bottom center (positive N = north, positive E = east). Units match the Siteworks CSV.</p>' +
+      pileBlocks(report) +
+      '<p class="note">Inclination from vertical = atan(|XY|/|ΔZ|). From horizontal (smart level along pile) = 90° − from vertical.</p>' +
       '<p class="noprint"><button onclick="window.print()">Print / Save PDF</button></p>' +
       '<script>window.onload=function(){setTimeout(function(){window.print()},400)}</script>' +
       '</body></html>';

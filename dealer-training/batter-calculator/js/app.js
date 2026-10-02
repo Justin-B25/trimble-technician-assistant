@@ -111,6 +111,10 @@
             '   ' +
             (r.favor || '')
         );
+        row('Pile inclination (smart level check)', BatterCalc.fmtInclination(r), true);
+        if (r.inclination && r.inclination.smartLevelNote) {
+          row('How to check', r.inclination.smartLevelNote);
+        }
       } else {
         row('Status', (r.warnings || ['Need B1–B3 and T1–T3']).join(' · '));
         if (r.bottom) row('Bottom center (partial)', BatterCalc.fmtCoord(r.bottom));
@@ -164,6 +168,8 @@
       td(BatterCalc.fmt(r.dz), 'delta');
       td(BatterCalc.fmt(r.dxy));
       td(BatterCalc.fmt(r.length3d));
+      td(r.angleDeg != null ? r.angleDeg.toFixed(2) + '°' : '—', 'delta');
+      td(r.inclineFromHorizontalDeg != null ? r.inclineFromHorizontalDeg.toFixed(2) + '°' : '—', 'delta');
       td(BatterCalc.fmtBatter(r.batter));
       td(r.favor || '—');
       td(r.ok ? 'OK' : 'Incomplete', r.ok ? 'ok' : 'bad');
@@ -173,7 +179,7 @@
         var wr = document.createElement('tr');
         wr.className = 'row-warn';
         var wc = document.createElement('td');
-        wc.colSpan = 15;
+        wc.colSpan = 17;
         wc.textContent = r.warnings.join(' · ');
         wr.appendChild(wc);
         tbody.appendChild(wr);
