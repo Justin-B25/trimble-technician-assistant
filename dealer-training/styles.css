@@ -1,0 +1,26 @@
+/* Dealer Training category hub */
+.dt-hub .dt-howto {
+  background: var(--tc-surface, #fff);
+  border: 1px solid var(--tc-grey-300, #e0e1e9);
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 2px rgba(37, 42, 46, 0.06);
+  font-family: "Open Sans", Arial, sans-serif;
+}
+.dt-hub .dt-howto h2 { margin: 0 0 8px; font-size: 1.05rem; color: var(--tc-blue, #005f9e); }
+.dt-hub .dt-howto h3 { margin: 14px 0 6px; font-size: 0.92rem; color: var(--tc-blue, #005f9e); }
+.dt-hub .dt-lede { margin: 0 0 10px; font-size: 0.9rem; color: var(--tc-grey-600, #6a6e79); line-height: 1.45; }
+.dt-hub .dt-howto ol, .dt-hub .dt-howto ul {
+  margin: 0 0 4px; padding-left: 1.25rem; font-size: 0.88rem; line-height: 1.5; color: var(--tc-grey-800, #252a2e);
+}
+.dt-hub .dt-howto li { margin-bottom: 4px; }
+.dt-hub .dt-howto code {
+  font-size: 0.82rem; background: var(--tc-blue-soft, #f4f9fc); color: var(--tc-blue, #005f9e);
+  padding: 1px 5px; border-radius: 3px;
+}
+.dt-hub .dt-howto p { margin: 0; font-size: 0.88rem; line-height: 1.45; }
+.dt-hub .tools-label {
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--tc-grey-600, #6a6e79); font-weight: 700; margin: 0 0 8px;
+}

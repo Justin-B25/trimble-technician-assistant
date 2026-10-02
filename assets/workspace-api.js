@@ -24,6 +24,7 @@
     return (
       path.indexOf('/groundworks/') !== -1 ||
       path.indexOf('/measure-up/') !== -1 ||
+      path.indexOf('/dealer-training/') !== -1 ||
       path.indexOf('/pre-inspection/') !== -1 ||
       path.indexOf('/install-deliverable/') !== -1 ||
       path.indexOf('/excavator/') !== -1 ||
@@ -37,7 +38,10 @@
     if (path.indexOf('/trimble-internal/groundworks/csv-formatter') !== -1) return 'gw-csv-formatter';
     if (path.indexOf('/groundworks/pile-qc') !== -1) return 'gw-pile-qc';
     if (path.indexOf('/trimble-internal/groundworks/pile-qc') !== -1) return 'gw-pile-qc';
-    if (path.indexOf('/groundworks/batter-calculator') !== -1) return 'gw-batter-calculator';
+    if (path.indexOf('/dealer-training/batter-calculator') !== -1) return 'dt-batter-calculator';
+    if (path.indexOf('/groundworks/batter-calculator') !== -1) return 'dt-batter-calculator';
+    if (path.indexOf('/dealer-training/st30-top-mount-exercise') !== -1) return 'dt-st30-top-mount';
+    if (path.indexOf('/dealer-training/') !== -1) return 'dealer-training-hub';
     if (path.indexOf('/trimble-internal/bench-crane/') !== -1) return 'bench-crane';
     if (path.indexOf('/trimble-internal/index.html') !== -1 || /\/trimble-internal\/?$/.test(path)) {
       return 'internal-hub';

@@ -1,0 +1,39 @@
+/* ST30 Top Mount Exercise */
+.st30-main { max-width: 1400px; font-family: "Open Sans", Arial, sans-serif; }
+.st30-intro { margin: 0 0 16px; font-size: 14px; color: var(--tc-grey-600,#6a6e79); line-height: 1.45; }
+.st30-intro code { font-size: 12px; background: var(--tc-blue-soft,#f4f9fc); color: var(--tc-blue,#005f9e); padding: 1px 5px; border-radius: 3px; }
+.st30-ex .card { background: var(--tc-surface,#fff); border: 1px solid var(--tc-grey-300,#e0e1e9); border-radius: 8px; padding: 16px 18px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(37,42,46,.06); }
+.st30-ex .card h2 { margin: 0 0 12px; font-size: 14px; color: var(--tc-blue,#005f9e); text-transform: uppercase; letter-spacing: .06em; border-bottom: 2px solid var(--tc-grey-300,#e0e1e9); padding-bottom: 6px; }
+.st30-ex .card h3 { margin: 12px 0 8px; font-size: 13px; color: var(--tc-blue,#005f9e); }
+.st30-ex .job-grid { display: grid; grid-template-columns: 1.2fr 1fr 0.7fr 1.5fr; gap: 12px; }
+@media (max-width: 900px) { .st30-ex .job-grid { grid-template-columns: 1fr 1fr; } }
+.st30-ex label.muted { display: block; font-size: 12px; color: var(--tc-grey-600,#6a6e79); margin-bottom: 4px; }
+.st30-ex input, .st30-ex select { width: 100%; padding: 8px; border: 1px solid var(--tc-grey-400,#cbcdd6); border-radius: 4px; font-family: "Open Sans", Arial, sans-serif; }
+.st30-ex .dropzone { border: 2px dashed var(--tc-grey-400,#cbcdd6); border-radius: 8px; background: var(--tc-blue-soft,#f4f9fc); padding: 20px; min-height: 110px; cursor: pointer; }
+.st30-ex .dropzone:hover, .st30-ex .dropzone.is-drag { border-color: var(--tc-blue,#005f9e); background: var(--tc-blue-tint,#e8f2f8); }
+.st30-ex .dropzone h3 { margin: 0 0 6px; font-size: 15px; color: var(--tc-blue,#005f9e); }
+.st30-ex .dropzone p { margin: 0 0 10px; font-size: 12px; color: var(--tc-grey-600,#6a6e79); }
+.st30-ex .file-list { list-style: none; margin: 8px 0 0; padding: 0; font-size: 12px; }
+.st30-ex .file-list li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-top: 1px solid var(--tc-grey-300,#e0e1e9); }
+.st30-ex .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.st30-ex .btn { font-family: "Open Sans", Arial, sans-serif; font-size: 13px; padding: 8px 14px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; }
+.st30-ex .btn:disabled { opacity: .45; cursor: not-allowed; }
+.st30-ex .btn-primary { background: var(--tc-blue,#005f9e); color: #fff; }
+.st30-ex .btn-secondary { background: #fff; border-color: var(--tc-grey-400,#cbcdd6); }
+.st30-ex .alert { white-space: pre-wrap; background: #f4f9fc; border: 1px solid #b7d4e8; color: #003d66; padding: 10px 12px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; }
+.st30-ex .alert.alert-error { background: #fdecea; border-color: #f5c2c0; color: #8a1f1b; }
+.st30-ex .hidden { display: none !important; }
+.st30-ex .stats { display: flex; flex-wrap: wrap; gap: 10px; }
+.st30-ex .stat { border: 1px solid var(--tc-grey-300,#e0e1e9); border-radius: 6px; padding: 10px 12px; min-width: 140px; background: var(--tc-blue-soft,#f4f9fc); }
+.st30-ex .stat .label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--tc-blue,#005f9e); font-weight: 600; }
+.st30-ex .stat .value { font-size: 14px; font-weight: 700; margin-top: 4px; }
+.st30-ex .table-wrap { overflow-x: auto; }
+.st30-ex .qc-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.st30-ex .qc-table th { background: var(--tc-blue,#005f9e); color: #fff; padding: 8px 6px; text-align: left; white-space: nowrap; }
+.st30-ex .qc-table td { border: 1px solid var(--tc-grey-300,#e0e1e9); padding: 7px 6px; white-space: nowrap; }
+.st30-ex .qc-table td.delta { font-weight: 600; background: #fff8e8; }
+.st30-ex .qc-table td.ok { color: #1b7a3d; font-weight: 600; }
+.st30-ex .qc-table td.bad { color: #b00020; font-weight: 600; }
+.st30-ex details.howto { margin-bottom: 16px; border: 1px solid var(--tc-grey-300,#e0e1e9); border-radius: 8px; padding: 10px 14px; background: var(--tc-surface,#fff); }
+.st30-ex details.howto summary { cursor: pointer; font-weight: 700; color: var(--tc-blue,#005f9e); }
+.st30-ex details.howto ol { margin: 8px 0 0; padding-left: 1.2rem; font-size: 13px; line-height: 1.45; }

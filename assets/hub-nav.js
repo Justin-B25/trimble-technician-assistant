@@ -1,6 +1,6 @@
 /**
  * Technician Assistant hub — dealer-facing categories and tool drill-in.
- * Category hub pages (earthworks/, groundworks/, measure-up/) should stay in sync with each category's tools[] here.
+ * Category hub pages (earthworks/, groundworks/, measure-up/, dealer-training/) should stay in sync with each category's tools[] here.
  */
 (function () {
   'use strict';
@@ -43,12 +43,6 @@
           name: 'Pile QC / Deviation Calculator',
           summary: 'Design vs rover stakeout vs machine as-built — XY/Z deltas, median ΔZ, bullseye, and PDF report',
         },
-        {
-          href: './groundworks/batter-calculator/index.html',
-          icon: 'BT',
-          name: 'Battered Pile / Batter Calculator',
-          summary: 'Siteworks CSV rim shots (PileID B1–B3 / T1–T3) — centers, ΔN/ΔE, batter, and PDF report',
-        },
       ],
     },
     {
@@ -68,6 +62,25 @@
           name: 'Excavator Measure-Up Calculator (BETA)',
           beta: true,
           summary: 'Survey CSV upload, usage guide, receiver-to-centerline, attachment width, and PDF report — BETA access required',
+        },
+      ],
+    },
+    {
+      id: 'dealer-training',
+      title: 'Dealer Training',
+      href: './dealer-training/index.html',
+      tools: [
+        {
+          href: './dealer-training/st30-top-mount-exercise/index.html',
+          icon: 'ST',
+          name: 'ST30 Top Mount Exercise',
+          summary: 'Activity A/B tip-down & tip-up CSV vs BENCH — rod height, ΔN/ΔE, tip specs, PDF report',
+        },
+        {
+          href: './dealer-training/batter-calculator/index.html',
+          icon: 'BT',
+          name: 'Battered Pile / Batter Calculator',
+          summary: 'Siteworks CSV rim shots (PileID B1–B3 / T1–T3) — centers, ΔN/ΔE, batter, and PDF report',
         },
       ],
     },

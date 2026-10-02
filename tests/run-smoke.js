@@ -205,7 +205,7 @@ function testGwCsvFormatter() {
 
 function testBatterCalculator() {
   var parserSandbox = loadGlobalScript(
-    path.join(root, 'groundworks/batter-calculator/js/parsers.js'),
+    path.join(root, 'dealer-training/batter-calculator/js/parsers.js'),
     'BatterParsers'
   );
   var calcSandbox = {
@@ -222,7 +222,7 @@ function testBatterCalculator() {
   };
   vm.createContext(calcSandbox);
   vm.runInContext(
-    fs.readFileSync(path.join(root, 'groundworks/batter-calculator/js/calc.js'), 'utf8'),
+    fs.readFileSync(path.join(root, 'dealer-training/batter-calculator/js/calc.js'), 'utf8'),
     calcSandbox,
     { filename: 'calc.js' }
   );
