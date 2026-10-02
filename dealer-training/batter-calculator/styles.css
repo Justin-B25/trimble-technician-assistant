@@ -19,6 +19,32 @@
   color: var(--tc-blue, #005f9e);
 }
 
+.batter-calc details.howto {
+  margin-bottom: 16px;
+  border: 1px solid var(--tc-grey-300, #e0e1e9);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: var(--tc-surface, #fff);
+  font-family: "Open Sans", Arial, sans-serif;
+}
+.batter-calc details.howto summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--tc-blue, #005f9e);
+}
+.batter-calc details.howto ol {
+  margin: 8px 0 0;
+  padding-left: 1.2rem;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.batter-calc details.howto code {
+  background: #e8f1f8;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
 .batter-calc .card {
   background: var(--tc-surface, #fff);
   border: 1px solid var(--tc-grey-300, #e0e1e9);

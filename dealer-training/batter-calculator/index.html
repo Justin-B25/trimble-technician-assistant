@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body data-gw-page="batter-calculator" class="batter-calc">
   <header class="tc-app-header">
@@ -27,10 +27,16 @@
   </header>
 
   <main class="tc-main batter-main">
+    <details class="howto" open>
+      <summary>Station 4 — Battered Pile lab (sono tube)</summary>
+      <ol>
+        <li>Stage 12×48 QUIK-TUBE at a known lean.</li>
+        <li>Name rim shots <code>{PileID}B1–B3</code> (bottom) and <code>{PileID}T1–T3</code> (top), e.g. <code>1001B1</code> … <code>1001T3</code>.</li>
+        <li>Export CSV → drop below for bottom/top centers, ΔN / ΔE / ΔZ, batter, and smart-level inclination.</li>
+      </ol>
+    </details>
     <p class="batter-intro">
-      Drag a Siteworks point CSV here. Name points
-      <strong>{PileID}B1–B3</strong> (bottom rim) and <strong>{PileID}T1–T3</strong> (top rim),
-      e.g. <code>1001B1</code> … <code>1001T3</code>. The calculator averages each ring to get
+      Drag a Siteworks point CSV here. The calculator averages each ring to get
       <strong>bottom of pile center</strong> and <strong>top of pile center</strong>, then the
       <strong>vector</strong> between them as measured ΔN / ΔE / ΔZ (top − bottom).
     </p>

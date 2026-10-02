@@ -46,4 +46,6 @@
 .st30-ex .debrief-answer.bad { color: #b00020; }
 .st30-ex details.howto { margin-bottom: 16px; border: 1px solid var(--tc-grey-300,#e0e1e9); border-radius: 8px; padding: 10px 14px; background: var(--tc-surface,#fff); }
 .st30-ex details.howto summary { cursor: pointer; font-weight: 700; color: var(--tc-blue,#005f9e); }
+.st30-ex details.howto .howto-lede { margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: var(--tc-grey-700,#5c6370); }
 .st30-ex details.howto ol { margin: 8px 0 0; padding-left: 1.2rem; font-size: 13px; line-height: 1.45; }
+.st30-ex details.howto code { background: #e8f1f8; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
