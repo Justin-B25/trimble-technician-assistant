@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=1" />
+  <link rel="stylesheet" href="styles.css?v=2" />
 </head>
 <body class="st30-ex" data-dt-page="st30-top-mount-exercise">
   <header class="tc-app-header">
@@ -98,6 +98,37 @@
         </div>
       </section>
 
+      <section class="card debrief-card">
+        <h2>TIP Accuracy — Debrief (worksheet answers)</h2>
+        <p class="st30-intro" style="margin-top:-4px">Auto-filled from CSV vs BENCH using the selected rod-height tip specs. Copy these onto the Station 4 field worksheet.</p>
+        <table class="qc-table debrief-table">
+          <thead>
+            <tr>
+              <th style="width:42%">Question</th>
+              <th style="width:10%">Answer</th>
+              <th>Fill-in (Y/N + notes · or mm / tilt / A or B)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1. Activity A within tip specs at 5° / 15° / 30°?</td>
+              <td id="debrief-q1-yn" class="debrief-answer">—</td>
+              <td id="debrief-q1-notes">—</td>
+            </tr>
+            <tr>
+              <td>2. Activity B (inverted) within tip specs?</td>
+              <td id="debrief-q2-yn" class="debrief-answer">—</td>
+              <td id="debrief-q2-notes">—</td>
+            </tr>
+            <tr>
+              <td>3. Largest Δ XY (mm) — which tilt / orientation?</td>
+              <td id="debrief-q3-yn" class="debrief-answer">—</td>
+              <td id="debrief-q3-notes">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
       <section class="card">
         <h2>Tip DOWN (Activity A) vs BENCH</h2>
         <div class="table-wrap">
@@ -139,9 +170,9 @@
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
-  <script src="js/parsers.js?v=1"></script>
-  <script src="js/calc.js?v=1"></script>
-  <script src="js/pdf.js?v=1"></script>
-  <script src="js/app.js?v=1"></script>
+  <script src="js/parsers.js?v=2"></script>
+  <script src="js/calc.js?v=2"></script>
+  <script src="js/pdf.js?v=2"></script>
+  <script src="js/app.js?v=2"></script>
 </body>
 </html>

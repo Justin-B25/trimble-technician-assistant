@@ -110,6 +110,118 @@ var TipDevCalc = (function () {
     return { count: list.length, avgHoriz: sumH / list.length, avgAbsZ: sumZ / list.length, maxHoriz: maxH, maxHorizTilt: maxHTilt };
   }
 
+  /**
+   * Worksheet debrief answers (Page 3):
+   * 1) Activity A within tip specs at 5° / 15° / 30°?
+   * 2) Activity B (inverted) within tip specs?
+   * 3) Largest Δ XY (mm) — which tilt / orientation?
+   */
+  function buildDebrief(tipDown, tipUp) {
+    function activityAnswer(rows, activityCode) {
+      var needed = [5, 15, 30];
+      var checked = [];
+      var missing = [];
+      var fails = [];
+      for (var i = 0; i < needed.length; i++) {
+        var tilt = needed[i];
+        var row = null;
+        for (var r = 0; r < rows.length; r++) {
+          if (rows[r].tilt === tilt) { row = rows[r]; break; }
+        }
+        if (!row || !row.check) {
+          missing.push(tilt + '°');
+          continue;
+        }
+        checked.push(row);
+        if (!row.check.pass) {
+          fails.push(
+            tilt +
+              '° horiz ' +
+              row.check.horizMm.toFixed(1) +
+              ' mm (spec ' +
+              row.check.specXY +
+              ') / |ΔZ| ' +
+              row.check.zMm.toFixed(1) +
+              ' mm (spec ' +
+              row.check.specZ +
+              ')'
+          );
+        }
+      }
+      var answer = '—';
+      var notes = '';
+      if (!checked.length && missing.length) {
+        answer = 'N';
+        notes = 'Missing shots: ' + missing.join(', ');
+      } else if (missing.length && fails.length) {
+        answer = 'N';
+        notes = 'Missing ' + missing.join(', ') + '; fail ' + fails.join('; ');
+      } else if (missing.length) {
+        answer = 'N';
+        notes = 'Incomplete — missing ' + missing.join(', ') + '; available angles passed';
+      } else if (fails.length) {
+        answer = 'N';
+        notes = fails.join('; ');
+      } else {
+        answer = 'Y';
+        notes = '5° / 15° / 30° within tip specs (' + activityCode + ')';
+      }
+      return {
+        activity: activityCode,
+        answer: answer,
+        notes: notes,
+        pass: answer === 'Y',
+        missing: missing,
+        fails: fails,
+        fillIn: answer + (notes ? ' — ' + notes : ''),
+      };
+    }
+
+    var a = activityAnswer(tipDown, 'A');
+    var b = activityAnswer(tipUp, 'B');
+
+    var largest = null;
+    function consider(rows, orientation) {
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (!row || !row.d) continue;
+        var horizMm = row.d.horiz * 1000;
+        if (!largest || horizMm > largest.horizMm) {
+          largest = {
+            horizMm: horizMm,
+            tilt: row.tilt,
+            tiltLabel: row.tiltLabel,
+            orientation: orientation,
+            pointName: row.pointName,
+            fillIn:
+              horizMm.toFixed(1) +
+              ' mm / ' +
+              row.tiltLabel +
+              ' / ' +
+              orientation,
+          };
+        }
+      }
+    }
+    consider(tipDown, 'A');
+    consider(tipUp, 'B');
+
+    return {
+      q1: a,
+      q2: b,
+      q3: largest
+        ? largest
+        : {
+            horizMm: null,
+            tilt: null,
+            tiltLabel: '—',
+            orientation: '—',
+            pointName: '—',
+            fillIn: '— (no tilted shots vs BENCH)',
+          },
+    };
+  }
+
   function buildReport(points, opts) {
     opts = opts || {};
     var heightM = toMeters(opts.rodHeight, opts.rodUnit || 'm');
@@ -121,12 +233,14 @@ var TipDevCalc = (function () {
     var tipDown = buildActivityRows(indexed.activityA, indexed.bench, 'Tip DOWN (Activity A)', specRow);
     var tipUp = buildActivityRows(indexed.activityB, indexed.bench, 'Tip UP (Activity B)', specRow);
     var compare = buildCompareRows(indexed.activityA, indexed.activityB);
+    var debrief = buildDebrief(tipDown, tipUp);
 
     return {
       bench: indexed.bench, rodHeightM: heightM, rodHeightInput: opts.rodHeight,
       rodUnit: opts.rodUnit || 'm', specRow: specRow,
       tipDown: tipDown, tipUp: tipUp, compare: compare,
       summary: { tipDown: summarize(tipDown), tipUp: summarize(tipUp), compare: summarize(compare) },
+      debrief: debrief,
       warnings: warnings, pointCount: (points || []).length,
     };
   }
@@ -154,6 +268,13 @@ var TipDevCalc = (function () {
         r.d ? r.d.dn : '', r.d ? r.d.de : '', r.d ? r.d.dz : '', r.d ? r.d.horiz : '',
       ].join(','));
     });
+    if (report.debrief) {
+      lines.push('');
+      lines.push(['DebriefQuestion','Answer','NotesOrFillIn'].join(','));
+      lines.push(['1_ActivityA_within_specs_5_15_30', report.debrief.q1.answer, '"' + String(report.debrief.q1.fillIn).replace(/"/g, "'") + '"'].join(','));
+      lines.push(['2_ActivityB_within_specs_5_15_30', report.debrief.q2.answer, '"' + String(report.debrief.q2.fillIn).replace(/"/g, "'") + '"'].join(','));
+      lines.push(['3_Largest_dXY_mm_tilt_orientation', report.debrief.q3.horizMm != null ? report.debrief.q3.horizMm.toFixed(1) : '', '"' + String(report.debrief.q3.fillIn).replace(/"/g, "'") + '"'].join(','));
+    }
     if (report.bench) {
       lines.push('');
       lines.push(['Benchmark', report.bench.name, report.bench.n, report.bench.e, report.bench.z].join(','));
@@ -163,7 +284,7 @@ var TipDevCalc = (function () {
   }
 
   return {
-    TILTS: TILTS, TIP_SPECS: TIP_SPECS, buildReport: buildReport, pickSpecRow: pickSpecRow,
-    toMeters: toMeters, delta: delta, fmt: fmt, fmtMm: fmtMm, rowsToCsv: rowsToCsv,
+    TILTS: TILTS, TIP_SPECS: TIP_SPECS, buildReport: buildReport, buildDebrief: buildDebrief,
+    pickSpecRow: pickSpecRow, toMeters: toMeters, delta: delta, fmt: fmt, fmtMm: fmtMm, rowsToCsv: rowsToCsv,
   };
 })();

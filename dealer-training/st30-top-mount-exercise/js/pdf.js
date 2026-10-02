@@ -39,6 +39,18 @@ var TipDevPdf = (function () {
     return html + '</tbody></table>';
   }
 
+  function debriefBlock(debrief) {
+    if (!debrief) return '';
+    return '<h3>TIP Accuracy — Debrief (worksheet answers)</h3>' +
+      '<table class="data"><thead><tr><th>Question</th><th>Answer</th><th>Fill-in</th></tr></thead><tbody>' +
+      '<tr><td>1. Activity A within tip specs at 5° / 15° / 30°?</td><td><strong>' + esc(debrief.q1.answer) + '</strong></td><td>' + esc(debrief.q1.fillIn) + '</td></tr>' +
+      '<tr><td>2. Activity B (inverted) within tip specs?</td><td><strong>' + esc(debrief.q2.answer) + '</strong></td><td>' + esc(debrief.q2.fillIn) + '</td></tr>' +
+      '<tr><td>3. Largest Δ XY (mm) — which tilt / orientation?</td><td><strong>' +
+      esc(debrief.q3.horizMm != null ? debrief.q3.horizMm.toFixed(1) + ' mm' : '—') +
+      '</strong></td><td>' + esc(debrief.q3.fillIn) + '</td></tr>' +
+      '</tbody></table>';
+  }
+
   function open(report, meta) {
     meta = meta || {};
     var w = window.open('', '_blank');
@@ -58,6 +70,7 @@ var TipDevPdf = (function () {
       '<p class="sub">Rod height: ' + esc(String(report.rodHeightInput || '—')) + ' ' + esc(report.rodUnit || '') +
       ' → specs: ' + esc(report.specRow.label) +
       (b ? (' · BENCH ' + esc(b.name) + ' N' + fmt(b.n) + ' E' + fmt(b.e) + ' Z' + fmt(b.z)) : ' · No BENCH') + '</p>' +
+      debriefBlock(report.debrief) +
       activityTable('Tip DOWN (Activity A) vs BENCH', report.tipDown) +
       activityTable('Tip UP (Activity B) vs BENCH', report.tipUp) +
       compareTable(report.compare) +

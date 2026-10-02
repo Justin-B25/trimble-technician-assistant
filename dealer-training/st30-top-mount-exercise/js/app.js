@@ -92,6 +92,20 @@
       ' · max horiz ' + TipDevCalc.fmt(s.maxHoriz) + ' @ ' + (s.maxHorizTilt || '—');
   }
 
+  function renderDebrief(debrief) {
+    if (!debrief) return;
+    function paint(qEl, aEl, q) {
+      $(qEl).textContent = q.answer;
+      $(qEl).className = 'debrief-answer ' + (q.pass ? 'ok' : 'bad');
+      $(aEl).textContent = q.fillIn;
+    }
+    paint('debrief-q1-yn', 'debrief-q1-notes', debrief.q1);
+    paint('debrief-q2-yn', 'debrief-q2-notes', debrief.q2);
+    $('debrief-q3-yn').textContent = debrief.q3.horizMm != null ? debrief.q3.horizMm.toFixed(1) + ' mm' : '—';
+    $('debrief-q3-yn').className = 'debrief-answer';
+    $('debrief-q3-notes').textContent = debrief.q3.fillIn;
+  }
+
   function renderResults() {
     var report = state.report;
     if (!report) { $('results').classList.add('hidden'); updateButtons(); return; }
@@ -102,6 +116,7 @@
     $('stat-spec').textContent = report.specRow.label;
     $('stat-down').textContent = sumLine(report.summary.tipDown);
     $('stat-up').textContent = sumLine(report.summary.tipUp);
+    renderDebrief(report.debrief);
     fillActivityTable('tbody-down', report.tipDown);
     fillActivityTable('tbody-up', report.tipUp);
     fillCompare(report.compare);

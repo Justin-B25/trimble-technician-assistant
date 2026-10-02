@@ -34,6 +34,16 @@
 .st30-ex .qc-table td.delta { font-weight: 600; background: #fff8e8; }
 .st30-ex .qc-table td.ok { color: #1b7a3d; font-weight: 600; }
 .st30-ex .qc-table td.bad { color: #b00020; font-weight: 600; }
+.st30-ex .debrief-card { border-color: var(--tc-blue, #005f9e); }
+.st30-ex .debrief-table td.debrief-answer,
+.st30-ex .debrief-answer {
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+}
+.st30-ex .debrief-answer.ok { color: #1b7a3d; }
+.st30-ex .debrief-answer.bad { color: #b00020; }
 .st30-ex details.howto { margin-bottom: 16px; border: 1px solid var(--tc-grey-300,#e0e1e9); border-radius: 8px; padding: 10px 14px; background: var(--tc-surface,#fff); }
 .st30-ex details.howto summary { cursor: pointer; font-weight: 700; color: var(--tc-blue,#005f9e); }
 .st30-ex details.howto ol { margin: 8px 0 0; padding-left: 1.2rem; font-size: 13px; line-height: 1.45; }
