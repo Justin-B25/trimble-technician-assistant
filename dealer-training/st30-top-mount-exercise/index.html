@@ -44,9 +44,8 @@
     </details>
 
     <p class="st30-intro">
-      Drag a Siteworks point CSV. Tip deltas are measured − <code>UP0</code> (Activity A) / <code>DOWN0</code> (Activity B) — no separate BENCH/4A/4B name required.
-      Tip-up vs tip-down is tip-up − tip-down at the same tilt. Tip specs (XY|Z mm) use the nearest rod-height row.
-      Rod height, tilt°, pitch, and roll are read from the Siteworks CSV when present. Default CSV units = US Survey Feet.
+      Drag a Siteworks point CSV (US Survey Feet). Linear values are converted to meters; tip deltas are shown in <strong>mm</strong> so you can compare directly to ST30 tip specs.
+      Tip deltas = measured − <code>UP0</code> / <code>DOWN0</code>. Tip-up vs tip-down is tip-up − tip-down at the same tilt.
     </p>
 
     <section class="card">
@@ -57,11 +56,11 @@
           <input id="job-name" type="text" placeholder="e.g. Bootcamp Station 4" />
         </div>
         <div>
-          <label class="muted" for="coord-unit">CSV / coordinate units</label>
+          <label class="muted" for="coord-unit">CSV input units</label>
           <select id="coord-unit">
-            <option value="usft" selected>US Survey Feet (Siteworks US FT)</option>
-            <option value="m">Meters</option>
-            <option value="ift">International feet</option>
+            <option value="usft" selected>US Survey Feet → convert to m</option>
+            <option value="m">Already meters</option>
+            <option value="ift">International feet → convert to m</option>
           </select>
         </div>
         <div>
@@ -88,7 +87,7 @@
       <h2>Siteworks CSV</h2>
       <div class="dropzone" id="dz-csv">
         <h3>Drop Siteworks CSV here</h3>
-        <p>Point Name, Northing, Easting, Elevation · include UP0/5/15/30 + DOWN0/5/15/30 · units = selector above (default US FT)</p>
+        <p>Point Name, Northing, Easting, Elevation · UP0/5/15/30 + DOWN0/5/15/30 · Siteworks US FT converted to meters / tip Δ in mm</p>
         <input id="file-csv" type="file" accept=".csv,text/csv,text/plain" multiple />
         <ul class="file-list" id="list-csv"></ul>
       </div>
@@ -106,7 +105,7 @@
         <h2>Summary</h2>
         <div class="stats">
           <div class="stat"><div class="label">0° origin</div><div class="value" id="stat-bench">—</div></div>
-          <div class="stat"><div class="label">CSV units</div><div class="value" id="stat-coord-unit">—</div></div>
+          <div class="stat"><div class="label">Working units</div><div class="value" id="stat-coord-unit">—</div></div>
           <div class="stat"><div class="label">Rod height</div><div class="value" id="stat-rod">—</div></div>
           <div class="stat"><div class="label">Tip-spec row</div><div class="value" id="stat-spec">—</div></div>
           <div class="stat"><div class="label">Tip DOWN vs UP0</div><div class="value" id="stat-down">—</div></div>
@@ -116,13 +115,13 @@
 
       <section class="card debrief-card">
         <h2>TIP Accuracy — Debrief (worksheet answers)</h2>
-        <p class="st30-intro" style="margin-top:-4px">Auto-filled from CSV vs UP0/DOWN0 using the selected rod-height tip specs. Copy these onto the Station 4 field worksheet.</p>
+        <p class="st30-intro" style="margin-top:-4px">Measured tip deltas (mm) vs UP0/DOWN0 and ST30 tip specs. Fill Y/N on the Station 4 worksheet yourself.</p>
         <table class="qc-table debrief-table">
           <thead>
             <tr>
               <th style="width:42%">Question</th>
               <th style="width:10%">Answer</th>
-              <th>Fill-in (Y/N + notes · or mm / tilt / A or B)</th>
+              <th>Measured (mm vs tip specs)</th>
             </tr>
           </thead>
           <tbody>
@@ -149,7 +148,7 @@
         <h2>Tip DOWN (Activity A) vs UP0</h2>
         <div class="table-wrap">
           <table class="qc-table">
-            <thead><tr><th>Tilt</th><th>Point</th><th>Tgt Ht</th><th>Tilt°</th><th>Pitch</th><th>Roll</th><th>ΔN</th><th>ΔE</th><th>ΔZ</th><th>Horiz</th><th>Spec XY|Z</th><th>Pass</th></tr></thead>
+            <thead><tr><th>Tilt</th><th>Point</th><th>Tgt Ht m</th><th>Tilt°</th><th>Pitch</th><th>Roll</th><th>ΔN mm</th><th>ΔE mm</th><th>ΔZ mm</th><th>Horiz mm</th><th>Spec XY|Z mm</th></tr></thead>
             <tbody id="tbody-down"></tbody>
           </table>
         </div>
@@ -159,7 +158,7 @@
         <h2>Tip UP (Activity B) vs DOWN0</h2>
         <div class="table-wrap">
           <table class="qc-table">
-            <thead><tr><th>Tilt</th><th>Point</th><th>Tgt Ht</th><th>Tilt°</th><th>Pitch</th><th>Roll</th><th>ΔN</th><th>ΔE</th><th>ΔZ</th><th>Horiz</th><th>Spec XY|Z</th><th>Pass</th></tr></thead>
+            <thead><tr><th>Tilt</th><th>Point</th><th>Tgt Ht m</th><th>Tilt°</th><th>Pitch</th><th>Roll</th><th>ΔN mm</th><th>ΔE mm</th><th>ΔZ mm</th><th>Horiz mm</th><th>Spec XY|Z mm</th></tr></thead>
             <tbody id="tbody-up"></tbody>
           </table>
         </div>
@@ -169,7 +168,7 @@
         <h2>Tip UP vs Tip DOWN (same tilt)</h2>
         <div class="table-wrap">
           <table class="qc-table">
-            <thead><tr><th>Tilt</th><th>Tip DOWN</th><th>Tip UP</th><th>ΔN</th><th>ΔE</th><th>ΔZ</th><th>Horiz</th></tr></thead>
+            <thead><tr><th>Tilt</th><th>Tip DOWN</th><th>Tip UP</th><th>ΔN mm</th><th>ΔE mm</th><th>ΔZ mm</th><th>Horiz mm</th></tr></thead>
             <tbody id="tbody-compare"></tbody>
           </table>
         </div>
@@ -186,9 +185,9 @@
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
-  <script src="js/parsers.js?v=8"></script>
-  <script src="js/calc.js?v=8"></script>
-  <script src="js/pdf.js?v=6"></script>
-  <script src="js/app.js?v=8"></script>
+  <script src="js/parsers.js?v=9"></script>
+  <script src="js/calc.js?v=9"></script>
+  <script src="js/pdf.js?v=7"></script>
+  <script src="js/app.js?v=9"></script>
 </body>
 </html>

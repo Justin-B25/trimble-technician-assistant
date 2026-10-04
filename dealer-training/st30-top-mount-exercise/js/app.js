@@ -57,16 +57,15 @@
       }
       td(r.tiltLabel);
       td(r.pointName);
-      td(r.targetHeight != null ? TipDevCalc.fmt(r.targetHeight) : '—');
+      td(r.targetHeight != null ? TipDevCalc.fmt(Math.abs(r.targetHeight), 3) + ' m' : '—');
       td(r.tiltAngleDeg != null ? r.tiltAngleDeg.toFixed(2) + '°' : '—');
       td(r.pitchDeg != null ? r.pitchDeg.toFixed(2) + '°' : '—');
       td(r.rollDeg != null ? r.rollDeg.toFixed(2) + '°' : '—');
-      td(TipDevCalc.fmt(r.d && r.d.dn), 'delta');
-      td(TipDevCalc.fmt(r.d && r.d.de), 'delta');
-      td(TipDevCalc.fmt(r.d && r.d.dz));
-      td(TipDevCalc.fmt(r.d && r.d.horiz));
+      td(TipDevCalc.fmtMm(r.d && r.d.dn), 'delta');
+      td(TipDevCalc.fmtMm(r.d && r.d.de), 'delta');
+      td(TipDevCalc.fmtMm(r.d && r.d.dz));
+      td(TipDevCalc.fmtMm(r.d && r.d.horiz));
       td(r.check ? r.check.specXY + ' | ' + r.check.specZ : '—');
-      td(r.check ? (r.check.pass ? 'Y' : 'N') : '—', r.check ? (r.check.pass ? 'ok' : 'bad') : '');
       tbody.appendChild(tr);
     });
   }
@@ -82,25 +81,33 @@
         c.textContent = t; tr.appendChild(c);
       }
       td(r.tiltLabel); td(r.tipDownName); td(r.tipUpName);
-      td(TipDevCalc.fmt(r.d && r.d.dn), 'delta');
-      td(TipDevCalc.fmt(r.d && r.d.de), 'delta');
-      td(TipDevCalc.fmt(r.d && r.d.dz));
-      td(TipDevCalc.fmt(r.d && r.d.horiz));
+      td(TipDevCalc.fmtMm(r.d && r.d.dn), 'delta');
+      td(TipDevCalc.fmtMm(r.d && r.d.de), 'delta');
+      td(TipDevCalc.fmtMm(r.d && r.d.dz));
+      td(TipDevCalc.fmtMm(r.d && r.d.horiz));
       tbody.appendChild(tr);
     });
   }
 
   function sumLine(s) {
     if (!s) return '—';
-    return 'n=' + s.count + ' · avg horiz ' + TipDevCalc.fmt(s.avgHoriz) +
-      ' · max horiz ' + TipDevCalc.fmt(s.maxHoriz) + ' @ ' + (s.maxHorizTilt || '—');
+    return (
+      'n=' +
+      s.count +
+      ' · avg horiz ' +
+      TipDevCalc.fmtMm(s.avgHoriz) +
+      ' mm · max horiz ' +
+      TipDevCalc.fmtMm(s.maxHoriz) +
+      ' mm @ ' +
+      (s.maxHorizTilt || '—')
+    );
   }
 
   function renderDebrief(debrief) {
     if (!debrief) return;
     function paint(qEl, aEl, q) {
       $(qEl).textContent = q.answer;
-      $(qEl).className = 'debrief-answer ' + (q.pass ? 'ok' : 'bad');
+      $(qEl).className = 'debrief-answer';
       $(aEl).textContent = q.fillIn;
     }
     paint('debrief-q1-yn', 'debrief-q1-notes', debrief.q1);
@@ -118,9 +125,8 @@
     $('stat-bench').textContent = b ? b.name : 'Missing';
     if ($('stat-coord-unit')) $('stat-coord-unit').textContent = report.coordUnitLabel || '—';
     $('stat-rod').textContent =
-      (report.rodHeightInput != null ? TipDevCalc.fmt(Number(report.rodHeightInput)) : '—') +
-      ' ' +
-      (report.rodUnit || '') +
+      (report.rodHeightM != null ? TipDevCalc.fmt(Number(report.rodHeightM), 3) : '—') +
+      ' m' +
       (report.rodFromCsv ? ' (CSV)' : '');
     $('stat-spec').textContent = report.specRow.label;
     $('stat-down').textContent = sumLine(report.summary.tipDown);
@@ -145,19 +151,19 @@
 
   function applyCsvRodHeight(points) {
     if (state.rodTouched) return;
+    var unit = TipDevCalc.coordUnitInfo($('coord-unit') ? $('coord-unit').value : 'usft');
     var vals = [];
     (points || []).forEach(function (p) {
       if (p && p.parsed && p.parsed.kind === 'shot' && p.targetHeight != null) {
-        vals.push(Math.abs(p.targetHeight));
+        vals.push(Math.abs(p.targetHeight) * unit.toM);
       }
     });
     if (!vals.length) return;
     vals.sort(function (a, b) { return a - b; });
     var mid = Math.floor(vals.length / 2);
     var med = vals.length % 2 ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;
-    var coord = $('coord-unit') ? $('coord-unit').value : 'usft';
     $('rod-height').value = String(Number(med.toFixed(4)));
-    $('rod-unit').value = coord === 'usft' ? 'usft' : coord === 'ift' ? 'ft' : 'm';
+    $('rod-unit').value = 'm';
   }
 
   async function rebuild() {

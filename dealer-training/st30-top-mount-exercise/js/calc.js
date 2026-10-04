@@ -17,10 +17,16 @@ var TipDevCalc = (function () {
 
   function toMeters(value, unit) {
     var n = Number(value);
-    if (!Number.isFinite(n) || n <= 0) return null;
+    if (!Number.isFinite(n)) return null;
     var info = coordUnitInfo(unit);
     if (info.id === 'm') return n;
     return n * info.toM;
+  }
+
+  function toMetersPositive(value, unit) {
+    var m = toMeters(value, unit);
+    if (m == null || m <= 0) return null;
+    return m;
   }
 
   function coordUnitInfo(u) {
@@ -31,16 +37,49 @@ var TipDevCalc = (function () {
     }
     if (s === 'in' || s === 'inch' || s === 'inches') return { id: 'in', label: 'in', toM: 0.0254, decimals: 2 };
     if (s === 'ft' || s === 'feet' || s === 'foot') return { id: 'ift', label: 'ft', toM: 0.3048, decimals: 4 };
+    // Siteworks US Survey Feet
     return { id: 'usft', label: 'US ft', toM: 1200 / 3937, decimals: 4 };
+  }
+
+  /** Convert a parsed CSV point's linear fields from CSV units → meters. */
+  function pointToMeters(p, unit) {
+    if (!p) return null;
+    var scale = coordUnitInfo(unit).toM;
+    return {
+      name: p.name,
+      n: p.n * scale,
+      e: p.e * scale,
+      z: p.z * scale,
+      parsed: p.parsed,
+      source: p.source,
+      targetHeight: p.targetHeight != null ? p.targetHeight * scale : null,
+      tiltAngleDeg: p.tiltAngleDeg,
+      pitchDeg: p.pitchDeg,
+      rollDeg: p.rollDeg,
+      autoPoleHeight: p.autoPoleHeight,
+      csvUnit: coordUnitInfo(unit).id,
+      unit: 'm',
+    };
+  }
+
+  function pointsToMeters(points, unit) {
+    return (points || []).map(function (p) {
+      return pointToMeters(p, unit);
+    });
   }
 
   function fmt(n, digits) {
     if (n == null || !Number.isFinite(n)) return '—';
-    var d = digits;
-    if (d == null) d = coordUnitInfo(fmt.unit).decimals;
+    var d = digits == null ? 3 : digits;
     return n.toFixed(d);
   }
-  fmt.unit = 'usft';
+  fmt.unit = 'm';
+
+  /** Format a meter delta as mm for ST30 tip-spec comparison. */
+  function fmtMm(meters, digits) {
+    if (meters == null || !Number.isFinite(meters)) return '—';
+    return (meters * 1000).toFixed(digits == null ? 1 : digits);
+  }
 
   function pickSpecRow(heightM) {
     if (heightM == null || !Number.isFinite(heightM)) return TIP_SPECS[0];
@@ -52,17 +91,21 @@ var TipDevCalc = (function () {
     return best;
   }
 
-  function passCheck(d, tilt, specRow, toM) {
+  /** d is already in meters. Specs are mm. */
+  function passCheck(d, tilt, specRow) {
     if (!d || !specRow) return null;
     var sp = specRow.specs[tilt];
     if (!sp) return null;
-    var scale = toM == null ? 1 : toM;
-    var horizMm = d.horiz * scale * 1000, zMm = Math.abs(d.dz) * scale * 1000;
+    var horizMm = d.horiz * 1000;
+    var zMm = Math.abs(d.dz) * 1000;
     return {
       passXY: horizMm <= sp[0] + 0.5,
       passZ: zMm <= sp[1] + 0.5,
       pass: horizMm <= sp[0] + 0.5 && zMm <= sp[1] + 0.5,
-      specXY: sp[0], specZ: sp[1], horizMm: horizMm, zMm: zMm,
+      specXY: sp[0],
+      specZ: sp[1],
+      horizMm: horizMm,
+      zMm: zMm,
     };
   }
 
@@ -119,7 +162,7 @@ var TipDevCalc = (function () {
     };
   }
 
-  function buildActivityRows(shots, bench, label, specRow, toM) {
+  function buildActivityRows(shots, bench, label, specRow) {
     return TILTS.map(function (tilt) {
       var shot = shots[tilt] || null;
       var isOrigin = tilt === 0 && shot && bench && shot === bench;
@@ -135,7 +178,7 @@ var TipDevCalc = (function () {
         tiltAngleDeg: shot && shot.tiltAngleDeg != null ? shot.tiltAngleDeg : null,
         pitchDeg: shot && shot.pitchDeg != null ? shot.pitchDeg : null,
         rollDeg: shot && shot.rollDeg != null ? shot.rollDeg : null,
-        check: d ? passCheck(d, tilt, specRow, toM) : null,
+        check: d ? passCheck(d, tilt, specRow) : null,
       };
     });
   }
@@ -178,12 +221,12 @@ var TipDevCalc = (function () {
    * 2) Activity B (inverted) within tip specs?
    * 3) Largest Δ XY (mm) — which tilt / orientation?
    */
-  function buildDebrief(tipDown, tipUp, toM) {
+  function buildDebrief(tipDown, tipUp) {
     function activityAnswer(rows, activityCode) {
       var needed = [5, 15, 30];
       var checked = [];
       var missing = [];
-      var fails = [];
+      var notesBits = [];
       for (var i = 0; i < needed.length; i++) {
         var tilt = needed[i];
         var row = null;
@@ -195,47 +238,37 @@ var TipDevCalc = (function () {
           continue;
         }
         checked.push(row);
-        if (!row.check.pass) {
-          fails.push(
-            tilt +
-              '° horiz ' +
-              row.check.horizMm.toFixed(1) +
-              ' mm (spec ' +
-              row.check.specXY +
-              ') / |ΔZ| ' +
-              row.check.zMm.toFixed(1) +
-              ' mm (spec ' +
-              row.check.specZ +
-              ')'
-          );
-        }
+        notesBits.push(
+          tilt +
+            '° horiz ' +
+            row.check.horizMm.toFixed(1) +
+            ' mm (spec ' +
+            row.check.specXY +
+            ') / |ΔZ| ' +
+            row.check.zMm.toFixed(1) +
+            ' mm (spec ' +
+            row.check.specZ +
+            ')'
+        );
       }
       var answer = '—';
       var notes = '';
       if (!checked.length && missing.length) {
-        answer = 'N';
         notes = 'Missing shots: ' + missing.join(', ');
-      } else if (missing.length && fails.length) {
-        answer = 'N';
-        notes = 'Missing ' + missing.join(', ') + '; fail ' + fails.join('; ');
       } else if (missing.length) {
-        answer = 'N';
-        notes = 'Incomplete — missing ' + missing.join(', ') + '; available angles passed';
-      } else if (fails.length) {
-        answer = 'N';
-        notes = fails.join('; ');
+        notes = 'Incomplete — missing ' + missing.join(', ') + '; ' + notesBits.join('; ');
       } else {
-        answer = 'Y';
-        notes = '5° / 15° / 30° within tip specs (' + activityCode + ')';
+        notes = notesBits.join('; ');
       }
+      // Y/N is filled on the field worksheet by the student — calculator only reports mm vs specs.
       return {
         activity: activityCode,
-        answer: answer,
+        answer: '—',
         notes: notes,
-        pass: answer === 'Y',
+        pass: null,
         missing: missing,
-        fails: fails,
-        fillIn: answer + (notes ? ' — ' + notes : ''),
+        fails: [],
+        fillIn: notes || '—',
       };
     }
 
@@ -247,7 +280,7 @@ var TipDevCalc = (function () {
       for (var i = 0; i < rows.length; i++) {
         var row = rows[i];
         if (!row || !row.d || row.tilt === 0) continue;
-        var horizMm = row.d.horiz * (toM || 1) * 1000;
+        var horizMm = row.d.horiz * 1000;
         if (!largest || horizMm > largest.horizMm) {
           largest = {
             horizMm: horizMm,
@@ -286,38 +319,49 @@ var TipDevCalc = (function () {
 
   function buildReport(points, opts) {
     opts = opts || {};
-    var unit = coordUnitInfo(opts.coordUnit || 'usft');
-    fmt.unit = unit.id;
-    var indexed = indexShots(points);
+    var csvUnit = coordUnitInfo(opts.coordUnit || 'usft');
+    // Always compute in meters so tip deltas compare directly to ST30 mm specs
+    fmt.unit = 'm';
+    var metricPoints = pointsToMeters(points, csvUnit.id);
+    var indexed = indexShots(metricPoints);
     var warnings = indexed.warnings.slice();
     if (!indexed.benchA && !indexed.benchB) {
       warnings.push('No 0° origin found. Name plumb shots UP0 (Activity A) and/or DOWN0 (Activity B).');
     }
+    if (csvUnit.id !== 'm') {
+      warnings.push(
+        'CSV linear values treated as ' +
+          csvUnit.label +
+          ' → converted to meters (× ' +
+          csvUnit.toM.toFixed(9) +
+          '). Tip deltas shown in mm.'
+      );
+    }
 
-    var csvHeights = [];
+    var csvHeightsM = [];
     var autoPole = '';
-    (points || []).forEach(function (p) {
+    metricPoints.forEach(function (p) {
       if (!p || !p.parsed || p.parsed.kind !== 'shot') return;
-      if (p.targetHeight != null) csvHeights.push(p.targetHeight);
+      if (p.targetHeight != null) csvHeightsM.push(p.targetHeight);
       if (!autoPole && p.autoPoleHeight) autoPole = p.autoPoleHeight;
     });
-    var csvRodHeight = medianAbs(csvHeights);
+    var csvRodHeightM = medianAbs(csvHeightsM);
     var rodHeightInput = opts.rodHeight;
     var rodUnit = opts.rodUnit || 'm';
     var rodFromCsv = false;
-    if (opts.useCsvRodHeight && csvRodHeight != null) {
-      rodHeightInput = csvRodHeight;
-      rodUnit = unit.id === 'usft' ? 'usft' : unit.id === 'ift' ? 'ft' : 'm';
+    if (opts.useCsvRodHeight && csvRodHeightM != null) {
+      // Already meters after conversion
+      rodHeightInput = csvRodHeightM;
+      rodUnit = 'm';
       rodFromCsv = true;
     }
-    var heightM = toMeters(rodHeightInput, rodUnit);
+    var heightM = toMetersPositive(rodHeightInput, rodUnit);
     var specRow = pickSpecRow(heightM != null ? heightM : 0.2);
-    if (csvRodHeight != null) {
+    if (csvRodHeightM != null) {
       warnings.push(
         'CSV Target Height median |h| = ' +
-          csvRodHeight.toFixed(unit.decimals) +
-          ' ' +
-          unit.label +
+          csvRodHeightM.toFixed(3) +
+          ' m' +
           (autoPole ? ' · Auto Pole Height: ' + autoPole : '') +
           (rodFromCsv ? ' · used for tip-spec row' : '')
       );
@@ -327,52 +371,66 @@ var TipDevCalc = (function () {
       indexed.activityA,
       indexed.benchA,
       'Tip DOWN (Activity A)',
-      specRow,
-      unit.toM
+      specRow
     );
     var tipUp = buildActivityRows(
       indexed.activityB,
       indexed.benchB,
       'Tip UP (Activity B)',
-      specRow,
-      unit.toM
+      specRow
     );
     var compare = buildCompareRows(indexed.activityA, indexed.activityB);
-    var debrief = buildDebrief(tipDown, tipUp, unit.toM);
+    var debrief = buildDebrief(tipDown, tipUp);
 
     return {
-      bench: indexed.bench, rodHeightM: heightM, rodHeightInput: rodHeightInput,
-      rodUnit: rodUnit, rodFromCsv: rodFromCsv, csvRodHeight: csvRodHeight,
-      autoPoleHeight: autoPole, specRow: specRow,
-      coordUnit: unit.id, coordUnitLabel: unit.label, toM: unit.toM,
-      tipDown: tipDown, tipUp: tipUp, compare: compare,
+      bench: indexed.bench,
+      rodHeightM: heightM,
+      rodHeightInput: rodHeightInput,
+      rodUnit: rodUnit,
+      rodFromCsv: rodFromCsv,
+      csvRodHeight: csvRodHeightM,
+      autoPoleHeight: autoPole,
+      specRow: specRow,
+      csvUnit: csvUnit.id,
+      csvUnitLabel: csvUnit.label,
+      coordUnit: 'm',
+      coordUnitLabel: 'm (from ' + csvUnit.label + ' CSV)',
+      toM: 1,
+      tipDown: tipDown,
+      tipUp: tipUp,
+      compare: compare,
       summary: { tipDown: summarize(tipDown), tipUp: summarize(tipUp), compare: summarize(compare) },
       debrief: debrief,
-      warnings: warnings, pointCount: (points || []).length,
+      warnings: warnings,
+      pointCount: (metricPoints || []).length,
     };
   }
 
   function rowsToCsv(report) {
-    var lines = [['Section','Tilt','Point','N','E','Z','dN','dE','dZ','Horiz','SpecXY_mm','SpecZ_mm','Pass'].join(',')];
+    var lines = [[
+      'Section', 'Tilt', 'Point', 'N_m', 'E_m', 'Z_m',
+      'dN_mm', 'dE_mm', 'dZ_mm', 'Horiz_mm', 'SpecXY_mm', 'SpecZ_mm',
+    ].join(',')];
     function add(section, rows) {
       rows.forEach(function (r) {
         lines.push([
           section, r.tiltLabel, r.pointName,
           r.shot ? r.shot.n : '', r.shot ? r.shot.e : '', r.shot ? r.shot.z : '',
-          r.d ? r.d.dn : '', r.d ? r.d.de : '', r.d ? r.d.dz : '', r.d ? r.d.horiz : '',
+          r.d ? r.d.dn * 1000 : '', r.d ? r.d.de * 1000 : '', r.d ? r.d.dz * 1000 : '',
+          r.d ? r.d.horiz * 1000 : '',
           r.check ? r.check.specXY : '', r.check ? r.check.specZ : '',
-          r.check ? (r.check.pass ? 'Y' : 'N') : '',
         ].join(','));
       });
     }
     add('TipDOWN_vs_UP0', report.tipDown);
     add('TipUP_vs_DOWN0', report.tipUp);
     lines.push('');
-    lines.push(['Section','Tilt','TipDown','TipUp','dN_UP-DOWN','dE_UP-DOWN','dZ_UP-DOWN','Horiz'].join(','));
+    lines.push(['Section', 'Tilt', 'TipDown', 'TipUp', 'dN_mm', 'dE_mm', 'dZ_mm', 'Horiz_mm'].join(','));
     report.compare.forEach(function (r) {
       lines.push([
         'TipUP_vs_TipDOWN', r.tiltLabel, r.tipDownName, r.tipUpName,
-        r.d ? r.d.dn : '', r.d ? r.d.de : '', r.d ? r.d.dz : '', r.d ? r.d.horiz : '',
+        r.d ? r.d.dn * 1000 : '', r.d ? r.d.de * 1000 : '', r.d ? r.d.dz * 1000 : '',
+        r.d ? r.d.horiz * 1000 : '',
       ].join(','));
     });
     if (report.debrief) {
@@ -395,15 +453,18 @@ var TipDevCalc = (function () {
     return lines.join('\r\n');
   }
 
-  function fmtMm(coordDelta, digits, toM) {
-    if (coordDelta == null || !Number.isFinite(coordDelta)) return '—';
-    var scale = toM == null ? coordUnitInfo(fmt.unit).toM : toM;
-    return (coordDelta * scale * 1000).toFixed(digits == null ? 1 : digits);
-  }
-
   return {
-    TILTS: TILTS, TIP_SPECS: TIP_SPECS, buildReport: buildReport, buildDebrief: buildDebrief,
-    pickSpecRow: pickSpecRow, toMeters: toMeters, coordUnitInfo: coordUnitInfo,
-    delta: delta, fmt: fmt, fmtMm: fmtMm, rowsToCsv: rowsToCsv,
+    TILTS: TILTS,
+    TIP_SPECS: TIP_SPECS,
+    buildReport: buildReport,
+    buildDebrief: buildDebrief,
+    pickSpecRow: pickSpecRow,
+    toMeters: toMetersPositive,
+    coordUnitInfo: coordUnitInfo,
+    pointsToMeters: pointsToMeters,
+    delta: delta,
+    fmt: fmt,
+    fmtMm: fmtMm,
+    rowsToCsv: rowsToCsv,
   };
 })();

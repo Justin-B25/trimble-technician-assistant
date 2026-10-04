@@ -11,34 +11,35 @@ var TipDevPdf = (function () {
     if (s == null) return '';
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-  function fmt(n) { return TipDevCalc.fmt(n, 3); }
+  function fmtM(n) { return TipDevCalc.fmt(n, 3); }
+  function fmtMm(n) { return TipDevCalc.fmtMm(n, 1); }
 
   function activityTable(title, rows) {
     var html = '<h3>' + esc(title) + '</h3><table class="data"><thead><tr>' +
-      '<th>Tilt</th><th>Point</th><th>Tgt Ht</th><th>Tilt°</th><th>Pitch</th><th>Roll</th><th>ΔN</th><th>ΔE</th><th>ΔZ</th><th>Horiz</th><th>Spec XY|Z mm</th><th>Pass</th>' +
+      '<th>Tilt</th><th>Point</th><th>Tgt Ht m</th><th>Tilt°</th><th>Pitch</th><th>Roll</th>' +
+      '<th>ΔN mm</th><th>ΔE mm</th><th>ΔZ mm</th><th>Horiz mm</th><th>Spec XY|Z mm</th>' +
       '</tr></thead><tbody>';
     rows.forEach(function (r) {
       html += '<tr><td>' + esc(r.tiltLabel) + '</td><td>' + esc(r.pointName) + '</td>' +
-        '<td>' + (r.targetHeight != null ? fmt(r.targetHeight) : '—') + '</td>' +
+        '<td>' + (r.targetHeight != null ? fmtM(Math.abs(r.targetHeight)) : '—') + '</td>' +
         '<td>' + (r.tiltAngleDeg != null ? r.tiltAngleDeg.toFixed(2) : '—') + '</td>' +
         '<td>' + (r.pitchDeg != null ? r.pitchDeg.toFixed(2) : '—') + '</td>' +
         '<td>' + (r.rollDeg != null ? r.rollDeg.toFixed(2) : '—') + '</td>' +
-        '<td>' + fmt(r.d && r.d.dn) + '</td><td>' + fmt(r.d && r.d.de) + '</td>' +
-        '<td>' + fmt(r.d && r.d.dz) + '</td><td>' + fmt(r.d && r.d.horiz) + '</td>' +
-        '<td>' + (r.check ? r.check.specXY + ' | ' + r.check.specZ : '—') + '</td>' +
-        '<td>' + (r.check ? (r.check.pass ? 'Y' : 'N') : '—') + '</td></tr>';
+        '<td>' + fmtMm(r.d && r.d.dn) + '</td><td>' + fmtMm(r.d && r.d.de) + '</td>' +
+        '<td>' + fmtMm(r.d && r.d.dz) + '</td><td>' + fmtMm(r.d && r.d.horiz) + '</td>' +
+        '<td>' + (r.check ? r.check.specXY + ' | ' + r.check.specZ : '—') + '</td></tr>';
     });
     return html + '</tbody></table>';
   }
 
   function compareTable(rows) {
     var html = '<h3>Tip UP vs Tip DOWN (same tilt)</h3><table class="data"><thead><tr>' +
-      '<th>Tilt</th><th>Tip DOWN</th><th>Tip UP</th><th>ΔN</th><th>ΔE</th><th>ΔZ</th><th>Horiz</th>' +
+      '<th>Tilt</th><th>Tip DOWN</th><th>Tip UP</th><th>ΔN mm</th><th>ΔE mm</th><th>ΔZ mm</th><th>Horiz mm</th>' +
       '</tr></thead><tbody>';
     rows.forEach(function (r) {
       html += '<tr><td>' + esc(r.tiltLabel) + '</td><td>' + esc(r.tipDownName) + '</td><td>' + esc(r.tipUpName) + '</td>' +
-        '<td>' + fmt(r.d && r.d.dn) + '</td><td>' + fmt(r.d && r.d.de) + '</td>' +
-        '<td>' + fmt(r.d && r.d.dz) + '</td><td>' + fmt(r.d && r.d.horiz) + '</td></tr>';
+        '<td>' + fmtMm(r.d && r.d.dn) + '</td><td>' + fmtMm(r.d && r.d.de) + '</td>' +
+        '<td>' + fmtMm(r.d && r.d.dz) + '</td><td>' + fmtMm(r.d && r.d.horiz) + '</td></tr>';
     });
     return html + '</tbody></table>';
   }
@@ -90,7 +91,7 @@ var TipDevPdf = (function () {
         report.tipUp
       ) +
       compareTable(report.compare) +
-      '<p class="sub">Δ = measured − 0° origin (UP0 / DOWN0). Tip UP vs Tip DOWN uses tip-up − tip-down at the same tilt. Specs pending validation.</p>' +
+      '<p class="sub">CSV US FT → meters. Δ = measured − 0° origin (UP0 / DOWN0), shown in mm next to ST30 tip specs. Tip UP vs Tip DOWN = tip-up − tip-down.</p>' +
       '<p class="noprint"><button onclick="window.print()">Print / Save PDF</button></p>' +
       '<script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script></body></html>';
     w.document.open(); w.document.write(html); w.document.close();
