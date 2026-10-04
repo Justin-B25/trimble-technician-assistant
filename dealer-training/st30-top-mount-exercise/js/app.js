@@ -250,8 +250,13 @@
       state.warnings = state.warnings.concat(state.report.warnings || []);
       renderResults();
     } catch (err) {
-      setAlert(err && err.message ? err.message : String(err), true);
+      console.error('Tip compute failed', err);
+      setAlert(
+        'Compute failed: ' + (err && err.message ? err.message : String(err)),
+        true
+      );
       $('results').classList.add('hidden');
+      updateButtons();
     }
   }
 
@@ -275,7 +280,7 @@
         addFiles(e.dataTransfer.files);
         renderFileList();
         updateButtons();
-        setAlert('CSV loaded. Set UP / DOWN rod heights, then press Compute tip results.');
+        rebuild();
       }
     });
     input.addEventListener('change', function () {
@@ -284,7 +289,7 @@
         input.value = '';
         renderFileList();
         updateButtons();
-        setAlert('CSV loaded. Set UP / DOWN rod heights, then press Compute tip results.');
+        rebuild();
       }
     });
   }
