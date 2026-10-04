@@ -354,3 +354,92 @@
     grid-template-columns: 1fr;
   }
 }
+
+.batter-calc .design-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .batter-calc .design-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.batter-calc .design-grid input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: "Open Sans", Arial, sans-serif;
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--tc-grey-300, #e0e1e9);
+  border-radius: 6px;
+}
+
+.batter-calc .pile-result-card__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 14px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .batter-calc .pile-result-card__body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.batter-calc .pile-result-card__nums .pile-result-card__row {
+  grid-template-columns: 170px 1fr;
+}
+
+.batter-calc .crosshair {
+  background: #fff;
+  border: 1px solid var(--tc-grey-300, #e0e1e9);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.batter-calc .crosshair-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.batter-calc .crosshair-axis {
+  stroke: #00548c;
+  stroke-width: 1.5;
+}
+
+.batter-calc .crosshair-arm {
+  stroke: #c45c26;
+  stroke-width: 2.5;
+}
+
+.batter-calc .crosshair-origin {
+  fill: #00548c;
+}
+
+.batter-calc .crosshair-meas {
+  fill: #c45c26;
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.batter-calc .crosshair-label {
+  font-family: "Open Sans", Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  fill: #00548c;
+}
+
+.batter-calc .crosshair-caption {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--tc-grey-700, #3d4248);
+  font-family: "Open Sans", Arial, sans-serif;
+}
+

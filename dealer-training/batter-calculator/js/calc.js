@@ -22,6 +22,36 @@ var BatterCalc = (function () {
     return Math.sqrt(Math.pow(a.n - b.n, 2) + Math.pow(a.e - b.e, 2));
   }
 
+  function azimuthDeg(dn, de) {
+    if (dn == null || de == null || !Number.isFinite(dn) || !Number.isFinite(de)) return null;
+    if (Math.abs(dn) < 1e-12 && Math.abs(de) < 1e-12) return null;
+    var az = (Math.atan2(de, dn) * 180) / Math.PI;
+    if (az < 0) az += 360;
+    return az;
+  }
+
+  function parseNum(v) {
+    if (v == null || v === '') return null;
+    var n = typeof v === 'number' ? v : parseFloat(String(v).replace(/,/g, ''));
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function pointAtZ(bottom, top, zCut) {
+    if (!bottom || !top || zCut == null || !Number.isFinite(zCut)) return null;
+    var dz = top.z - bottom.z;
+    if (Math.abs(dz) < 1e-12) {
+      return { n: top.n, e: top.e, z: zCut, t: null, extrapolated: true };
+    }
+    var t = (zCut - bottom.z) / dz;
+    return {
+      n: bottom.n + t * (top.n - bottom.n),
+      e: bottom.e + t * (top.e - bottom.e),
+      z: zCut,
+      t: t,
+      extrapolated: t < -0.02 || t > 1.02,
+    };
+  }
+
   function favorLabel(dn, de) {
     if (dn == null || de == null) return '—';
     var absN = Math.abs(dn);
@@ -75,7 +105,8 @@ var BatterCalc = (function () {
     return piles;
   }
 
-  function computePile(pile) {
+  function computePile(pile, design) {
+    design = design || {};
     var warnings = [];
     var bPts = [1, 2, 3]
       .map(function (i) {
@@ -141,10 +172,11 @@ var BatterCalc = (function () {
       asCoordinates: { dN: dn, dE: de, dZ: dz },
     };
 
+    var az = azimuthDeg(dn, de);
+
     var inclination = {
       fromVerticalDeg: angleDeg,
       fromHorizontalDeg: inclineFromHorizontalDeg,
-      // Smart level check: lay level along pile (tube axis)
       smartLevelAlongPileDeg: inclineFromHorizontalDeg,
       smartLevelNote:
         inclineFromHorizontalDeg != null
@@ -154,6 +186,46 @@ var BatterCalc = (function () {
             angleDeg.toFixed(2) +
             '° from vertical/plumb).'
           : 'Need ΔZ to compute inclination',
+    };
+
+    var designN = parseNum(design.n);
+    var designE = parseNum(design.e);
+    var designZ = parseNum(design.z);
+    var designIncl = parseNum(design.inclinationFromVerticalDeg);
+    var hasDesignXy = designN != null && designE != null;
+
+    var cutoff;
+    if (designZ != null) {
+      cutoff = pointAtZ(bottom, top, designZ);
+      if (cutoff && cutoff.extrapolated) {
+        warnings.push('Design cut-off Z is outside the measured top/bottom range — XY is extrapolated along the pile axis');
+      }
+    } else {
+      cutoff = { n: top.n, e: top.e, z: top.z, t: 1, extrapolated: false };
+    }
+
+    var dN = hasDesignXy && cutoff ? cutoff.n - designN : null;
+    var dE = hasDesignXy && cutoff ? cutoff.e - designE : null;
+    var dZ = designZ != null && cutoff ? cutoff.z - designZ : null;
+    var planMiss = dN != null && dE != null ? Math.sqrt(dN * dN + dE * dE) : null;
+    var dIncl = designIncl != null && angleDeg != null ? angleDeg - designIncl : null;
+
+    var vsDesign = {
+      hasXy: hasDesignXy,
+      hasZ: designZ != null,
+      hasIncl: designIncl != null,
+      design: {
+        n: designN,
+        e: designE,
+        z: designZ,
+        inclinationFromVerticalDeg: designIncl,
+      },
+      cutoff: cutoff,
+      dN: dN,
+      dE: dE,
+      dZ: dZ,
+      planMiss: planMiss,
+      dInclinationDeg: dIncl,
     };
 
     return {
@@ -166,8 +238,11 @@ var BatterCalc = (function () {
       top: top,
       bottomCenter: { n: bottom.n, e: bottom.e, z: bottom.z },
       topCenter: { n: top.n, e: top.e, z: top.z },
+      cutoff: cutoff,
       vector: vector,
       inclination: inclination,
+      azimuthDeg: az,
+      vsDesign: vsDesign,
       dn: dn,
       de: de,
       dz: dz,
@@ -182,7 +257,7 @@ var BatterCalc = (function () {
     };
   }
 
-  function buildReport(points) {
+  function buildReport(points, design) {
     var groups = groupByPile(points);
     var ids = Object.keys(groups).sort(function (a, b) {
       var na = Number(a);
@@ -191,7 +266,7 @@ var BatterCalc = (function () {
       return String(a).localeCompare(String(b));
     });
     var rows = ids.map(function (id) {
-      return computePile(groups[id]);
+      return computePile(groups[id], design);
     });
     var okRows = rows.filter(function (r) {
       return r.ok;
@@ -216,6 +291,7 @@ var BatterCalc = (function () {
         dxy: avg('dxy'),
         batter: avg('batter'),
       },
+      design: design || {},
     };
   }
 
@@ -253,7 +329,19 @@ var BatterCalc = (function () {
       'Incline_from_horizontal_deg_smart_level',
       'Batter_XY_over_Z',
       'Batter_Angle_deg',
+      'Azimuth_from_North_deg',
       'Lean_Direction',
+      'Cutoff_N',
+      'Cutoff_E',
+      'Cutoff_Z',
+      'Design_N',
+      'Design_E',
+      'Design_Z',
+      'Design_Inclination_from_vertical_deg',
+      'Dev_dN_meas_minus_design',
+      'Dev_dE_meas_minus_design',
+      'Dev_plan_XY',
+      'Dev_Inclination_deg',
       'Bottom_OD_est',
       'Top_OD_est',
       'Status',
@@ -282,7 +370,21 @@ var BatterCalc = (function () {
           r.inclineFromHorizontalDeg != null ? r.inclineFromHorizontalDeg : '',
           r.batter != null ? r.batter : '',
           r.angleDeg != null ? r.angleDeg : '',
+          r.azimuthDeg != null ? r.azimuthDeg : '',
           r.favor || '',
+          r.cutoff ? r.cutoff.n : '',
+          r.cutoff ? r.cutoff.e : '',
+          r.cutoff ? r.cutoff.z : '',
+          r.vsDesign && r.vsDesign.design.n != null ? r.vsDesign.design.n : '',
+          r.vsDesign && r.vsDesign.design.e != null ? r.vsDesign.design.e : '',
+          r.vsDesign && r.vsDesign.design.z != null ? r.vsDesign.design.z : '',
+          r.vsDesign && r.vsDesign.design.inclinationFromVerticalDeg != null
+            ? r.vsDesign.design.inclinationFromVerticalDeg
+            : '',
+          r.vsDesign && r.vsDesign.dN != null ? r.vsDesign.dN : '',
+          r.vsDesign && r.vsDesign.dE != null ? r.vsDesign.dE : '',
+          r.vsDesign && r.vsDesign.planMiss != null ? r.vsDesign.planMiss : '',
+          r.vsDesign && r.vsDesign.dInclinationDeg != null ? r.vsDesign.dInclinationDeg : '',
           r.bottomOd ? r.bottomOd.od : '',
           r.topOd ? r.topOd.od : '',
           r.ok ? 'OK' : 'INCOMPLETE',
@@ -313,15 +415,36 @@ var BatterCalc = (function () {
     );
   }
 
+  function fmtAzimuth(az) {
+    if (az == null || !Number.isFinite(az)) return '— (plumb / no plan lean)';
+    return az.toFixed(1) + '° from North (clockwise toward East)';
+  }
+
+  function fmtDeviation(vs) {
+    if (!vs || !vs.hasXy) return 'Enter design N/E (Y/X) to compute ΔN / ΔE';
+    return (
+      'ΔN (Y) ' +
+      fmt(vs.dN) +
+      '   ΔE (X) ' +
+      fmt(vs.dE) +
+      '   plan miss ' +
+      fmt(vs.planMiss)
+    );
+  }
+
   return {
     buildReport: buildReport,
     computePile: computePile,
+    azimuthDeg: azimuthDeg,
     favorLabel: favorLabel,
+    parseNum: parseNum,
     fmt: fmt,
     fmtBatter: fmtBatter,
     fmtCoord: fmtCoord,
     fmtVector: fmtVector,
     fmtInclination: fmtInclination,
+    fmtAzimuth: fmtAzimuth,
+    fmtDeviation: fmtDeviation,
     rowsToCsv: rowsToCsv,
   };
 })();

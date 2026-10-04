@@ -32,31 +32,50 @@ var BatterPdf = (function () {
       html += '<div class="pile">';
       html += '<h3>Pile ' + escapeHtml(r.pileId) + (r.ok ? '' : ' — incomplete') + '</h3>';
       if (r.ok) {
+        var vs = r.vsDesign || {};
+        var cutoff = r.cutoff;
         html +=
           '<table class="data"><tbody>' +
-          '<tr><td class="lbl">Bottom of pile center</td><td>' +
-          escapeHtml(BatterCalc.fmtCoord(r.bottom)) +
+          '<tr><td class="lbl">Cut-off (Y/N, X/E, Z)</td><td><strong>' +
+          (cutoff
+            ? 'N ' + fmt(cutoff.n) + '   E ' + fmt(cutoff.e) + '   Z ' + fmt(cutoff.z)
+            : '—') +
+          '</strong></td></tr>' +
+          '<tr><td class="lbl">Design cut-off</td><td>' +
+          (vs.hasXy
+            ? 'N ' +
+              fmt(vs.design.n) +
+              '   E ' +
+              fmt(vs.design.e) +
+              (vs.design.z != null ? '   Z ' + fmt(vs.design.z) : '')
+            : 'Not entered') +
           '</td></tr>' +
-          '<tr><td class="lbl">Top of pile center</td><td>' +
+          '<tr><td class="lbl">Batter angle</td><td><strong>' +
+          escapeHtml(BatterCalc.fmtInclination(r)) +
+          '</strong>' +
+          (vs.hasIncl
+            ? ' · design ' +
+              fmt(vs.design.inclinationFromVerticalDeg, 2) +
+              '° · Δ ' +
+              fmt(vs.dInclinationDeg, 2) +
+              '°'
+            : '') +
+          '</td></tr>' +
+          '<tr><td class="lbl">Azimuth (lean)</td><td><strong>' +
+          escapeHtml(BatterCalc.fmtAzimuth(r.azimuthDeg)) +
+          '</strong> · ' +
+          escapeHtml(r.favor || '') +
+          '</td></tr>' +
+          '<tr><td class="lbl">Deviation ΔX / ΔY</td><td><strong>' +
+          escapeHtml(BatterCalc.fmtDeviation(vs)) +
+          '</strong></td></tr>' +
+          '<tr><td class="lbl">Bottom / top centers</td><td>' +
+          escapeHtml(BatterCalc.fmtCoord(r.bottom)) +
+          '  ·  ' +
           escapeHtml(BatterCalc.fmtCoord(r.top)) +
           '</td></tr>' +
-          '<tr><td class="lbl">Vector bottom → top</td><td><strong>' +
+          '<tr><td class="lbl">Vector bottom → top</td><td>' +
           escapeHtml(BatterCalc.fmtVector(r)) +
-          '</strong></td></tr>' +
-          '<tr><td class="lbl">|XY| / |3D| / Batter</td><td>' +
-          fmt(r.dxy) +
-          ' / ' +
-          fmt(r.length3d) +
-          ' / ' +
-          escapeHtml(BatterCalc.fmtBatter(r.batter)) +
-          ' · ' +
-          escapeHtml(r.favor || '—') +
-          '</td></tr>' +
-          '<tr><td class="lbl">Smart level check</td><td><strong>' +
-          escapeHtml(BatterCalc.fmtInclination(r)) +
-          '</strong></td></tr>' +
-          '<tr><td class="lbl">How to check</td><td>' +
-          escapeHtml(r.inclination ? r.inclination.smartLevelNote : '') +
           '</td></tr>' +
           '</tbody></table>';
       } else {
@@ -100,13 +119,13 @@ var BatterPdf = (function () {
       '<div><img src="' +
       escapeHtml(logoUrl()) +
       '" alt="Trimble"/><p class="sub">Technician Assistant · Dealer Training</p></div>' +
-      '<div style="text-align:right"><h1>Battered Pile — Centers, Vector &amp; Inclination</h1>' +
+      '<div style="text-align:right"><h1>Battered Pile — Cut-off vs Design</h1>' +
       '<p class="sub">' +
       escapeHtml(meta.job || 'Field report') +
       ' · ' +
       escapeHtml(meta.date || new Date().toLocaleString()) +
       '</p></div></div>' +
-      '<div class="meta">Centers from B1–B3 / T1–T3 averages. Vector = top − bottom (ΔN/ΔE/ΔZ). Smart level: place along tube; compare to “from horizontal.”</div>' +
+      '<div class="meta">Cut-off XY at design Z (or top ring if Z blank). Deviation = measured − design (ΔN/ΔE). Azimuth from North toward East. Batter angle from vertical.</div>' +
       (meta.notes
         ? '<p class="meta"><strong>Notes:</strong> ' + escapeHtml(meta.notes) + '</p>'
         : '') +
