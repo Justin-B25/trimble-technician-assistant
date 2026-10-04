@@ -57,7 +57,9 @@
   }
 
   function updateButtons() {
+    var hasCsv = state.files.length > 0;
     var has = state.report && state.report.bench;
+    if ($('btn-compute')) $('btn-compute').disabled = !hasCsv;
     $('btn-csv').disabled = !has;
     $('btn-pdf').disabled = !has;
   }
@@ -272,7 +274,8 @@
       if (e.dataTransfer && e.dataTransfer.files) {
         addFiles(e.dataTransfer.files);
         renderFileList();
-        rebuild();
+        updateButtons();
+        setAlert('CSV loaded. Set UP / DOWN rod heights, then press Compute tip results.');
       }
     });
     input.addEventListener('change', function () {
@@ -280,19 +283,29 @@
         addFiles(input.files);
         input.value = '';
         renderFileList();
-        rebuild();
+        updateButtons();
+        setAlert('CSV loaded. Set UP / DOWN rod heights, then press Compute tip results.');
       }
     });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
     wireDropzone();
+    // Rod / unit edits only refresh the tip-spec highlight — press Compute for results
     ['rod-height-a', 'rod-unit-a', 'rod-height-b', 'rod-unit-b', 'coord-unit'].forEach(function (id) {
-      if ($(id)) $(id).addEventListener('change', rebuild);
-      if ($(id)) $(id).addEventListener('input', function () {
-        updateSpecChipsFromForm();
-      });
+      if (!$(id)) return;
+      $(id).addEventListener('input', updateSpecChipsFromForm);
+      $(id).addEventListener('change', updateSpecChipsFromForm);
     });
+    if ($('btn-compute')) {
+      $('btn-compute').addEventListener('click', function () {
+        if (!state.files.length) {
+          setAlert('Drop a tip-table CSV first, then press Compute.', true);
+          return;
+        }
+        rebuild();
+      });
+    }
     $('btn-clear').addEventListener('click', function () {
       state.files = [];
       state.points = [];

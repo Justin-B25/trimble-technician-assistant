@@ -26,11 +26,13 @@
 .st30-ex .dropzone p { margin: 0 0 10px; font-size: 12px; color: var(--tc-grey-600,#6a6e79); }
 .st30-ex .file-list { list-style: none; margin: 8px 0 0; padding: 0; font-size: 12px; }
 .st30-ex .file-list li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-top: 1px solid var(--tc-grey-300,#e0e1e9); }
-.st30-ex .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.st30-ex .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+.st30-ex .actions-compute { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--tc-grey-300,#e0e1e9); }
 .st30-ex .btn { font-family: "Open Sans", Arial, sans-serif; font-size: 13px; padding: 8px 14px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; }
 .st30-ex .btn:disabled { opacity: .45; cursor: not-allowed; }
 .st30-ex .btn-primary { background: var(--tc-blue,#005f9e); color: #fff; }
-.st30-ex .btn-secondary { background: #fff; border-color: var(--tc-grey-400,#cbcdd6); }
+.st30-ex .btn-compute { font-size: 15px; font-weight: 700; padding: 12px 22px; min-width: 200px; }
+.st30-ex .btn-secondary { background: #fff; border-color: var(--tc-grey-400,#cbcdd6); color: #252a2e; }
 .st30-ex .alert { white-space: pre-wrap; background: #f4f9fc; border: 1px solid #b7d4e8; color: #003d66; padding: 10px 12px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; }
 .st30-ex .alert.alert-error { background: #fdecea; border-color: #f5c2c0; color: #8a1f1b; }
 .st30-ex .hidden { display: none !important; }
