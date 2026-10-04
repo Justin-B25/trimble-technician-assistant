@@ -69,6 +69,9 @@ var BatterPdf = (function () {
           '<tr><td class="lbl">Deviation ΔX / ΔY</td><td><strong>' +
           escapeHtml(BatterCalc.fmtDeviation(vs)) +
           '</strong></td></tr>' +
+          '<tr><td class="lbl">ΔZ cut / fill</td><td><strong>' +
+          escapeHtml(BatterCalc.fmtCutFill(vs)) +
+          '</strong></td></tr>' +
           '<tr><td class="lbl">Bottom / top centers</td><td>' +
           escapeHtml(BatterCalc.fmtCoord(r.bottom)) +
           '  ·  ' +
@@ -125,7 +128,7 @@ var BatterPdf = (function () {
       ' · ' +
       escapeHtml(meta.date || new Date().toLocaleString()) +
       '</p></div></div>' +
-      '<div class="meta">Cut-off XY at design Z (or top ring if Z blank). Deviation = measured − design (ΔN/ΔE). Azimuth from North toward East. Batter angle from vertical.</div>' +
+      '<div class="meta">Cut-off XY at design Z (or top ring if Z blank). ΔN/ΔE = plan miss at that elev. ΔZ cut/fill = measured top Z − design Z (CUT = top high, FILL = top low).</div>' +
       (meta.notes
         ? '<p class="meta"><strong>Notes:</strong> ' + escapeHtml(meta.notes) + '</p>'
         : '') +

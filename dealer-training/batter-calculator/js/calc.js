@@ -206,9 +206,15 @@ var BatterCalc = (function () {
 
     var dN = hasDesignXy && cutoff ? cutoff.n - designN : null;
     var dE = hasDesignXy && cutoff ? cutoff.e - designE : null;
-    var dZ = designZ != null && cutoff ? cutoff.z - designZ : null;
+    var dZTop = designZ != null ? top.z - designZ : null;
     var planMiss = dN != null && dE != null ? Math.sqrt(dN * dN + dE * dE) : null;
     var dIncl = designIncl != null && angleDeg != null ? angleDeg - designIncl : null;
+    var cutFill = null;
+    if (dZTop != null) {
+      if (Math.abs(dZTop) < 1e-4) cutFill = 'ON GRADE';
+      else if (dZTop > 0) cutFill = 'CUT';
+      else cutFill = 'FILL';
+    }
 
     var vsDesign = {
       hasXy: hasDesignXy,
@@ -223,7 +229,9 @@ var BatterCalc = (function () {
       cutoff: cutoff,
       dN: dN,
       dE: dE,
-      dZ: dZ,
+      dZ: dZTop,
+      measuredTopZ: top.z,
+      cutFill: cutFill,
       planMiss: planMiss,
       dInclinationDeg: dIncl,
     };
@@ -340,6 +348,8 @@ var BatterCalc = (function () {
       'Design_Inclination_from_vertical_deg',
       'Dev_dN_meas_minus_design',
       'Dev_dE_meas_minus_design',
+      'Dev_dZ_top_minus_design',
+      'CutFill',
       'Dev_plan_XY',
       'Dev_Inclination_deg',
       'Bottom_OD_est',
@@ -383,6 +393,8 @@ var BatterCalc = (function () {
             : '',
           r.vsDesign && r.vsDesign.dN != null ? r.vsDesign.dN : '',
           r.vsDesign && r.vsDesign.dE != null ? r.vsDesign.dE : '',
+          r.vsDesign && r.vsDesign.dZ != null ? r.vsDesign.dZ : '',
+          r.vsDesign && r.vsDesign.cutFill ? r.vsDesign.cutFill : '',
           r.vsDesign && r.vsDesign.planMiss != null ? r.vsDesign.planMiss : '',
           r.vsDesign && r.vsDesign.dInclinationDeg != null ? r.vsDesign.dInclinationDeg : '',
           r.bottomOd ? r.bottomOd.od : '',
@@ -432,6 +444,23 @@ var BatterCalc = (function () {
     );
   }
 
+  function fmtCutFill(vs) {
+    if (!vs || !vs.hasZ || vs.dZ == null) return 'Enter design cut-off Z to compute cut / fill';
+    var mag = Math.abs(vs.dZ);
+    var line =
+      'ΔZ ' +
+      fmt(vs.dZ) +
+      '  (measured top Z ' +
+      fmt(vs.measuredTopZ) +
+      ' − design ' +
+      fmt(vs.design.z) +
+      ')';
+    if (vs.cutFill === 'ON GRADE') return line + '  ·  on grade';
+    if (vs.cutFill === 'CUT') return line + '  ·  CUT ' + fmt(mag) + ' (top is high — cut down)';
+    if (vs.cutFill === 'FILL') return line + '  ·  FILL ' + fmt(mag) + ' (top is low — short)';
+    return line;
+  }
+
   return {
     buildReport: buildReport,
     computePile: computePile,
@@ -445,6 +474,7 @@ var BatterCalc = (function () {
     fmtInclination: fmtInclination,
     fmtAzimuth: fmtAzimuth,
     fmtDeviation: fmtDeviation,
+    fmtCutFill: fmtCutFill,
     rowsToCsv: rowsToCsv,
   };
 })();

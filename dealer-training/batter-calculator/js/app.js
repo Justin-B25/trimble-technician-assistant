@@ -242,6 +242,7 @@
           true
         );
         row('Deviation (ΔX, ΔY)', BatterCalc.fmtDeviation(vs), true);
+        row('ΔZ cut / fill vs design', BatterCalc.fmtCutFill(vs), true);
         row('Bottom of pile center', BatterCalc.fmtCoord(r.bottom));
         row('Top of pile center', BatterCalc.fmtCoord(r.top));
         row('Vector bottom → top', BatterCalc.fmtVector(r));
@@ -318,6 +319,12 @@
       td(r.vsDesign && r.vsDesign.dN != null ? BatterCalc.fmt(r.vsDesign.dN) : '—', 'delta');
       td(r.vsDesign && r.vsDesign.dE != null ? BatterCalc.fmt(r.vsDesign.dE) : '—', 'delta');
       td(
+        r.vsDesign && r.vsDesign.dZ != null
+          ? BatterCalc.fmt(r.vsDesign.dZ) + (r.vsDesign.cutFill ? ' ' + r.vsDesign.cutFill : '')
+          : '—',
+        'delta'
+      );
+      td(
         r.vsDesign && r.vsDesign.dInclinationDeg != null ? BatterCalc.fmt(r.vsDesign.dInclinationDeg, 2) + '°' : '—',
         'delta'
       );
@@ -329,7 +336,7 @@
         var wr = document.createElement('tr');
         wr.className = 'row-warn';
         var wc = document.createElement('td');
-        wc.colSpan = 21;
+        wc.colSpan = 22;
         wc.textContent = r.warnings.join(' · ');
         wr.appendChild(wc);
         tbody.appendChild(wr);
