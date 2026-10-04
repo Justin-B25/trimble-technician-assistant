@@ -36,8 +36,8 @@
         <li>Stage UTS + ST30 + Top Mount; establish station; mark a tip-divot control point.</li>
         <li>Siteworks: Measure → <strong>Top Mount</strong> · Accessory <strong>145 mm</strong> · Target Mode <strong>Tilt</strong> · GeoLock On.</li>
         <li>Shoot benchmark as <code>BENCH</code>.</li>
-        <li><strong>Activity A (tip DOWN / rod upright):</strong> <code>TM_UP_0Plumb</code>, <code>TM_UP_5</code>, <code>TM_UP_15</code>, <code>TM_UP_30</code></li>
-        <li><strong>Activity B (tip UP / flipped):</strong> <code>TM_FLIP_0Plumb</code>, <code>TM_FLIP_5</code>, <code>TM_FLIP_15</code>, <code>TM_FLIP_30</code></li>
+        <li><strong>Activity A (tip DOWN / rod upright):</strong> <code>UP0</code>, <code>UP5</code>, <code>UP15</code>, <code>UP30</code></li>
+        <li><strong>Activity B (tip UP / flipped):</strong> <code>DOWN0</code>, <code>DOWN5</code>, <code>DOWN15</code>, <code>DOWN30</code></li>
         <li>Export Siteworks CSV → enter rod height below → drop CSV.</li>
         <li>Review tip-down vs BENCH, tip-up vs BENCH, and tip-up vs tip-down.</li>
       </ol>
@@ -45,7 +45,7 @@
 
     <p class="st30-intro">
       Drag a Siteworks point CSV. Deviations are measured − BENCH. Tip-up vs tip-down is tip-up − tip-down at the same tilt.
-      Tip specs (XY|Z mm) come from the nearest rod-height row (pending validation).
+      Tip specs (XY|Z mm) use the nearest rod-height row. CSV N/E/Z are converted from the selected coordinate unit (default US Survey Feet) before the mm check.
     </p>
 
     <section class="card">
@@ -56,14 +56,23 @@
           <input id="job-name" type="text" placeholder="e.g. Bootcamp Station 4" />
         </div>
         <div>
+          <label class="muted" for="coord-unit">CSV / coordinate units</label>
+          <select id="coord-unit">
+            <option value="usft" selected>US Survey Feet (Siteworks US FT)</option>
+            <option value="m">Meters</option>
+            <option value="ift">International feet</option>
+          </select>
+        </div>
+        <div>
           <label class="muted" for="rod-height">Rod / accessory height</label>
           <input id="rod-height" type="number" step="any" min="0" value="0.2" />
         </div>
         <div>
-          <label class="muted" for="rod-unit">Units</label>
+          <label class="muted" for="rod-unit">Rod height units</label>
           <select id="rod-unit">
             <option value="m" selected>meters</option>
-            <option value="ft">feet</option>
+            <option value="usft">US Survey Feet</option>
+            <option value="ft">international feet</option>
             <option value="in">inches</option>
           </select>
         </div>
@@ -78,7 +87,7 @@
       <h2>Siteworks CSV</h2>
       <div class="dropzone" id="dz-csv">
         <h3>Drop Siteworks CSV here</h3>
-        <p>Point Name, Northing, Easting, Elevation · include BENCH + TM_UP_* + TM_FLIP_*</p>
+        <p>Point Name, Northing, Easting, Elevation · include BENCH + UP0/5/15/30 + DOWN0/5/15/30 · units = selector above (default US FT)</p>
         <input id="file-csv" type="file" accept=".csv,text/csv,text/plain" multiple />
         <ul class="file-list" id="list-csv"></ul>
       </div>
@@ -96,6 +105,7 @@
         <h2>Summary</h2>
         <div class="stats">
           <div class="stat"><div class="label">Benchmark</div><div class="value" id="stat-bench">—</div></div>
+          <div class="stat"><div class="label">CSV units</div><div class="value" id="stat-coord-unit">—</div></div>
           <div class="stat"><div class="label">Rod height</div><div class="value" id="stat-rod">—</div></div>
           <div class="stat"><div class="label">Tip-spec row</div><div class="value" id="stat-spec">—</div></div>
           <div class="stat"><div class="label">Tip DOWN vs BENCH</div><div class="value" id="stat-down">—</div></div>
@@ -175,9 +185,9 @@
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
-  <script src="js/parsers.js?v=2"></script>
-  <script src="js/calc.js?v=2"></script>
-  <script src="js/pdf.js?v=2"></script>
-  <script src="js/app.js?v=2"></script>
+  <script src="js/parsers.js?v=5"></script>
+  <script src="js/calc.js?v=5"></script>
+  <script src="js/pdf.js?v=3"></script>
+  <script src="js/app.js?v=5"></script>
 </body>
 </html>

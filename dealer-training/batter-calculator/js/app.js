@@ -178,7 +178,7 @@
 
       var title = document.createElement('div');
       title.className = 'pile-result-card__title';
-      title.textContent = 'Pile ' + r.pileId + (r.ok ? '' : ' — incomplete');
+      title.textContent = (r.pileId === '1' ? 'Sono tube (single pile)' : 'Pile ' + r.pileId) + (r.ok ? '' : ' — incomplete');
       card.appendChild(title);
 
       var rowHost = card;
@@ -368,7 +368,7 @@
       state.warnings = loaded.warnings || [];
       if (!state.points.length) {
         setAlert(
-          'No points matched naming {PileID}T1–T3 / B1–B3. Example: 1001T1, 1001B2.\n' +
+          'No points matched naming B1–B3 / T1–T3. Example: B1, B2, B3, T1, T2, T3.\n' +
             (state.warnings.join('\n') || ''),
           true
         );

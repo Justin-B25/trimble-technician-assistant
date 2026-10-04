@@ -112,6 +112,7 @@
     $('results').classList.remove('hidden');
     var b = report.bench;
     $('stat-bench').textContent = b ? b.name : 'Missing';
+    if ($('stat-coord-unit')) $('stat-coord-unit').textContent = report.coordUnitLabel || '—';
     $('stat-rod').textContent = (report.rodHeightInput || '—') + ' ' + (report.rodUnit || '');
     $('stat-spec').textContent = report.specRow.label;
     $('stat-down').textContent = sumLine(report.summary.tipDown);
@@ -126,7 +127,11 @@
   }
 
   function optsFromForm() {
-    return { rodHeight: $('rod-height').value, rodUnit: $('rod-unit').value };
+    return {
+      rodHeight: $('rod-height').value,
+      rodUnit: $('rod-unit').value,
+      coordUnit: $('coord-unit') ? $('coord-unit').value : 'usft',
+    };
   }
 
   async function rebuild() {
@@ -165,6 +170,7 @@
     wireDropzone();
     $('rod-height').addEventListener('change', rebuild);
     $('rod-unit').addEventListener('change', rebuild);
+    if ($('coord-unit')) $('coord-unit').addEventListener('change', rebuild);
     $('btn-clear').addEventListener('click', function () {
       state.files = []; state.points = []; state.report = null; state.warnings = [];
       renderFileList(); $('results').classList.add('hidden'); setAlert(''); updateButtons();

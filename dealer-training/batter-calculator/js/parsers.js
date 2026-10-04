@@ -1,7 +1,7 @@
 /**
- * Siteworks CSV parser for battered-pile rim shots.
- * Point names: {PileID}T1|T2|T3 (top) and {PileID}B1|B2|B3 (bottom).
- * Example: 1001T1, 1001T2, 1001T3, 1001B1, 1001B2, 1001B3
+ * Siteworks CSV parser for battered-pile rim shots (single pile lab).
+ * Preferred names: B1 B2 B3 (bottom) and T1 T2 T3 (top).
+ * Legacy {PileID}B1 / {PileID}T1 still accepted and folded into one pile.
  */
 var BatterParsers = (function () {
   function toNum(v) {
@@ -80,7 +80,6 @@ var BatterParsers = (function () {
       var idx = lower.indexOf(names[i].toLowerCase());
       if (idx >= 0) return idx;
     }
-    // fuzzy contains
     for (var n = 0; n < names.length; n++) {
       var want = names[n].toLowerCase();
       for (var h = 0; h < lower.length; h++) {
@@ -92,21 +91,35 @@ var BatterParsers = (function () {
 
   /**
    * Parse point name → { pileId, ring: 'T'|'B', idx: 1|2|3 }
+   * Station 4 uses a single pile; all matches fold to pileId "1".
    */
   function parsePointName(raw) {
     if (raw == null) return null;
     var s = String(raw).trim();
     if (!s) return null;
-    // Strip common Siteworks suffixes
     s = s.replace(/_stk$/i, '');
-    var m = s.match(/^(.+)([TtBb])([123])$/);
-    if (!m) return null;
+
+    // Preferred: B1 / T2
+    var m = s.match(/^([TtBb])([123])$/);
+    if (m) {
+      return {
+        pileId: '1',
+        ring: m[1].toUpperCase(),
+        idx: Number(m[2]),
+        raw: String(raw).trim(),
+        key: m[1].toUpperCase() + m[2],
+      };
+    }
+
+    // Legacy: 1001B1 / PILE1T3 — fold into the single lab pile
+    var m2 = s.match(/^(.+)([TtBb])([123])$/);
+    if (!m2) return null;
     return {
-      pileId: m[1],
-      ring: m[2].toUpperCase(),
-      idx: Number(m[3]),
+      pileId: '1',
+      ring: m2[2].toUpperCase(),
+      idx: Number(m2[3]),
       raw: String(raw).trim(),
-      key: m[2].toUpperCase() + m[3],
+      key: m2[2].toUpperCase() + m2[3],
     };
   }
 
@@ -123,12 +136,6 @@ var BatterParsers = (function () {
     });
   }
 
-  /**
-   * Accepts:
-   * - Headered Siteworks export (Point Name, Northing, Easting, Elevation)
-   * - Headerless PointID,N,E,Z
-   * Returns map of rawName → { name, n, e, z, parsed }
-   */
   function parseSiteworksCsv(text, sourceName) {
     var rows = parseCsvText(text);
     var points = [];
@@ -158,7 +165,6 @@ var BatterParsers = (function () {
       iZ = headerIndex(headers, ['Elevation', 'Elev', 'Z', 'Height']);
       start = 1;
       if (iName < 0 || iN < 0 || iE < 0 || iZ < 0) {
-        // Fall back to positional if columns look numeric after header
         iName = 0;
         iN = 1;
         iE = 2;
@@ -206,7 +212,7 @@ var BatterParsers = (function () {
         sourceName +
           ': ignored ' +
           skipped.length +
-          ' point(s) not matching {PileID}T1–T3 / B1–B3 (e.g. ' +
+          ' point(s) not matching B1–B3 / T1–T3 (e.g. ' +
           skipped.slice(0, 3).join(', ') +
           (skipped.length > 3 ? '…' : '') +
           ')'

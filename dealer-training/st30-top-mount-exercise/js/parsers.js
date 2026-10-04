@@ -1,6 +1,7 @@
 /**
  * Siteworks CSV parser for ST30 Top Mount Exercise (Activities A/B).
- * BENCH | TM_UP_0Plumb/5/15/30 | TM_FLIP_0Plumb/5/15/30
+ * Worksheet names: BENCH | UP0/UP5/UP15/UP30 | DOWN0/DOWN5/DOWN15/DOWN30
+ * Legacy aliases: TM_UP_* / TM_FLIP_* still accepted.
  */
 var TipDevParsers = (function () {
   function toNum(v) {
@@ -75,6 +76,24 @@ var TipDevParsers = (function () {
     if (up === 'BENCH' || up === 'BENCHMARK' || up === 'CP' || up === 'KNOWN' || up === 'CONTROL' || up === 'REF') {
       return { kind: 'bench', raw: s };
     }
+
+    // Worksheet: UP0 / UP5 / UP15 / UP30 (Activity A — tip DOWN / rod upright)
+    //            DOWN0 / DOWN5 / DOWN15 / DOWN30 (Activity B — tip UP / flipped)
+    var mSimple = up.match(/^(UP|DOWN)[_\-]?(\d+|0PLUMB|PLUMB)$/);
+    if (mSimple) {
+      var tiltS = normalizeTiltToken(mSimple[2]);
+      if (tiltS == null) return null;
+      var actS = mSimple[1] === 'DOWN' ? 'B' : 'A';
+      return {
+        kind: 'shot',
+        activity: actS,
+        tilt: tiltS,
+        label: mSimple[1] + (tiltS === 0 ? '0' : String(tiltS)),
+        raw: s,
+      };
+    }
+
+    // Legacy: TM_UP_* / TM_FLIP_* / ACTIVITY_A_* / TIP_DOWN_*
     var m = up.match(/^(TM_UP|TM_FLIP|ACTIVITY_A|ACTIVITY_B|TIP_DOWN|TIP_UP)[_\-]?(.+)$/);
     if (!m) return null;
     var tilt = normalizeTiltToken(m[2]);
@@ -84,7 +103,7 @@ var TipDevParsers = (function () {
       kind: 'shot',
       activity: activity,
       tilt: tilt,
-      label: (activity === 'A' ? 'TM_UP_' : 'TM_FLIP_') + (tilt === 0 ? '0Plumb' : String(tilt)),
+      label: (activity === 'A' ? 'UP' : 'DOWN') + (tilt === 0 ? '0' : String(tilt)),
       raw: s,
     };
   }
@@ -136,7 +155,15 @@ var TipDevParsers = (function () {
       points.push({ name: name, n: n, e: e, z: z, parsed: parsed, source: sourceName });
     }
     if (skipped.length) {
-      warnings.push(sourceName + ': ignored ' + skipped.length + ' unmatched name(s)');
+      warnings.push(
+        sourceName +
+          ': ignored ' +
+          skipped.length +
+          ' unmatched name(s) — expect BENCH, UP0/5/15/30, DOWN0/5/15/30 (e.g. ' +
+          skipped.slice(0, 3).join(', ') +
+          (skipped.length > 3 ? '…' : '') +
+          ')'
+      );
     }
     return { points: points, warnings: warnings, skipped: skipped };
   }

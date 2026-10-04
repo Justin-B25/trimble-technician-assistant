@@ -15,24 +15,32 @@ var TipDevCalc = (function () {
     return { dn: dn, de: de, dz: dz, horiz: Math.sqrt(dn * dn + de * de) };
   }
 
-  function fmt(n, digits) {
-    if (n == null || !Number.isFinite(n)) return '—';
-    return n.toFixed(digits == null ? 3 : digits);
-  }
-
-  function fmtMm(meters, digits) {
-    if (meters == null || !Number.isFinite(meters)) return '—';
-    return (meters * 1000).toFixed(digits == null ? 1 : digits);
-  }
-
   function toMeters(value, unit) {
     var n = Number(value);
     if (!Number.isFinite(n) || n <= 0) return null;
-    var u = String(unit || 'm').toLowerCase();
-    if (u === 'ft' || u === 'usft' || u === 'us ft') return n * 0.3048;
-    if (u === 'in' || u === 'inch') return n * 0.0254;
-    return n;
+    var info = coordUnitInfo(unit);
+    if (info.id === 'm') return n;
+    return n * info.toM;
   }
+
+  function coordUnitInfo(u) {
+    var s = String(u == null ? 'usft' : u).toLowerCase().replace(/\s+/g, '');
+    if (s === 'm' || s === 'meter' || s === 'meters') return { id: 'm', label: 'm', toM: 1, decimals: 3 };
+    if (s === 'ift' || s === 'intft' || s === 'internationalft' || s === 'ftintl') {
+      return { id: 'ift', label: 'ft', toM: 0.3048, decimals: 4 };
+    }
+    if (s === 'in' || s === 'inch' || s === 'inches') return { id: 'in', label: 'in', toM: 0.0254, decimals: 2 };
+    if (s === 'ft' || s === 'feet' || s === 'foot') return { id: 'ift', label: 'ft', toM: 0.3048, decimals: 4 };
+    return { id: 'usft', label: 'US ft', toM: 1200 / 3937, decimals: 4 };
+  }
+
+  function fmt(n, digits) {
+    if (n == null || !Number.isFinite(n)) return '—';
+    var d = digits;
+    if (d == null) d = coordUnitInfo(fmt.unit).decimals;
+    return n.toFixed(d);
+  }
+  fmt.unit = 'usft';
 
   function pickSpecRow(heightM) {
     if (heightM == null || !Number.isFinite(heightM)) return TIP_SPECS[0];
@@ -44,11 +52,12 @@ var TipDevCalc = (function () {
     return best;
   }
 
-  function passCheck(d, tilt, specRow) {
+  function passCheck(d, tilt, specRow, toM) {
     if (!d || !specRow) return null;
     var sp = specRow.specs[tilt];
     if (!sp) return null;
-    var horizMm = d.horiz * 1000, zMm = Math.abs(d.dz) * 1000;
+    var scale = toM == null ? 1 : toM;
+    var horizMm = d.horiz * scale * 1000, zMm = Math.abs(d.dz) * scale * 1000;
     return {
       passXY: horizMm <= sp[0] + 0.5,
       passZ: zMm <= sp[1] + 0.5,
@@ -75,7 +84,7 @@ var TipDevCalc = (function () {
     return { bench: bench, activityA: a, activityB: b, warnings: warnings };
   }
 
-  function buildActivityRows(shots, bench, label, specRow) {
+  function buildActivityRows(shots, bench, label, specRow, toM) {
     return TILTS.map(function (tilt) {
       var shot = shots[tilt] || null;
       var d = shot && bench ? delta(shot, bench) : null;
@@ -83,7 +92,7 @@ var TipDevCalc = (function () {
         activity: label, tilt: tilt,
         tiltLabel: tilt === 0 ? '0° Plumb' : tilt + '°',
         pointName: shot ? shot.name : '—', shot: shot, d: d,
-        check: d ? passCheck(d, tilt, specRow) : null,
+        check: d ? passCheck(d, tilt, specRow, toM) : null,
       };
     });
   }
@@ -116,7 +125,7 @@ var TipDevCalc = (function () {
    * 2) Activity B (inverted) within tip specs?
    * 3) Largest Δ XY (mm) — which tilt / orientation?
    */
-  function buildDebrief(tipDown, tipUp) {
+  function buildDebrief(tipDown, tipUp, toM) {
     function activityAnswer(rows, activityCode) {
       var needed = [5, 15, 30];
       var checked = [];
@@ -185,7 +194,7 @@ var TipDevCalc = (function () {
       for (var i = 0; i < rows.length; i++) {
         var row = rows[i];
         if (!row || !row.d) continue;
-        var horizMm = row.d.horiz * 1000;
+        var horizMm = row.d.horiz * (toM || 1) * 1000;
         if (!largest || horizMm > largest.horizMm) {
           largest = {
             horizMm: horizMm,
@@ -224,20 +233,23 @@ var TipDevCalc = (function () {
 
   function buildReport(points, opts) {
     opts = opts || {};
+    var unit = coordUnitInfo(opts.coordUnit || 'usft');
+    fmt.unit = unit.id;
     var heightM = toMeters(opts.rodHeight, opts.rodUnit || 'm');
     var specRow = pickSpecRow(heightM != null ? heightM : 0.2);
     var indexed = indexShots(points);
     var warnings = indexed.warnings.slice();
     if (!indexed.bench) warnings.push('No benchmark found. Name a point BENCH (or BENCHMARK / CP / KNOWN).');
 
-    var tipDown = buildActivityRows(indexed.activityA, indexed.bench, 'Tip DOWN (Activity A)', specRow);
-    var tipUp = buildActivityRows(indexed.activityB, indexed.bench, 'Tip UP (Activity B)', specRow);
+    var tipDown = buildActivityRows(indexed.activityA, indexed.bench, 'Tip DOWN (Activity A)', specRow, unit.toM);
+    var tipUp = buildActivityRows(indexed.activityB, indexed.bench, 'Tip UP (Activity B)', specRow, unit.toM);
     var compare = buildCompareRows(indexed.activityA, indexed.activityB);
-    var debrief = buildDebrief(tipDown, tipUp);
+    var debrief = buildDebrief(tipDown, tipUp, unit.toM);
 
     return {
       bench: indexed.bench, rodHeightM: heightM, rodHeightInput: opts.rodHeight,
       rodUnit: opts.rodUnit || 'm', specRow: specRow,
+      coordUnit: unit.id, coordUnitLabel: unit.label, toM: unit.toM,
       tipDown: tipDown, tipUp: tipUp, compare: compare,
       summary: { tipDown: summarize(tipDown), tipUp: summarize(tipUp), compare: summarize(compare) },
       debrief: debrief,
@@ -279,12 +291,19 @@ var TipDevCalc = (function () {
       lines.push('');
       lines.push(['Benchmark', report.bench.name, report.bench.n, report.bench.e, report.bench.z].join(','));
     }
-    lines.push(['RodHeight_m', report.rodHeightM != null ? report.rodHeightM : '', 'SpecRow', report.specRow.label].join(','));
+    lines.push(['RodHeight_m', report.rodHeightM != null ? report.rodHeightM : '', 'SpecRow', report.specRow.label, 'CoordUnit', report.coordUnitLabel || ''].join(','));
     return lines.join('\r\n');
+  }
+
+  function fmtMm(coordDelta, digits, toM) {
+    if (coordDelta == null || !Number.isFinite(coordDelta)) return '—';
+    var scale = toM == null ? coordUnitInfo(fmt.unit).toM : toM;
+    return (coordDelta * scale * 1000).toFixed(digits == null ? 1 : digits);
   }
 
   return {
     TILTS: TILTS, TIP_SPECS: TIP_SPECS, buildReport: buildReport, buildDebrief: buildDebrief,
-    pickSpecRow: pickSpecRow, toMeters: toMeters, delta: delta, fmt: fmt, fmtMm: fmtMm, rowsToCsv: rowsToCsv,
+    pickSpecRow: pickSpecRow, toMeters: toMeters, coordUnitInfo: coordUnitInfo,
+    delta: delta, fmt: fmt, fmtMm: fmtMm, rowsToCsv: rowsToCsv,
   };
 })();
