@@ -45,7 +45,7 @@
 
     <p class="st30-intro">
       Drag a Siteworks point CSV. Deviations are measured − BENCH. Tip-up vs tip-down is tip-up − tip-down at the same tilt.
-      Tip specs (XY|Z mm) use the nearest rod-height row. CSV N/E/Z are converted from the selected coordinate unit (default US Survey Feet) before the mm check.
+      Tip specs (XY|Z mm) use the nearest rod-height row. Rod height, tilt°, pitch, and roll are read from the Siteworks CSV when present (Target Height / Tilt Angle / Pitch / Roll). Default CSV units = US Survey Feet.
     </p>
 
     <section class="card">
@@ -148,7 +148,7 @@
         <h2>Tip DOWN (Activity A) vs BENCH</h2>
         <div class="table-wrap">
           <table class="qc-table">
-            <thead><tr><th>Tilt</th><th>Point</th><th>ΔN</th><th>ΔE</th><th>ΔZ</th><th>Horiz</th><th>Spec XY|Z</th><th>Pass</th></tr></thead>
+            <thead><tr><th>Tilt</th><th>Point</th><th>Tgt Ht</th><th>Tilt°</th><th>Pitch</th><th>Roll</th><th>ΔN</th><th>ΔE</th><th>ΔZ</th><th>Horiz</th><th>Spec XY|Z</th><th>Pass</th></tr></thead>
             <tbody id="tbody-down"></tbody>
           </table>
         </div>
@@ -158,7 +158,7 @@
         <h2>Tip UP (Activity B) vs BENCH</h2>
         <div class="table-wrap">
           <table class="qc-table">
-            <thead><tr><th>Tilt</th><th>Point</th><th>ΔN</th><th>ΔE</th><th>ΔZ</th><th>Horiz</th><th>Spec XY|Z</th><th>Pass</th></tr></thead>
+            <thead><tr><th>Tilt</th><th>Point</th><th>Tgt Ht</th><th>Tilt°</th><th>Pitch</th><th>Roll</th><th>ΔN</th><th>ΔE</th><th>ΔZ</th><th>Horiz</th><th>Spec XY|Z</th><th>Pass</th></tr></thead>
             <tbody id="tbody-up"></tbody>
           </table>
         </div>
@@ -185,9 +185,9 @@
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
-  <script src="js/parsers.js?v=5"></script>
-  <script src="js/calc.js?v=5"></script>
-  <script src="js/pdf.js?v=3"></script>
-  <script src="js/app.js?v=5"></script>
+  <script src="js/parsers.js?v=6"></script>
+  <script src="js/calc.js?v=6"></script>
+  <script src="js/pdf.js?v=4"></script>
+  <script src="js/app.js?v=6"></script>
 </body>
 </html>

@@ -89,6 +89,31 @@ var BatterParsers = (function () {
     return -1;
   }
 
+  function headerExact(headers, names) {
+    var lower = headers.map(function (h) {
+      return String(h || '')
+        .trim()
+        .toLowerCase();
+    });
+    for (var i = 0; i < names.length; i++) {
+      var idx = lower.indexOf(names[i].toLowerCase());
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  }
+
+  function parseAngle(v) {
+    if (v == null || v === '') return null;
+    var s = String(v)
+      .trim()
+      .replace(/°/g, '')
+      .replace(/\u00b0/g, '')
+      .replace(/[^\d.+\-eE]/g, '');
+    if (!s) return null;
+    var n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+
   /**
    * Parse point name → { pileId, ring: 'T'|'B', idx: 1|2|3 }
    * Station 4 uses a single pile; all matches fold to pileId "1".
@@ -156,6 +181,11 @@ var BatterParsers = (function () {
     var iN = -1;
     var iE = -1;
     var iZ = -1;
+    var iTh = -1;
+    var iTilt = -1;
+    var iPitch = -1;
+    var iRoll = -1;
+    var iAuto = -1;
     var start = 0;
 
     if (hasHeader) {
@@ -163,6 +193,11 @@ var BatterParsers = (function () {
       iN = headerIndex(headers, ['Northing', 'N']);
       iE = headerIndex(headers, ['Easting', 'E']);
       iZ = headerIndex(headers, ['Elevation', 'Elev', 'Z', 'Height']);
+      iTh = headerExact(headers, ['Target Height']);
+      iTilt = headerExact(headers, ['Tilt Angle']);
+      iPitch = headerExact(headers, ['Pitch']);
+      iRoll = headerExact(headers, ['Roll']);
+      iAuto = headerExact(headers, ['Auto Pole Height']);
       start = 1;
       if (iName < 0 || iN < 0 || iE < 0 || iZ < 0) {
         iName = 0;
@@ -204,6 +239,11 @@ var BatterParsers = (function () {
         z: z,
         parsed: parsed,
         source: sourceName,
+        targetHeight: iTh >= 0 ? toNum(cells[iTh]) : null,
+        tiltAngleDeg: iTilt >= 0 ? parseAngle(cells[iTilt]) : null,
+        pitchDeg: iPitch >= 0 ? parseAngle(cells[iPitch]) : null,
+        rollDeg: iRoll >= 0 ? parseAngle(cells[iRoll]) : null,
+        autoPoleHeight: iAuto >= 0 ? String(cells[iAuto] || '').trim() : '',
       });
     }
 

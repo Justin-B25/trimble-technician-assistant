@@ -198,54 +198,75 @@
 
       if (r.ok) {
         var vs = r.vsDesign || {};
-        var cutoff = r.cutoff || vs.cutoff;
+        var measuredCut = (r.measuredPosition && r.measuredPosition.cutoff) || r.top;
+        var compareCut = r.cutoff || measuredCut;
         var nums = document.createElement('div');
         nums.className = 'pile-result-card__nums';
         rowHost = nums;
         row(
-          'Cut-off coordinates (X, Y)',
-          cutoff
+          'Measured pile position (top / cut-off)',
+          measuredCut
             ? 'Y/N ' +
-              BatterCalc.fmt(cutoff.n) +
+              BatterCalc.fmt(measuredCut.n) +
               '   X/E ' +
-              BatterCalc.fmt(cutoff.e) +
-              (cutoff.z != null ? '   Z ' + BatterCalc.fmt(cutoff.z) : '')
+              BatterCalc.fmt(measuredCut.e) +
+              '   Z ' +
+              BatterCalc.fmt(measuredCut.z)
             : '—',
           true
         );
-        if (vs.hasXy) {
-          row(
-            'Design cut-off (X, Y, Z)',
-            'Y/N ' +
-              BatterCalc.fmt(vs.design.n) +
-              '   X/E ' +
-              BatterCalc.fmt(vs.design.e) +
-              (vs.design.z != null ? '   Z ' + BatterCalc.fmt(vs.design.z) : '')
-          );
-        }
+        row('Bottom of pile center', BatterCalc.fmtCoord(r.bottom));
+        row('Top of pile center', BatterCalc.fmtCoord(r.top));
         row('Batter angle (inclination)', BatterCalc.fmtInclination(r), true);
-        if (vs.hasIncl) {
-          row(
-            'Inclination vs design',
-            'Measured ' +
-              BatterCalc.fmt(r.angleDeg, 2) +
-              '°  ·  design ' +
-              BatterCalc.fmt(vs.design.inclinationFromVerticalDeg, 2) +
-              '°  ·  Δ ' +
-              BatterCalc.fmt(vs.dInclinationDeg, 2) +
-              '°'
-          );
-        }
         row(
           'Azimuth (lean direction)',
           BatterCalc.fmtAzimuth(r.azimuthDeg) + (r.favor ? '  ·  ' + r.favor : ''),
           true
         );
-        row('Deviation (ΔX, ΔY)', BatterCalc.fmtDeviation(vs), true);
-        row('ΔZ cut / fill vs design', BatterCalc.fmtCutFill(vs), true);
-        row('Bottom of pile center', BatterCalc.fmtCoord(r.bottom));
-        row('Top of pile center', BatterCalc.fmtCoord(r.top));
-        row('Vector bottom → top', BatterCalc.fmtVector(r));
+        row('Lean from plumb (ΔN, ΔE)', BatterCalc.fmtVector(r), true);
+        if (r.csvMeta) {
+          var metaBits = [];
+          if (r.csvMeta.targetHeightAbs != null) {
+            metaBits.push('Target Ht |h| ' + BatterCalc.fmt(r.csvMeta.targetHeightAbs));
+          }
+          if (r.csvMeta.tiltAngleDeg != null) metaBits.push('Tilt° ' + r.csvMeta.tiltAngleDeg.toFixed(2));
+          if (r.csvMeta.pitchDeg != null) metaBits.push('Pitch ' + r.csvMeta.pitchDeg.toFixed(2) + '°');
+          if (r.csvMeta.rollDeg != null) metaBits.push('Roll ' + r.csvMeta.rollDeg.toFixed(2) + '°');
+          if (r.csvMeta.autoPoleHeight) metaBits.push('Auto pole ' + r.csvMeta.autoPoleHeight);
+          if (metaBits.length) row('From CSV (median of rim shots)', metaBits.join('  ·  '));
+        }
+        if (vs.hasXy || vs.hasZ || vs.hasIncl) {
+          if (vs.hasXy) {
+            row(
+              'Design cut-off (X, Y, Z)',
+              'Y/N ' +
+                BatterCalc.fmt(vs.design.n) +
+                '   X/E ' +
+                BatterCalc.fmt(vs.design.e) +
+                (vs.design.z != null ? '   Z ' + BatterCalc.fmt(vs.design.z) : '')
+            );
+            if (compareCut && vs.hasZ) {
+              row(
+                'Measured at design Z',
+                'Y/N ' + BatterCalc.fmt(compareCut.n) + '   X/E ' + BatterCalc.fmt(compareCut.e) + '   Z ' + BatterCalc.fmt(compareCut.z)
+              );
+            }
+            row('Deviation (ΔX, ΔY)', BatterCalc.fmtDeviation(vs), true);
+          }
+          if (vs.hasZ) row('ΔZ cut / fill vs design', BatterCalc.fmtCutFill(vs), true);
+          if (vs.hasIncl) {
+            row(
+              'Inclination vs design',
+              'Measured ' +
+                BatterCalc.fmt(r.angleDeg, 2) +
+                '°  ·  design ' +
+                BatterCalc.fmt(vs.design.inclinationFromVerticalDeg, 2) +
+                '°  ·  Δ ' +
+                BatterCalc.fmt(vs.dInclinationDeg, 2) +
+                '°'
+            );
+          }
+        }
         if (r.inclination && r.inclination.smartLevelNote) {
           row('Smart level check', r.inclination.smartLevelNote);
         }
@@ -253,7 +274,7 @@
         var plotDe = vs.hasXy ? vs.dE : r.de;
         var plotCap = vs.hasXy
           ? 'Measured cut-off vs design  ·  origin = design'
-          : 'Lean from plumb (enter design Y/N and X/E for true deviation)';
+          : 'Measured lean from plumb (ΔN / ΔE) — design coords optional';
         var body = document.createElement('div');
         body.className = 'pile-result-card__body';
         body.appendChild(nums);

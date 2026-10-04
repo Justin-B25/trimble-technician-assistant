@@ -92,9 +92,22 @@ var TipDevCalc = (function () {
         activity: label, tilt: tilt,
         tiltLabel: tilt === 0 ? '0° Plumb' : tilt + '°',
         pointName: shot ? shot.name : '—', shot: shot, d: d,
+        targetHeight: shot && shot.targetHeight != null ? shot.targetHeight : null,
+        tiltAngleDeg: shot && shot.tiltAngleDeg != null ? shot.tiltAngleDeg : null,
+        pitchDeg: shot && shot.pitchDeg != null ? shot.pitchDeg : null,
+        rollDeg: shot && shot.rollDeg != null ? shot.rollDeg : null,
         check: d ? passCheck(d, tilt, specRow, toM) : null,
       };
     });
+  }
+
+  function medianAbs(nums) {
+    var vals = (nums || []).filter(function (n) { return n != null && Number.isFinite(n); })
+      .map(function (n) { return Math.abs(n); })
+      .sort(function (a, b) { return a - b; });
+    if (!vals.length) return null;
+    var mid = Math.floor(vals.length / 2);
+    return vals.length % 2 ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;
   }
 
   function buildCompareRows(aShots, bShots) {
@@ -235,11 +248,38 @@ var TipDevCalc = (function () {
     opts = opts || {};
     var unit = coordUnitInfo(opts.coordUnit || 'usft');
     fmt.unit = unit.id;
-    var heightM = toMeters(opts.rodHeight, opts.rodUnit || 'm');
-    var specRow = pickSpecRow(heightM != null ? heightM : 0.2);
     var indexed = indexShots(points);
     var warnings = indexed.warnings.slice();
     if (!indexed.bench) warnings.push('No benchmark found. Name a point BENCH (or BENCHMARK / CP / KNOWN).');
+
+    var csvHeights = [];
+    var autoPole = '';
+    (points || []).forEach(function (p) {
+      if (!p || !p.parsed || p.parsed.kind !== 'shot') return;
+      if (p.targetHeight != null) csvHeights.push(p.targetHeight);
+      if (!autoPole && p.autoPoleHeight) autoPole = p.autoPoleHeight;
+    });
+    var csvRodHeight = medianAbs(csvHeights);
+    var rodHeightInput = opts.rodHeight;
+    var rodUnit = opts.rodUnit || 'm';
+    var rodFromCsv = false;
+    if (opts.useCsvRodHeight && csvRodHeight != null) {
+      rodHeightInput = csvRodHeight;
+      rodUnit = unit.id === 'usft' ? 'usft' : unit.id === 'ift' ? 'ft' : 'm';
+      rodFromCsv = true;
+    }
+    var heightM = toMeters(rodHeightInput, rodUnit);
+    var specRow = pickSpecRow(heightM != null ? heightM : 0.2);
+    if (csvRodHeight != null) {
+      warnings.push(
+        'CSV Target Height median |h| = ' +
+          csvRodHeight.toFixed(unit.decimals) +
+          ' ' +
+          unit.label +
+          (autoPole ? ' · Auto Pole Height: ' + autoPole : '') +
+          (rodFromCsv ? ' · used for tip-spec row' : '')
+      );
+    }
 
     var tipDown = buildActivityRows(indexed.activityA, indexed.bench, 'Tip DOWN (Activity A)', specRow, unit.toM);
     var tipUp = buildActivityRows(indexed.activityB, indexed.bench, 'Tip UP (Activity B)', specRow, unit.toM);
@@ -247,8 +287,9 @@ var TipDevCalc = (function () {
     var debrief = buildDebrief(tipDown, tipUp, unit.toM);
 
     return {
-      bench: indexed.bench, rodHeightM: heightM, rodHeightInput: opts.rodHeight,
-      rodUnit: opts.rodUnit || 'm', specRow: specRow,
+      bench: indexed.bench, rodHeightM: heightM, rodHeightInput: rodHeightInput,
+      rodUnit: rodUnit, rodFromCsv: rodFromCsv, csvRodHeight: csvRodHeight,
+      autoPoleHeight: autoPole, specRow: specRow,
       coordUnit: unit.id, coordUnitLabel: unit.label, toM: unit.toM,
       tipDown: tipDown, tipUp: tipUp, compare: compare,
       summary: { tipDown: summarize(tipDown), tipUp: summarize(tipUp), compare: summarize(compare) },

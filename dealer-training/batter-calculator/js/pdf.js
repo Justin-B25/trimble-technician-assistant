@@ -36,19 +36,22 @@ var BatterPdf = (function () {
         var cutoff = r.cutoff;
         html +=
           '<table class="data"><tbody>' +
-          '<tr><td class="lbl">Cut-off (Y/N, X/E, Z)</td><td><strong>' +
-          (cutoff
-            ? 'N ' + fmt(cutoff.n) + '   E ' + fmt(cutoff.e) + '   Z ' + fmt(cutoff.z)
+          '<tr><td class="lbl">Measured pile (top / cut-off)</td><td><strong>' +
+          (r.top
+            ? 'N ' + fmt(r.top.n) + '   E ' + fmt(r.top.e) + '   Z ' + fmt(r.top.z)
             : '—') +
           '</strong></td></tr>' +
-          '<tr><td class="lbl">Design cut-off</td><td>' +
+          '<tr><td class="lbl">Bottom center</td><td>' +
+          escapeHtml(BatterCalc.fmtCoord(r.bottom)) +
+          '</td></tr>' +
+          '<tr><td class="lbl">Design cut-off (optional)</td><td>' +
           (vs.hasXy
             ? 'N ' +
               fmt(vs.design.n) +
               '   E ' +
               fmt(vs.design.e) +
               (vs.design.z != null ? '   Z ' + fmt(vs.design.z) : '')
-            : 'Not entered') +
+            : 'Not entered — measured position only') +
           '</td></tr>' +
           '<tr><td class="lbl">Batter angle</td><td><strong>' +
           escapeHtml(BatterCalc.fmtInclination(r)) +
@@ -72,12 +75,7 @@ var BatterPdf = (function () {
           '<tr><td class="lbl">ΔZ cut / fill</td><td><strong>' +
           escapeHtml(BatterCalc.fmtCutFill(vs)) +
           '</strong></td></tr>' +
-          '<tr><td class="lbl">Bottom / top centers</td><td>' +
-          escapeHtml(BatterCalc.fmtCoord(r.bottom)) +
-          '  ·  ' +
-          escapeHtml(BatterCalc.fmtCoord(r.top)) +
-          '</td></tr>' +
-          '<tr><td class="lbl">Vector bottom → top</td><td>' +
+          '<tr><td class="lbl">Lean vector bottom → top</td><td>' +
           escapeHtml(BatterCalc.fmtVector(r)) +
           '</td></tr>' +
           '</tbody></table>';

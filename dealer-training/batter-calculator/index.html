@@ -58,10 +58,10 @@
     </section>
 
     <section class="card">
-      <h2>Design cut-off (instructor)</h2>
+      <h2>Design cut-off (optional — for compare only)</h2>
       <p class="muted naming-help">
-        Enter the designed pile cut-off. X = Easting, Y = Northing. Inclination is from vertical
-        (10° lean = 10). Comparison updates as soon as a CSV is loaded.
+        Measured pile position is computed from B1–B3 / T1–T3 alone. Fill design N/E/Z and
+        inclination only if you want ΔX/ΔY / cut-fill / Δinclination vs design.
       </p>
       <div class="design-grid">
         <div>
@@ -106,10 +106,11 @@
 
     <div id="results" class="hidden">
       <section class="card">
-        <h2>Measured vs design (primary deliverables)</h2>
+        <h2>Measured pile position &amp; batter</h2>
         <p class="muted naming-help">
-          Cut-off XY is the pile axis at design Z (or the measured top ring if Z is blank).
-          Deviation ΔN/ΔE = measured cut-off − design. Crosshair origin = design (or plumb, if no design XY).
+          Top/bottom centers from rim averages. Cut-off without design = measured top center.
+          Crosshair shows lean from plumb (ΔN/ΔE). Target Height, Tilt°, Pitch, Roll come from the CSV when present.
+          Design fields above are optional for comparison.
         </p>
         <div id="pile-cards"></div>
       </section>
@@ -195,9 +196,9 @@
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
-  <script src="js/parsers.js?v=5"></script>
-  <script src="js/calc.js?v=5"></script>
-  <script src="js/pdf.js?v=5"></script>
-  <script src="js/app.js?v=5"></script>
+  <script src="js/parsers.js?v=6"></script>
+  <script src="js/calc.js?v=6"></script>
+  <script src="js/pdf.js?v=6"></script>
+  <script src="js/app.js?v=6"></script>
 </body>
 </html>

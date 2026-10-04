@@ -15,10 +15,14 @@ var TipDevPdf = (function () {
 
   function activityTable(title, rows) {
     var html = '<h3>' + esc(title) + '</h3><table class="data"><thead><tr>' +
-      '<th>Tilt</th><th>Point</th><th>ΔN</th><th>ΔE</th><th>ΔZ</th><th>Horiz</th><th>Spec XY|Z mm</th><th>Pass</th>' +
+      '<th>Tilt</th><th>Point</th><th>Tgt Ht</th><th>Tilt°</th><th>Pitch</th><th>Roll</th><th>ΔN</th><th>ΔE</th><th>ΔZ</th><th>Horiz</th><th>Spec XY|Z mm</th><th>Pass</th>' +
       '</tr></thead><tbody>';
     rows.forEach(function (r) {
       html += '<tr><td>' + esc(r.tiltLabel) + '</td><td>' + esc(r.pointName) + '</td>' +
+        '<td>' + (r.targetHeight != null ? fmt(r.targetHeight) : '—') + '</td>' +
+        '<td>' + (r.tiltAngleDeg != null ? r.tiltAngleDeg.toFixed(2) : '—') + '</td>' +
+        '<td>' + (r.pitchDeg != null ? r.pitchDeg.toFixed(2) : '—') + '</td>' +
+        '<td>' + (r.rollDeg != null ? r.rollDeg.toFixed(2) : '—') + '</td>' +
         '<td>' + fmt(r.d && r.d.dn) + '</td><td>' + fmt(r.d && r.d.de) + '</td>' +
         '<td>' + fmt(r.d && r.d.dz) + '</td><td>' + fmt(r.d && r.d.horiz) + '</td>' +
         '<td>' + (r.check ? r.check.specXY + ' | ' + r.check.specZ : '—') + '</td>' +

@@ -262,6 +262,43 @@ var BatterCalc = (function () {
       favor: favorLabel(dn, de),
       bottomOd: botOd,
       topOd: topOd,
+      measuredPosition: {
+        bottom: { n: bottom.n, e: bottom.e, z: bottom.z },
+        top: { n: top.n, e: top.e, z: top.z },
+        // Cut-off without design Z = measured top-of-pile center
+        cutoff: { n: top.n, e: top.e, z: top.z },
+      },
+      csvMeta: (function () {
+        var th = [];
+        var tilts = [];
+        var pitches = [];
+        var rolls = [];
+        var auto = '';
+        function collect(pts) {
+          (pts || []).forEach(function (p) {
+            if (p.targetHeight != null) th.push(Math.abs(p.targetHeight));
+            if (p.tiltAngleDeg != null) tilts.push(p.tiltAngleDeg);
+            if (p.pitchDeg != null) pitches.push(p.pitchDeg);
+            if (p.rollDeg != null) rolls.push(p.rollDeg);
+            if (!auto && p.autoPoleHeight) auto = p.autoPoleHeight;
+          });
+        }
+        collect(bPts);
+        collect(tPts);
+        function med(a) {
+          if (!a.length) return null;
+          a = a.slice().sort(function (x, y) { return x - y; });
+          var m = Math.floor(a.length / 2);
+          return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+        }
+        return {
+          targetHeightAbs: med(th),
+          tiltAngleDeg: med(tilts),
+          pitchDeg: med(pitches),
+          rollDeg: med(rolls),
+          autoPoleHeight: auto,
+        };
+      })(),
     };
   }
 

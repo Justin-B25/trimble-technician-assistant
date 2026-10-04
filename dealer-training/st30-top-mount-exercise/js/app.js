@@ -2,7 +2,7 @@
  * ST30 Top Mount Exercise UI.
  */
 (function () {
-  var state = { files: [], points: [], report: null, warnings: [] };
+  var state = { files: [], points: [], report: null, warnings: [], rodTouched: false };
 
   function $(id) { return document.getElementById(id); }
 
@@ -57,6 +57,10 @@
       }
       td(r.tiltLabel);
       td(r.pointName);
+      td(r.targetHeight != null ? TipDevCalc.fmt(r.targetHeight) : '—');
+      td(r.tiltAngleDeg != null ? r.tiltAngleDeg.toFixed(2) + '°' : '—');
+      td(r.pitchDeg != null ? r.pitchDeg.toFixed(2) + '°' : '—');
+      td(r.rollDeg != null ? r.rollDeg.toFixed(2) + '°' : '—');
       td(TipDevCalc.fmt(r.d && r.d.dn), 'delta');
       td(TipDevCalc.fmt(r.d && r.d.de), 'delta');
       td(TipDevCalc.fmt(r.d && r.d.dz));
@@ -113,7 +117,11 @@
     var b = report.bench;
     $('stat-bench').textContent = b ? b.name : 'Missing';
     if ($('stat-coord-unit')) $('stat-coord-unit').textContent = report.coordUnitLabel || '—';
-    $('stat-rod').textContent = (report.rodHeightInput || '—') + ' ' + (report.rodUnit || '');
+    $('stat-rod').textContent =
+      (report.rodHeightInput != null ? TipDevCalc.fmt(Number(report.rodHeightInput)) : '—') +
+      ' ' +
+      (report.rodUnit || '') +
+      (report.rodFromCsv ? ' (CSV)' : '');
     $('stat-spec').textContent = report.specRow.label;
     $('stat-down').textContent = sumLine(report.summary.tipDown);
     $('stat-up').textContent = sumLine(report.summary.tipUp);
@@ -131,7 +139,25 @@
       rodHeight: $('rod-height').value,
       rodUnit: $('rod-unit').value,
       coordUnit: $('coord-unit') ? $('coord-unit').value : 'usft',
+      useCsvRodHeight: !state.rodTouched,
     };
+  }
+
+  function applyCsvRodHeight(points) {
+    if (state.rodTouched) return;
+    var vals = [];
+    (points || []).forEach(function (p) {
+      if (p && p.parsed && p.parsed.kind === 'shot' && p.targetHeight != null) {
+        vals.push(Math.abs(p.targetHeight));
+      }
+    });
+    if (!vals.length) return;
+    vals.sort(function (a, b) { return a - b; });
+    var mid = Math.floor(vals.length / 2);
+    var med = vals.length % 2 ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;
+    var coord = $('coord-unit') ? $('coord-unit').value : 'usft';
+    $('rod-height').value = String(Number(med.toFixed(4)));
+    $('rod-unit').value = coord === 'usft' ? 'usft' : coord === 'ift' ? 'ft' : 'm';
   }
 
   async function rebuild() {
@@ -143,6 +169,7 @@
       var loaded = await TipDevParsers.loadCsvFiles(state.files);
       state.points = loaded.points;
       state.warnings = loaded.warnings || [];
+      applyCsvRodHeight(state.points);
       state.report = TipDevCalc.buildReport(state.points, optsFromForm());
       state.warnings = state.warnings.concat(state.report.warnings || []);
       renderResults();
@@ -168,11 +195,12 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     wireDropzone();
-    $('rod-height').addEventListener('change', rebuild);
-    $('rod-unit').addEventListener('change', rebuild);
+    function markRodTouched() { state.rodTouched = true; rebuild(); }
+    $('rod-height').addEventListener('change', markRodTouched);
+    $('rod-unit').addEventListener('change', markRodTouched);
     if ($('coord-unit')) $('coord-unit').addEventListener('change', rebuild);
     $('btn-clear').addEventListener('click', function () {
-      state.files = []; state.points = []; state.report = null; state.warnings = [];
+      state.files = []; state.points = []; state.report = null; state.warnings = []; state.rodTouched = false;
       renderFileList(); $('results').classList.add('hidden'); setAlert(''); updateButtons();
     });
     $('btn-csv').addEventListener('click', function () {

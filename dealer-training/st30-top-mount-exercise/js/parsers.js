@@ -54,6 +54,27 @@ var TipDevParsers = (function () {
     return -1;
   }
 
+  function headerExact(headers, names) {
+    var lower = headers.map(function (h) { return String(h || '').trim().toLowerCase(); });
+    for (var i = 0; i < names.length; i++) {
+      var idx = lower.indexOf(names[i].toLowerCase());
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  }
+
+  function parseAngle(v) {
+    if (v == null || v === '') return null;
+    var s = String(v)
+      .trim()
+      .replace(/°/g, '')
+      .replace(/\u00b0/g, '')
+      .replace(/[^\d.+\-eE]/g, '');
+    if (!s) return null;
+    var n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+
   function normalizeTiltToken(tok) {
     var t = String(tok || '').trim().toUpperCase().replace(/°/g, '').replace(/\s+/g, '');
     if (t === '0PLUMB' || t === 'PLUMB' || t === '0P' || t === '0') return 0;
@@ -128,11 +149,17 @@ var TipDevParsers = (function () {
     var hasHeader = /point|name|id|north|east|elev/i.test(headers[0] || '') ||
       headerIndex(headers, ['Point Name', 'Northing', 'Easting', 'Elevation']) >= 0;
     var iName = 0, iN = 1, iE = 2, iZ = 3, start = 0;
+    var iTh = -1, iTilt = -1, iPitch = -1, iRoll = -1, iAuto = -1;
     if (hasHeader) {
       iName = headerIndex(headers, ['Point Name', 'PointName', 'Name', 'Point ID', 'PointID', 'Code']);
       iN = headerIndex(headers, ['Northing', 'N']);
       iE = headerIndex(headers, ['Easting', 'E']);
       iZ = headerIndex(headers, ['Elevation', 'Elev', 'Z', 'Height']);
+      iTh = headerExact(headers, ['Target Height']);
+      iTilt = headerExact(headers, ['Tilt Angle']);
+      iPitch = headerExact(headers, ['Pitch']);
+      iRoll = headerExact(headers, ['Roll']);
+      iAuto = headerExact(headers, ['Auto Pole Height']);
       start = 1;
       if (iName < 0 || iN < 0 || iE < 0 || iZ < 0) {
         iName = 0; iN = 1; iE = 2; iZ = 3;
@@ -152,7 +179,19 @@ var TipDevParsers = (function () {
       }
       var parsed = parsePointName(name);
       if (!parsed) { skipped.push(name); continue; }
-      points.push({ name: name, n: n, e: e, z: z, parsed: parsed, source: sourceName });
+      points.push({
+        name: name,
+        n: n,
+        e: e,
+        z: z,
+        parsed: parsed,
+        source: sourceName,
+        targetHeight: iTh >= 0 ? toNum(cells[iTh]) : null,
+        tiltAngleDeg: iTilt >= 0 ? parseAngle(cells[iTilt]) : null,
+        pitchDeg: iPitch >= 0 ? parseAngle(cells[iPitch]) : null,
+        rollDeg: iRoll >= 0 ? parseAngle(cells[iRoll]) : null,
+        autoPoleHeight: iAuto >= 0 ? String(cells[iAuto] || '').trim() : '',
+      });
     }
     if (skipped.length) {
       warnings.push(
