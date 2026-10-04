@@ -73,10 +73,22 @@ var TipDevPdf = (function () {
       esc(meta.job || 'Field report') + ' · ' + esc(meta.date || new Date().toLocaleString()) + '</p></div></div>' +
       '<p class="sub">Rod height: ' + esc(String(report.rodHeightInput || '—')) + ' ' + esc(report.rodUnit || '') +
       ' → specs: ' + esc(report.specRow.label) +
-      (b ? (' · BENCH ' + esc(b.name) + ' N' + fmt(b.n) + ' E' + fmt(b.e) + ' Z' + fmt(b.z)) : ' · No BENCH') + '</p>' +
+      (b
+        ? (' · Ref ' +
+          esc(b.name) +
+          (b.forA ? ' · A→' + esc(b.forA.name) : '') +
+          (b.forB ? ' · B→' + esc(b.forB.name) : ''))
+        : ' · No 4A/4B') +
+      '</p>' +
       debriefBlock(report.debrief) +
-      activityTable('Tip DOWN (Activity A) vs BENCH', report.tipDown) +
-      activityTable('Tip UP (Activity B) vs BENCH', report.tipUp) +
+      activityTable(
+        'Tip DOWN (Activity A) vs ' + ((b && b.forA && b.forA.name) || '4A'),
+        report.tipDown
+      ) +
+      activityTable(
+        'Tip UP (Activity B) vs ' + ((b && b.forB && b.forB.name) || '4B'),
+        report.tipUp
+      ) +
       compareTable(report.compare) +
       '<p class="sub">Δ = measured − reference. Tip UP vs Tip DOWN uses tip-up − tip-down at the same tilt. Specs pending validation.</p>' +
       '<p class="noprint"><button onclick="window.print()">Print / Save PDF</button></p>' +

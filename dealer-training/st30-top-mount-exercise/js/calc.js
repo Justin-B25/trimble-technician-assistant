@@ -1,5 +1,5 @@
 /**
- * ST30 Top Mount Exercise — tip-down / tip-up vs BENCH + up-vs-down compare.
+ * ST30 Top Mount Exercise — tip-down / tip-up vs 4A/4B (+ up-vs-down compare).
  */
 var TipDevCalc = (function () {
   var TILTS = [0, 5, 15, 30];
@@ -66,14 +66,34 @@ var TipDevCalc = (function () {
     };
   }
 
+  function benchId(p) {
+    if (!p || !p.parsed) return '';
+    if (p.parsed.id) return String(p.parsed.id).toUpperCase();
+    return String(p.name || '').trim().toUpperCase();
+  }
+
+  function pickBench(benches, prefer) {
+    if (!benches || !benches.length) return null;
+    for (var i = 0; i < prefer.length; i++) {
+      var want = prefer[i];
+      for (var j = 0; j < benches.length; j++) {
+        if (benchId(benches[j]) === want) return benches[j];
+      }
+    }
+    return benches[0];
+  }
+
   function indexShots(points) {
-    var bench = null, a = Object.create(null), b = Object.create(null), warnings = [];
+    var benches = [];
+    var a = Object.create(null);
+    var b = Object.create(null);
+    var warnings = [];
     for (var i = 0; i < (points || []).length; i++) {
       var p = points[i];
       if (!p || !p.parsed) continue;
       if (p.parsed.kind === 'bench') {
-        if (bench) warnings.push('Multiple benchmarks — using last: ' + p.name);
-        bench = p; continue;
+        benches.push(p);
+        continue;
       }
       if (p.parsed.kind === 'shot') {
         var bucket = p.parsed.activity === 'B' ? b : a;
@@ -81,7 +101,34 @@ var TipDevCalc = (function () {
         bucket[p.parsed.tilt] = p;
       }
     }
-    return { bench: bench, activityA: a, activityB: b, warnings: warnings };
+    // Prefer Station 4 names: Activity A vs 4A, Activity B vs 4B
+    var benchA = pickBench(benches, ['4A', 'BENCH', 'BENCHMARK', 'CP', 'KNOWN', 'CONTROL', 'REF', '4B']);
+    var benchB = pickBench(benches, ['4B', 'BENCH', 'BENCHMARK', 'CP', 'KNOWN', 'CONTROL', 'REF', '4A']);
+    var names = benches.map(function (bp) { return bp.name; });
+    var uniq = names.filter(function (n, idx) { return names.indexOf(n) === idx; });
+    var display =
+      benchA || benchB
+        ? {
+            name: uniq.length ? uniq.join(' / ') : (benchA || benchB).name,
+            n: (benchA || benchB).n,
+            e: (benchA || benchB).e,
+            z: (benchA || benchB).z,
+            benches: benches,
+            forA: benchA,
+            forB: benchB,
+          }
+        : null;
+    if (benches.length > 2) {
+      warnings.push('Multiple benchmarks found (' + uniq.join(', ') + ') — Activity A uses ' + (benchA ? benchA.name : '—') + ', Activity B uses ' + (benchB ? benchB.name : '—'));
+    }
+    return {
+      bench: display,
+      benchA: benchA,
+      benchB: benchB,
+      activityA: a,
+      activityB: b,
+      warnings: warnings,
+    };
   }
 
   function buildActivityRows(shots, bench, label, specRow, toM) {
@@ -239,7 +286,7 @@ var TipDevCalc = (function () {
             tiltLabel: '—',
             orientation: '—',
             pointName: '—',
-            fillIn: '— (no tilted shots vs BENCH)',
+            fillIn: '— (no tilted shots vs 4A/4B)',
           },
     };
   }
@@ -250,7 +297,9 @@ var TipDevCalc = (function () {
     fmt.unit = unit.id;
     var indexed = indexShots(points);
     var warnings = indexed.warnings.slice();
-    if (!indexed.bench) warnings.push('No benchmark found. Name a point BENCH (or BENCHMARK / CP / KNOWN).');
+    if (!indexed.bench) {
+      warnings.push('No benchmark found. Name control points 4A and/or 4B (legacy: BENCH).');
+    }
 
     var csvHeights = [];
     var autoPole = '';
@@ -281,8 +330,20 @@ var TipDevCalc = (function () {
       );
     }
 
-    var tipDown = buildActivityRows(indexed.activityA, indexed.bench, 'Tip DOWN (Activity A)', specRow, unit.toM);
-    var tipUp = buildActivityRows(indexed.activityB, indexed.bench, 'Tip UP (Activity B)', specRow, unit.toM);
+    var tipDown = buildActivityRows(
+      indexed.activityA,
+      indexed.benchA || indexed.bench,
+      'Tip DOWN (Activity A)',
+      specRow,
+      unit.toM
+    );
+    var tipUp = buildActivityRows(
+      indexed.activityB,
+      indexed.benchB || indexed.bench,
+      'Tip UP (Activity B)',
+      specRow,
+      unit.toM
+    );
     var compare = buildCompareRows(indexed.activityA, indexed.activityB);
     var debrief = buildDebrief(tipDown, tipUp, unit.toM);
 
@@ -311,8 +372,8 @@ var TipDevCalc = (function () {
         ].join(','));
       });
     }
-    add('TipDOWN_vs_BENCH', report.tipDown);
-    add('TipUP_vs_BENCH', report.tipUp);
+    add('TipDOWN_vs_4A', report.tipDown);
+    add('TipUP_vs_4B', report.tipUp);
     lines.push('');
     lines.push(['Section','Tilt','TipDown','TipUp','dN_UP-DOWN','dE_UP-DOWN','dZ_UP-DOWN','Horiz'].join(','));
     report.compare.forEach(function (r) {
@@ -328,7 +389,12 @@ var TipDevCalc = (function () {
       lines.push(['2_ActivityB_within_specs_5_15_30', report.debrief.q2.answer, '"' + String(report.debrief.q2.fillIn).replace(/"/g, "'") + '"'].join(','));
       lines.push(['3_Largest_dXY_mm_tilt_orientation', report.debrief.q3.horizMm != null ? report.debrief.q3.horizMm.toFixed(1) : '', '"' + String(report.debrief.q3.fillIn).replace(/"/g, "'") + '"'].join(','));
     }
-    if (report.bench) {
+    if (report.bench && report.bench.benches && report.bench.benches.length) {
+      lines.push('');
+      report.bench.benches.forEach(function (bp) {
+        lines.push(['Benchmark', bp.name, bp.n, bp.e, bp.z].join(','));
+      });
+    } else if (report.bench) {
       lines.push('');
       lines.push(['Benchmark', report.bench.name, report.bench.n, report.bench.e, report.bench.z].join(','));
     }

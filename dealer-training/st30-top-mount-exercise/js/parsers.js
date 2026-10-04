@@ -1,7 +1,7 @@
 /**
  * Siteworks CSV parser for ST30 Top Mount Exercise (Activities A/B).
- * Worksheet names: BENCH | UP0/UP5/UP15/UP30 | DOWN0/DOWN5/DOWN15/DOWN30
- * Legacy aliases: TM_UP_* / TM_FLIP_* still accepted.
+ * Worksheet names: 4A / 4B (benchmark) | UP0/UP5/UP15/UP30 | DOWN0/DOWN5/DOWN15/DOWN30
+ * Legacy aliases: BENCH, TM_UP_* / TM_FLIP_* still accepted.
  */
 var TipDevParsers = (function () {
   function toNum(v) {
@@ -94,8 +94,19 @@ var TipDevParsers = (function () {
     var s = String(raw).trim().replace(/_stk$/i, '');
     if (!s) return null;
     var up = s.toUpperCase();
-    if (up === 'BENCH' || up === 'BENCHMARK' || up === 'CP' || up === 'KNOWN' || up === 'CONTROL' || up === 'REF') {
-      return { kind: 'bench', raw: s };
+    // Station 4 tip-table origins: 4A (Activity A) and 4B (Activity B)
+    if (up === '4A' || up === '4B') {
+      return { kind: 'bench', id: up, raw: s };
+    }
+    if (
+      up === 'BENCH' ||
+      up === 'BENCHMARK' ||
+      up === 'CP' ||
+      up === 'KNOWN' ||
+      up === 'CONTROL' ||
+      up === 'REF'
+    ) {
+      return { kind: 'bench', id: 'BENCH', raw: s };
     }
 
     // Worksheet: UP0 / UP5 / UP15 / UP30 (Activity A — tip DOWN / rod upright)
@@ -198,7 +209,7 @@ var TipDevParsers = (function () {
         sourceName +
           ': ignored ' +
           skipped.length +
-          ' unmatched name(s) — expect BENCH, UP0/5/15/30, DOWN0/5/15/30 (e.g. ' +
+          ' unmatched name(s) — expect 4A/4B, UP0/5/15/30, DOWN0/5/15/30 (e.g. ' +
           skipped.slice(0, 3).join(', ') +
           (skipped.length > 3 ? '…' : '') +
           ')'
