@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body class="st30-ex" data-dt-page="st30-top-mount-exercise">
   <header class="tc-app-header">
@@ -20,68 +20,63 @@
         <img class="tc-header__logo" src="../../assets/brand/trimble-logo-white.png" alt="Trimble" />
         <div class="tc-header__titles">
           <h1 class="tc-header__product">ST30 Top Mount Exercise</h1>
-          <p class="tc-header__sub">Activity A/B · tip-down vs UP0 · tip-up vs DOWN0</p>
+          <p class="tc-header__sub">Upload CSV · enter UP / DOWN rod heights · compare to tip specs</p>
         </div>
       </div>
     </div>
   </header>
 
   <main class="tc-main st30-main">
-    <details class="howto" open>
-      <summary>Station 4 — ST30 Top Mount Exercise (Activities A &amp; B)</summary>
-      <p class="howto-lede">
-        Measure in Siteworks with the naming below, export CSV, then drop into this calculator.
-      </p>
-      <ol>
-        <li>Stage UTS + ST30 + Top Mount; establish station; mark a tip-divot control point.</li>
-        <li>Siteworks: Measure → <strong>Top Mount</strong> · Accessory <strong>145 mm</strong> · Target Mode <strong>Tilt</strong> · GeoLock On.</li>
-        <li>On the tip-divot mark, shoot plumb first: <code>UP0</code> (Activity A) and/or <code>DOWN0</code> (Activity B). That 0° shot is the origin.</li>
-        <li><strong>Activity A (tip DOWN / rod upright):</strong> <code>UP0</code>, then <code>UP5</code>, <code>UP15</code>, <code>UP30</code> — calculator relates the three tilts to <code>UP0</code></li>
-        <li><strong>Activity B (tip UP / flipped):</strong> <code>DOWN0</code>, then <code>DOWN5</code>, <code>DOWN15</code>, <code>DOWN30</code> — related to <code>DOWN0</code></li>
-        <li>Export Siteworks CSV → drop below (rod height auto-fills from Target Height when present).</li>
-        <li>Review UP* vs UP0, DOWN* vs DOWN0, and tip-up vs tip-down.</li>
-      </ol>
-    </details>
-
     <p class="st30-intro">
-      Drag a Siteworks point CSV (US Survey Feet). Linear values are converted to meters; tip deltas are shown in <strong>mm</strong> so you can compare directly to ST30 tip specs.
-      Tip deltas = measured − <code>UP0</code> / <code>DOWN0</code>. Tip-up vs tip-down is tip-up − tip-down at the same tilt.
+      1) Drop a Siteworks CSV with <code>UP0/5/15/30</code> and <code>DOWN0/5/15/30</code>
+      (US Survey Feet → meters). 2) Enter rod height for UP shots and DOWN shots.
+      3) Results are tip deltas vs <code>UP0</code> / <code>DOWN0</code> in <strong>mm</strong>, next to published Top Mount tip specs.
     </p>
 
     <section class="card">
-      <h2>Job & rod height</h2>
-      <div class="job-grid">
+      <h2>1 · Siteworks CSV</h2>
+      <div class="dropzone" id="dz-csv">
+        <h3>Drop tip-table CSV here</h3>
+        <p>Point Name, Northing, Easting, Elevation · names UP0…UP30 and DOWN0…DOWN30</p>
+        <input id="file-csv" type="file" accept=".csv,text/csv,text/plain" multiple />
+        <ul class="file-list" id="list-csv"></ul>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2 · Rod heights</h2>
+      <div class="job-grid rod-grid">
         <div>
-          <label class="muted" for="job-name">Job / site</label>
+          <label class="muted" for="job-name">Job / site (optional)</label>
           <input id="job-name" type="text" placeholder="e.g. Bootcamp Station 4" />
         </div>
         <div>
-          <label class="muted" for="coord-unit">CSV input units</label>
+          <label class="muted" for="coord-unit">CSV coordinate units</label>
           <select id="coord-unit">
-            <option value="usft" selected>US Survey Feet → convert to m</option>
-            <option value="m">Already meters</option>
-            <option value="ift">International feet → convert to m</option>
+            <option value="usft" selected>US Survey Feet</option>
+            <option value="m">Meters</option>
+            <option value="ift">International feet</option>
           </select>
         </div>
         <div>
-          <label class="muted" for="rod-height-a">Activity A (UP*) rod height</label>
-          <input id="rod-height-a" type="number" step="any" min="0" value="1.55" />
+          <label class="muted" for="rod-height-a">UP shots rod height</label>
+          <input id="rod-height-a" type="number" step="any" min="0" value="5.070" />
         </div>
         <div>
-          <label class="muted" for="rod-unit-a">A units</label>
+          <label class="muted" for="rod-unit-a">UP units</label>
           <select id="rod-unit-a">
-            <option value="m" selected>meters</option>
-            <option value="usft">US Survey Feet</option>
+            <option value="usft" selected>US Survey Feet</option>
+            <option value="m">meters</option>
             <option value="ft">international feet</option>
             <option value="in">inches</option>
           </select>
         </div>
         <div>
-          <label class="muted" for="rod-height-b">Activity B (DOWN*) rod height</label>
+          <label class="muted" for="rod-height-b">DOWN shots rod height</label>
           <input id="rod-height-b" type="number" step="any" min="0" value="0.145" />
         </div>
         <div>
-          <label class="muted" for="rod-unit-b">B units</label>
+          <label class="muted" for="rod-unit-b">DOWN units</label>
           <select id="rod-unit-b">
             <option value="m" selected>meters</option>
             <option value="usft">US Survey Feet</option>
@@ -91,101 +86,130 @@
         </div>
       </div>
       <p class="muted naming-help" style="margin:8px 0 0">
-        Tip-spec row is chosen per activity (nearest published height: 0.2 m Top Mount · 1.6 m · 2.0 m).
-        Defaults match Station 4: UP* ≈ 1.55 m pole, DOWN* ≈ 0.145 m Top Mount. CSV Target Height overrides when present.
+        Tip-spec row = nearest published height (0.2 m Top Mount · 1.6 m · 2.0 m).
+        Example: 5.070 US ft ≈ 1.545 m → <strong>1.6 m</strong> row; 0.145 m → <strong>0.2 m Top Mount</strong> row.
       </p>
-    </section>
-
-    <section class="card">
-      <h2>Siteworks CSV</h2>
-      <div class="dropzone" id="dz-csv">
-        <h3>Drop Siteworks CSV here</h3>
-        <p>Point Name, Northing, Easting, Elevation · UP0/5/15/30 + DOWN0/5/15/30 · Siteworks US FT converted to meters / tip Δ in mm</p>
-        <input id="file-csv" type="file" accept=".csv,text/csv,text/plain" multiple />
-        <ul class="file-list" id="list-csv"></ul>
-      </div>
       <div class="actions">
         <button type="button" class="btn btn-secondary" id="btn-clear">Clear</button>
         <button type="button" class="btn btn-secondary" id="btn-csv" disabled>Export CSV</button>
-        <button type="button" class="btn btn-primary" id="btn-pdf" disabled>Export PDF report</button>
+        <button type="button" class="btn btn-primary" id="btn-pdf" disabled>Export PDF</button>
       </div>
+    </section>
+
+    <section class="card spec-card">
+      <h2>Advertised tip specs (Top Mount Accuracy slide)</h2>
+      <p class="st30-intro" style="margin-top:-4px">
+        Estimated tilt-correction point precision (XY | Z) in mm — same values as the product slide.
+        Your active row for UP / DOWN is highlighted after you enter rod heights.
+      </p>
+      <div class="table-wrap">
+        <table class="qc-table spec-table" id="spec-table">
+          <thead>
+            <tr>
+              <th>Rod height</th>
+              <th>5° (XY | Z)</th>
+              <th>15° (XY | Z)</th>
+              <th>30° (XY | Z)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-height="0.2">
+              <td>0.2 m (Top Mount Accessory)</td>
+              <td>0 | 1</td>
+              <td>1 | 1</td>
+              <td>1 | 1</td>
+            </tr>
+            <tr data-height="1.6">
+              <td>1.6 m</td>
+              <td>3 | 1</td>
+              <td>5 | 1</td>
+              <td>8 | 2</td>
+            </tr>
+            <tr data-height="2.0">
+              <td>2.0 m</td>
+              <td>4 | 1</td>
+              <td>7 | 1</td>
+              <td>11 | 3</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="spec-legend">
+        <span class="chip chip-a" id="chip-a">UP → —</span>
+        <span class="chip chip-b" id="chip-b">DOWN → —</span>
+      </p>
     </section>
 
     <div id="alert" class="alert hidden"></div>
 
     <div id="results" class="hidden">
       <section class="card">
-        <h2>Summary</h2>
+        <h2>3 · Results vs advertised specs</h2>
         <div class="stats">
-          <div class="stat"><div class="label">0° origin</div><div class="value" id="stat-bench">—</div></div>
-          <div class="stat"><div class="label">Working units</div><div class="value" id="stat-coord-unit">—</div></div>
-          <div class="stat"><div class="label">A rod / tip-spec</div><div class="value" id="stat-rod-a">—</div></div>
-          <div class="stat"><div class="label">B rod / tip-spec</div><div class="value" id="stat-rod-b">—</div></div>
-          <div class="stat"><div class="label">Tip DOWN vs UP0</div><div class="value" id="stat-down">—</div></div>
-          <div class="stat"><div class="label">Tip UP vs DOWN0</div><div class="value" id="stat-up">—</div></div>
+          <div class="stat"><div class="label">Origins</div><div class="value" id="stat-bench">—</div></div>
+          <div class="stat"><div class="label">UP rod → tip-spec</div><div class="value" id="stat-rod-a">—</div></div>
+          <div class="stat"><div class="label">DOWN rod → tip-spec</div><div class="value" id="stat-rod-b">—</div></div>
         </div>
       </section>
 
-      <section class="card debrief-card">
-        <h2>TIP Accuracy — Debrief (worksheet answers)</h2>
-        <p class="st30-intro" style="margin-top:-4px">Measured tip deltas (mm) vs UP0/DOWN0 and ST30 tip specs. Fill Y/N on the Station 4 worksheet yourself.</p>
-        <table class="qc-table debrief-table">
-          <thead>
-            <tr>
-              <th style="width:42%">Question</th>
-              <th style="width:10%">Answer</th>
-              <th>Measured (mm vs tip specs)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>1. Activity A within tip specs at 5° / 15° / 30°?</td>
-              <td id="debrief-q1-yn" class="debrief-answer">—</td>
-              <td id="debrief-q1-notes">—</td>
-            </tr>
-            <tr>
-              <td>2. Activity B (inverted) within tip specs?</td>
-              <td id="debrief-q2-yn" class="debrief-answer">—</td>
-              <td id="debrief-q2-notes">—</td>
-            </tr>
-            <tr>
-              <td>3. Largest Δ XY (mm) — which tilt / orientation?</td>
-              <td id="debrief-q3-yn" class="debrief-answer">—</td>
-              <td id="debrief-q3-notes">—</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
       <section class="card">
-        <h2>Tip DOWN (Activity A) vs UP0</h2>
+        <h2>UP shots vs UP0 <span class="h2-meta" id="title-up">—</span></h2>
         <div class="table-wrap">
           <table class="qc-table">
-            <thead><tr><th>Tilt</th><th>Point</th><th>Tgt Ht m</th><th>Tilt°</th><th>Pitch</th><th>Roll</th><th>ΔN mm</th><th>ΔE mm</th><th>ΔZ mm</th><th>Horiz mm</th><th>Spec XY|Z mm</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Tilt</th>
+                <th>Point</th>
+                <th>Horiz mm</th>
+                <th>Spec XY</th>
+                <th>|ΔZ| mm</th>
+                <th>Spec Z</th>
+                <th>vs advertised</th>
+              </tr>
+            </thead>
             <tbody id="tbody-down"></tbody>
           </table>
         </div>
       </section>
 
       <section class="card">
-        <h2>Tip UP (Activity B) vs DOWN0</h2>
+        <h2>DOWN shots vs DOWN0 <span class="h2-meta" id="title-down">—</span></h2>
         <div class="table-wrap">
           <table class="qc-table">
-            <thead><tr><th>Tilt</th><th>Point</th><th>Tgt Ht m</th><th>Tilt°</th><th>Pitch</th><th>Roll</th><th>ΔN mm</th><th>ΔE mm</th><th>ΔZ mm</th><th>Horiz mm</th><th>Spec XY|Z mm</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Tilt</th>
+                <th>Point</th>
+                <th>Horiz mm</th>
+                <th>Spec XY</th>
+                <th>|ΔZ| mm</th>
+                <th>Spec Z</th>
+                <th>vs advertised</th>
+              </tr>
+            </thead>
             <tbody id="tbody-up"></tbody>
           </table>
         </div>
       </section>
 
       <section class="card">
-        <h2>Tip UP vs Tip DOWN (same tilt)</h2>
+        <h2>UP vs DOWN (same tilt)</h2>
         <div class="table-wrap">
           <table class="qc-table">
-            <thead><tr><th>Tilt</th><th>Tip DOWN</th><th>Tip UP</th><th>ΔN mm</th><th>ΔE mm</th><th>ΔZ mm</th><th>Horiz mm</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Tilt</th>
+                <th>UP point</th>
+                <th>DOWN point</th>
+                <th>ΔN mm</th>
+                <th>ΔE mm</th>
+                <th>ΔZ mm</th>
+                <th>Horiz mm</th>
+              </tr>
+            </thead>
             <tbody id="tbody-compare"></tbody>
           </table>
         </div>
-        <p class="st30-intro" style="margin:10px 0 0">Δ = tip-up − tip-down. Shows orientation consistency at each lean angle.</p>
       </section>
     </div>
   </main>
@@ -198,9 +222,9 @@
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
-  <script src="js/parsers.js?v=10"></script>
-  <script src="js/calc.js?v=10"></script>
-  <script src="js/pdf.js?v=8"></script>
-  <script src="js/app.js?v=10"></script>
+  <script src="js/parsers.js?v=11"></script>
+  <script src="js/calc.js?v=11"></script>
+  <script src="js/pdf.js?v=9"></script>
+  <script src="js/app.js?v=11"></script>
 </body>
 </html>

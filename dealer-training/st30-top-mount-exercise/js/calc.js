@@ -3,10 +3,11 @@
  */
 var TipDevCalc = (function () {
   var TILTS = [0, 5, 15, 30];
+  // Top Mount Accuracy slide — Estimated Tilt Correction Point Precision (XY | Z) mm
   var TIP_SPECS = [
-    { heightM: 0.2, label: '0.2 m Top Mount', specs: { 0: [0, 0], 5: [0, 1], 15: [1, 1], 30: [1, 1] } },
-    { heightM: 1.6, label: '1.6 m rod', specs: { 0: [0, 0], 5: [3, 1], 15: [5, 1], 30: [8, 2] } },
-    { heightM: 2.0, label: '2.0 m rod', specs: { 0: [0, 0], 5: [4, 1], 15: [7, 1], 30: [11, 3] } },
+    { heightM: 0.2, label: '0.2 m Top Mount Accessory', specs: { 0: [0, 0], 5: [0, 1], 15: [1, 1], 30: [1, 1] } },
+    { heightM: 1.6, label: '1.6 m', specs: { 0: [0, 0], 5: [3, 1], 15: [5, 1], 30: [8, 2] } },
+    { heightM: 2.0, label: '2.0 m', specs: { 0: [0, 0], 5: [4, 1], 15: [7, 1], 30: [11, 3] } },
   ];
 
   function delta(meas, bench) {
@@ -373,54 +374,35 @@ var TipDevCalc = (function () {
       );
     }
 
-    var csvA = medianHeightForActivity(metricPoints, 'A');
-    var csvB = medianHeightForActivity(metricPoints, 'B');
-    // Activity A = UP* (tip DOWN / rod upright). Activity B = DOWN* (tip UP / Top Mount).
+    // User-entered rod heights only (no CSV Target Height override).
+    // Activity A = UP*. Activity B = DOWN*.
     var rodA = resolveActivityRod(
       {
         rodHeight: opts.rodHeightA,
-        rodUnit: opts.rodUnitA || opts.rodUnit || 'm',
-        useCsvRodHeight: opts.useCsvRodHeight,
+        rodUnit: opts.rodUnitA || 'usft',
+        useCsvRodHeight: false,
       },
-      csvA.medianM,
-      1.55,
-      'Activity A (UP*)'
+      null,
+      1.545,
+      'UP shots'
     );
     var rodB = resolveActivityRod(
       {
         rodHeight: opts.rodHeightB,
-        rodUnit: opts.rodUnitB || opts.rodUnit || 'm',
-        useCsvRodHeight: opts.useCsvRodHeight,
+        rodUnit: opts.rodUnitB || 'm',
+        useCsvRodHeight: false,
       },
-      csvB.medianM,
+      null,
       0.145,
-      'Activity B (DOWN*)'
+      'DOWN shots'
     );
 
     warnings.push(
-      rodA.label +
-        ' rod ' +
-        rodA.rodHeightM.toFixed(3) +
-        ' m → ' +
-        rodA.specRow.label +
-        (rodA.rodFromCsv ? ' (CSV Target Height)' : '')
+      'UP rod ' + rodA.rodHeightM.toFixed(3) + ' m → tip-spec ' + rodA.specRow.label
     );
     warnings.push(
-      rodB.label +
-        ' rod ' +
-        rodB.rodHeightM.toFixed(3) +
-        ' m → ' +
-        rodB.specRow.label +
-        (rodB.rodFromCsv ? ' (CSV Target Height)' : '')
+      'DOWN rod ' + rodB.rodHeightM.toFixed(3) + ' m → tip-spec ' + rodB.specRow.label
     );
-    if (csvA.autoPole || csvB.autoPole) {
-      warnings.push(
-        'Auto Pole Height: ' +
-          [csvA.autoPole, csvB.autoPole].filter(Boolean).filter(function (v, i, a) {
-            return a.indexOf(v) === i;
-          }).join(' · ')
-      );
-    }
 
     var tipDown = buildActivityRows(
       indexed.activityA,
