@@ -1,7 +1,8 @@
 /**
  * Siteworks CSV parser for ST30 Top Mount Exercise (Activities A/B).
- * Worksheet names: 4A / 4B (benchmark) | UP0/UP5/UP15/UP30 | DOWN0/DOWN5/DOWN15/DOWN30
- * Legacy aliases: BENCH, TM_UP_* / TM_FLIP_* still accepted.
+ * Worksheet names: UP0/UP5/UP15/UP30 | DOWN0/DOWN5/DOWN15/DOWN30
+ * Tip deltas use UP0 / DOWN0 as the activity origin (0° plumb).
+ * Optional control names 4A / 4B / BENCH are accepted but unused for tip deltas.
  */
 var TipDevParsers = (function () {
   function toNum(v) {
@@ -209,7 +210,7 @@ var TipDevParsers = (function () {
         sourceName +
           ': ignored ' +
           skipped.length +
-          ' unmatched name(s) — expect 4A/4B, UP0/5/15/30, DOWN0/5/15/30 (e.g. ' +
+          ' unmatched name(s) — expect UP0/5/15/30, DOWN0/5/15/30 (e.g. ' +
           skipped.slice(0, 3).join(', ') +
           (skipped.length > 3 ? '…' : '') +
           ')'

@@ -74,23 +74,23 @@ var TipDevPdf = (function () {
       '<p class="sub">Rod height: ' + esc(String(report.rodHeightInput || '—')) + ' ' + esc(report.rodUnit || '') +
       ' → specs: ' + esc(report.specRow.label) +
       (b
-        ? (' · Ref ' +
+        ? (' · Origin ' +
           esc(b.name) +
           (b.forA ? ' · A→' + esc(b.forA.name) : '') +
           (b.forB ? ' · B→' + esc(b.forB.name) : ''))
-        : ' · No 4A/4B') +
+        : ' · No UP0/DOWN0') +
       '</p>' +
       debriefBlock(report.debrief) +
       activityTable(
-        'Tip DOWN (Activity A) vs ' + ((b && b.forA && b.forA.name) || '4A'),
+        'Tip DOWN (Activity A) vs ' + ((b && b.forA && b.forA.name) || 'UP0'),
         report.tipDown
       ) +
       activityTable(
-        'Tip UP (Activity B) vs ' + ((b && b.forB && b.forB.name) || '4B'),
+        'Tip UP (Activity B) vs ' + ((b && b.forB && b.forB.name) || 'DOWN0'),
         report.tipUp
       ) +
       compareTable(report.compare) +
-      '<p class="sub">Δ = measured − reference. Tip UP vs Tip DOWN uses tip-up − tip-down at the same tilt. Specs pending validation.</p>' +
+      '<p class="sub">Δ = measured − 0° origin (UP0 / DOWN0). Tip UP vs Tip DOWN uses tip-up − tip-down at the same tilt. Specs pending validation.</p>' +
       '<p class="noprint"><button onclick="window.print()">Print / Save PDF</button></p>' +
       '<script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script></body></html>';
     w.document.open(); w.document.write(html); w.document.close();

@@ -1,5 +1,5 @@
 /**
- * ST30 Top Mount Exercise — tip-down / tip-up vs 4A/4B (+ up-vs-down compare).
+ * ST30 Top Mount Exercise — tip-down vs UP0, tip-up vs DOWN0 (+ up-vs-down compare).
  */
 var TipDevCalc = (function () {
   var TILTS = [0, 5, 15, 30];
@@ -66,61 +66,49 @@ var TipDevCalc = (function () {
     };
   }
 
-  function benchId(p) {
-    if (!p || !p.parsed) return '';
-    if (p.parsed.id) return String(p.parsed.id).toUpperCase();
-    return String(p.name || '').trim().toUpperCase();
-  }
-
-  function pickBench(benches, prefer) {
-    if (!benches || !benches.length) return null;
-    for (var i = 0; i < prefer.length; i++) {
-      var want = prefer[i];
-      for (var j = 0; j < benches.length; j++) {
-        if (benchId(benches[j]) === want) return benches[j];
-      }
-    }
-    return benches[0];
+  function hasTilted(shots) {
+    return !!(shots && (shots[5] || shots[15] || shots[30]));
   }
 
   function indexShots(points) {
-    var benches = [];
     var a = Object.create(null);
     var b = Object.create(null);
     var warnings = [];
     for (var i = 0; i < (points || []).length; i++) {
       var p = points[i];
       if (!p || !p.parsed) continue;
-      if (p.parsed.kind === 'bench') {
-        benches.push(p);
-        continue;
-      }
+      // 4A / 4B / BENCH accepted so they don't clutter unmatched warnings;
+      // tip deltas always use UP0 / DOWN0 as the activity origin.
+      if (p.parsed.kind === 'bench') continue;
       if (p.parsed.kind === 'shot') {
         var bucket = p.parsed.activity === 'B' ? b : a;
         if (bucket[p.parsed.tilt]) warnings.push('Duplicate ' + p.parsed.label + ' — using last');
         bucket[p.parsed.tilt] = p;
       }
     }
-    // Prefer Station 4 names: Activity A vs 4A, Activity B vs 4B
-    var benchA = pickBench(benches, ['4A', 'BENCH', 'BENCHMARK', 'CP', 'KNOWN', 'CONTROL', 'REF', '4B']);
-    var benchB = pickBench(benches, ['4B', 'BENCH', 'BENCHMARK', 'CP', 'KNOWN', 'CONTROL', 'REF', '4A']);
-    var names = benches.map(function (bp) { return bp.name; });
-    var uniq = names.filter(function (n, idx) { return names.indexOf(n) === idx; });
+    var benchA = a[0] || null;
+    var benchB = b[0] || null;
+    if (hasTilted(a) && !benchA) {
+      warnings.push('Activity A: missing UP0 — cannot relate UP5/UP15/UP30. Shoot UP0 first on the same mark.');
+    }
+    if (hasTilted(b) && !benchB) {
+      warnings.push('Activity B: missing DOWN0 — cannot relate DOWN5/DOWN15/DOWN30. Shoot DOWN0 first on the same mark.');
+    }
+    var refs = [];
+    if (benchA) refs.push(benchA);
+    if (benchB) refs.push(benchB);
     var display =
       benchA || benchB
         ? {
-            name: uniq.length ? uniq.join(' / ') : (benchA || benchB).name,
+            name: [benchA && benchA.name, benchB && benchB.name].filter(Boolean).join(' / '),
             n: (benchA || benchB).n,
             e: (benchA || benchB).e,
             z: (benchA || benchB).z,
-            benches: benches,
+            benches: refs,
             forA: benchA,
             forB: benchB,
           }
         : null;
-    if (benches.length > 2) {
-      warnings.push('Multiple benchmarks found (' + uniq.join(', ') + ') — Activity A uses ' + (benchA ? benchA.name : '—') + ', Activity B uses ' + (benchB ? benchB.name : '—'));
-    }
     return {
       bench: display,
       benchA: benchA,
@@ -134,11 +122,15 @@ var TipDevCalc = (function () {
   function buildActivityRows(shots, bench, label, specRow, toM) {
     return TILTS.map(function (tilt) {
       var shot = shots[tilt] || null;
+      var isOrigin = tilt === 0 && shot && bench && shot === bench;
       var d = shot && bench ? delta(shot, bench) : null;
       return {
         activity: label, tilt: tilt,
-        tiltLabel: tilt === 0 ? '0° Plumb' : tilt + '°',
-        pointName: shot ? shot.name : '—', shot: shot, d: d,
+        tiltLabel: tilt === 0 ? '0° Plumb (origin)' : tilt + '°',
+        pointName: shot ? shot.name : '—',
+        shot: shot,
+        d: d,
+        isOrigin: !!isOrigin,
         targetHeight: shot && shot.targetHeight != null ? shot.targetHeight : null,
         tiltAngleDeg: shot && shot.tiltAngleDeg != null ? shot.tiltAngleDeg : null,
         pitchDeg: shot && shot.pitchDeg != null ? shot.pitchDeg : null,
@@ -169,7 +161,8 @@ var TipDevCalc = (function () {
   }
 
   function summarize(rows) {
-    var list = rows.filter(function (r) { return r.d; });
+    // Exclude 0° origin (always ~0 vs itself) so averages reflect tilted shots only
+    var list = rows.filter(function (r) { return r.d && r.tilt !== 0; });
     if (!list.length) return null;
     var sumH = 0, sumZ = 0, maxH = 0, maxHTilt = null;
     for (var i = 0; i < list.length; i++) {
@@ -253,7 +246,7 @@ var TipDevCalc = (function () {
     function consider(rows, orientation) {
       for (var i = 0; i < rows.length; i++) {
         var row = rows[i];
-        if (!row || !row.d) continue;
+        if (!row || !row.d || row.tilt === 0) continue;
         var horizMm = row.d.horiz * (toM || 1) * 1000;
         if (!largest || horizMm > largest.horizMm) {
           largest = {
@@ -286,7 +279,7 @@ var TipDevCalc = (function () {
             tiltLabel: '—',
             orientation: '—',
             pointName: '—',
-            fillIn: '— (no tilted shots vs 4A/4B)',
+            fillIn: '— (no tilted shots vs UP0/DOWN0)',
           },
     };
   }
@@ -297,8 +290,8 @@ var TipDevCalc = (function () {
     fmt.unit = unit.id;
     var indexed = indexShots(points);
     var warnings = indexed.warnings.slice();
-    if (!indexed.bench) {
-      warnings.push('No benchmark found. Name control points 4A and/or 4B (legacy: BENCH).');
+    if (!indexed.benchA && !indexed.benchB) {
+      warnings.push('No 0° origin found. Name plumb shots UP0 (Activity A) and/or DOWN0 (Activity B).');
     }
 
     var csvHeights = [];
@@ -332,14 +325,14 @@ var TipDevCalc = (function () {
 
     var tipDown = buildActivityRows(
       indexed.activityA,
-      indexed.benchA || indexed.bench,
+      indexed.benchA,
       'Tip DOWN (Activity A)',
       specRow,
       unit.toM
     );
     var tipUp = buildActivityRows(
       indexed.activityB,
-      indexed.benchB || indexed.bench,
+      indexed.benchB,
       'Tip UP (Activity B)',
       specRow,
       unit.toM
@@ -372,8 +365,8 @@ var TipDevCalc = (function () {
         ].join(','));
       });
     }
-    add('TipDOWN_vs_4A', report.tipDown);
-    add('TipUP_vs_4B', report.tipUp);
+    add('TipDOWN_vs_UP0', report.tipDown);
+    add('TipUP_vs_DOWN0', report.tipUp);
     lines.push('');
     lines.push(['Section','Tilt','TipDown','TipUp','dN_UP-DOWN','dE_UP-DOWN','dZ_UP-DOWN','Horiz'].join(','));
     report.compare.forEach(function (r) {
@@ -392,11 +385,11 @@ var TipDevCalc = (function () {
     if (report.bench && report.bench.benches && report.bench.benches.length) {
       lines.push('');
       report.bench.benches.forEach(function (bp) {
-        lines.push(['Benchmark', bp.name, bp.n, bp.e, bp.z].join(','));
+        lines.push(['Origin_0deg', bp.name, bp.n, bp.e, bp.z].join(','));
       });
     } else if (report.bench) {
       lines.push('');
-      lines.push(['Benchmark', report.bench.name, report.bench.n, report.bench.e, report.bench.z].join(','));
+      lines.push(['Origin_0deg', report.bench.name, report.bench.n, report.bench.e, report.bench.z].join(','));
     }
     lines.push(['RodHeight_m', report.rodHeightM != null ? report.rodHeightM : '', 'SpecRow', report.specRow.label, 'CoordUnit', report.coordUnitLabel || ''].join(','));
     return lines.join('\r\n');
