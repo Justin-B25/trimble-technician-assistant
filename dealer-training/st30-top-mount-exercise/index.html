@@ -64,12 +64,12 @@
           </select>
         </div>
         <div>
-          <label class="muted" for="rod-height">Rod / accessory height</label>
-          <input id="rod-height" type="number" step="any" min="0" value="0.2" />
+          <label class="muted" for="rod-height-a">Activity A (UP*) rod height</label>
+          <input id="rod-height-a" type="number" step="any" min="0" value="1.55" />
         </div>
         <div>
-          <label class="muted" for="rod-unit">Rod height units</label>
-          <select id="rod-unit">
+          <label class="muted" for="rod-unit-a">A units</label>
+          <select id="rod-unit-a">
             <option value="m" selected>meters</option>
             <option value="usft">US Survey Feet</option>
             <option value="ft">international feet</option>
@@ -77,10 +77,23 @@
           </select>
         </div>
         <div>
-          <label class="muted">Typical Top Mount</label>
-          <input type="text" value="0.2 m (145 mm accessory)" disabled />
+          <label class="muted" for="rod-height-b">Activity B (DOWN*) rod height</label>
+          <input id="rod-height-b" type="number" step="any" min="0" value="0.145" />
+        </div>
+        <div>
+          <label class="muted" for="rod-unit-b">B units</label>
+          <select id="rod-unit-b">
+            <option value="m" selected>meters</option>
+            <option value="usft">US Survey Feet</option>
+            <option value="ft">international feet</option>
+            <option value="in">inches</option>
+          </select>
         </div>
       </div>
+      <p class="muted naming-help" style="margin:8px 0 0">
+        Tip-spec row is chosen per activity (nearest published height: 0.2 m Top Mount · 1.6 m · 2.0 m).
+        Defaults match Station 4: UP* ≈ 1.55 m pole, DOWN* ≈ 0.145 m Top Mount. CSV Target Height overrides when present.
+      </p>
     </section>
 
     <section class="card">
@@ -106,8 +119,8 @@
         <div class="stats">
           <div class="stat"><div class="label">0° origin</div><div class="value" id="stat-bench">—</div></div>
           <div class="stat"><div class="label">Working units</div><div class="value" id="stat-coord-unit">—</div></div>
-          <div class="stat"><div class="label">Rod height</div><div class="value" id="stat-rod">—</div></div>
-          <div class="stat"><div class="label">Tip-spec row</div><div class="value" id="stat-spec">—</div></div>
+          <div class="stat"><div class="label">A rod / tip-spec</div><div class="value" id="stat-rod-a">—</div></div>
+          <div class="stat"><div class="label">B rod / tip-spec</div><div class="value" id="stat-rod-b">—</div></div>
           <div class="stat"><div class="label">Tip DOWN vs UP0</div><div class="value" id="stat-down">—</div></div>
           <div class="stat"><div class="label">Tip UP vs DOWN0</div><div class="value" id="stat-up">—</div></div>
         </div>
@@ -185,9 +198,9 @@
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
-  <script src="js/parsers.js?v=9"></script>
-  <script src="js/calc.js?v=9"></script>
-  <script src="js/pdf.js?v=7"></script>
-  <script src="js/app.js?v=9"></script>
+  <script src="js/parsers.js?v=10"></script>
+  <script src="js/calc.js?v=10"></script>
+  <script src="js/pdf.js?v=8"></script>
+  <script src="js/app.js?v=10"></script>
 </body>
 </html>

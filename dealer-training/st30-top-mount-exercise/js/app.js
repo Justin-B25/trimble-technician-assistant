@@ -124,11 +124,17 @@
     var b = report.bench;
     $('stat-bench').textContent = b ? b.name : 'Missing';
     if ($('stat-coord-unit')) $('stat-coord-unit').textContent = report.coordUnitLabel || '—';
-    $('stat-rod').textContent =
-      (report.rodHeightM != null ? TipDevCalc.fmt(Number(report.rodHeightM), 3) : '—') +
-      ' m' +
-      (report.rodFromCsv ? ' (CSV)' : '');
-    $('stat-spec').textContent = report.specRow.label;
+    function rodLine(rod) {
+      if (!rod) return '—';
+      return (
+        TipDevCalc.fmt(Number(rod.rodHeightM), 3) +
+        ' m → ' +
+        rod.specRow.label +
+        (rod.rodFromCsv ? ' (CSV)' : '')
+      );
+    }
+    if ($('stat-rod-a')) $('stat-rod-a').textContent = rodLine(report.rodA);
+    if ($('stat-rod-b')) $('stat-rod-b').textContent = rodLine(report.rodB);
     $('stat-down').textContent = sumLine(report.summary.tipDown);
     $('stat-up').textContent = sumLine(report.summary.tipUp);
     renderDebrief(report.debrief);
@@ -142,28 +148,42 @@
 
   function optsFromForm() {
     return {
-      rodHeight: $('rod-height').value,
-      rodUnit: $('rod-unit').value,
+      rodHeightA: $('rod-height-a') ? $('rod-height-a').value : '1.55',
+      rodUnitA: $('rod-unit-a') ? $('rod-unit-a').value : 'm',
+      rodHeightB: $('rod-height-b') ? $('rod-height-b').value : '0.145',
+      rodUnitB: $('rod-unit-b') ? $('rod-unit-b').value : 'm',
       coordUnit: $('coord-unit') ? $('coord-unit').value : 'usft',
       useCsvRodHeight: !state.rodTouched,
     };
   }
 
+  function medianAbsM(points, activity, unit) {
+    var vals = [];
+    (points || []).forEach(function (p) {
+      if (!p || !p.parsed || p.parsed.kind !== 'shot') return;
+      if (p.parsed.activity !== activity) return;
+      if (p.targetHeight == null) return;
+      vals.push(Math.abs(p.targetHeight) * unit.toM);
+    });
+    if (!vals.length) return null;
+    vals.sort(function (a, b) { return a - b; });
+    var mid = Math.floor(vals.length / 2);
+    return vals.length % 2 ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;
+  }
+
   function applyCsvRodHeight(points) {
     if (state.rodTouched) return;
     var unit = TipDevCalc.coordUnitInfo($('coord-unit') ? $('coord-unit').value : 'usft');
-    var vals = [];
-    (points || []).forEach(function (p) {
-      if (p && p.parsed && p.parsed.kind === 'shot' && p.targetHeight != null) {
-        vals.push(Math.abs(p.targetHeight) * unit.toM);
-      }
-    });
-    if (!vals.length) return;
-    vals.sort(function (a, b) { return a - b; });
-    var mid = Math.floor(vals.length / 2);
-    var med = vals.length % 2 ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;
-    $('rod-height').value = String(Number(med.toFixed(4)));
-    $('rod-unit').value = 'm';
+    var medA = medianAbsM(points, 'A', unit);
+    var medB = medianAbsM(points, 'B', unit);
+    if (medA != null && $('rod-height-a')) {
+      $('rod-height-a').value = String(Number(medA.toFixed(4)));
+      if ($('rod-unit-a')) $('rod-unit-a').value = 'm';
+    }
+    if (medB != null && $('rod-height-b')) {
+      $('rod-height-b').value = String(Number(medB.toFixed(4)));
+      if ($('rod-unit-b')) $('rod-unit-b').value = 'm';
+    }
   }
 
   async function rebuild() {
@@ -202,8 +222,9 @@
   document.addEventListener('DOMContentLoaded', function () {
     wireDropzone();
     function markRodTouched() { state.rodTouched = true; rebuild(); }
-    $('rod-height').addEventListener('change', markRodTouched);
-    $('rod-unit').addEventListener('change', markRodTouched);
+    ['rod-height-a', 'rod-unit-a', 'rod-height-b', 'rod-unit-b'].forEach(function (id) {
+      if ($(id)) $(id).addEventListener('change', markRodTouched);
+    });
     if ($('coord-unit')) $('coord-unit').addEventListener('change', rebuild);
     $('btn-clear').addEventListener('click', function () {
       state.files = []; state.points = []; state.report = null; state.warnings = []; state.rodTouched = false;

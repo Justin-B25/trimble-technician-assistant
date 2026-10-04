@@ -72,8 +72,13 @@ var TipDevPdf = (function () {
       '<div class="hdr"><div><img src="' + esc(logoUrl()) + '" alt="Trimble"/><p class="sub">Technician Assistant · Dealer Training</p></div>' +
       '<div style="text-align:right"><h1>ST30 Top Mount Exercise</h1><p class="sub">' +
       esc(meta.job || 'Field report') + ' · ' + esc(meta.date || new Date().toLocaleString()) + '</p></div></div>' +
-      '<p class="sub">Rod height: ' + esc(String(report.rodHeightInput || '—')) + ' ' + esc(report.rodUnit || '') +
-      ' → specs: ' + esc(report.specRow.label) +
+      '<p class="sub">' +
+      (report.rodA
+        ? 'A (UP*) ' + esc(TipDevCalc.fmt(report.rodA.rodHeightM, 3)) + ' m → ' + esc(report.rodA.specRow.label)
+        : '') +
+      (report.rodB
+        ? ' · B (DOWN*) ' + esc(TipDevCalc.fmt(report.rodB.rodHeightM, 3)) + ' m → ' + esc(report.rodB.specRow.label)
+        : '') +
       (b
         ? (' · Origin ' +
           esc(b.name) +
@@ -83,11 +88,15 @@ var TipDevPdf = (function () {
       '</p>' +
       debriefBlock(report.debrief) +
       activityTable(
-        'Tip DOWN (Activity A) vs ' + ((b && b.forA && b.forA.name) || 'UP0'),
+        'Tip DOWN (Activity A) vs ' +
+          ((b && b.forA && b.forA.name) || 'UP0') +
+          (report.rodA ? ' · ' + report.rodA.specRow.label : ''),
         report.tipDown
       ) +
       activityTable(
-        'Tip UP (Activity B) vs ' + ((b && b.forB && b.forB.name) || 'DOWN0'),
+        'Tip UP (Activity B) vs ' +
+          ((b && b.forB && b.forB.name) || 'DOWN0') +
+          (report.rodB ? ' · ' + report.rodB.specRow.label : ''),
         report.tipUp
       ) +
       compareTable(report.compare) +

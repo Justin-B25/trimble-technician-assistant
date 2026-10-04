@@ -317,6 +317,41 @@ var TipDevCalc = (function () {
     };
   }
 
+  function medianHeightForActivity(metricPoints, activity) {
+    var vals = [];
+    var autoPole = '';
+    (metricPoints || []).forEach(function (p) {
+      if (!p || !p.parsed || p.parsed.kind !== 'shot') return;
+      if (p.parsed.activity !== activity) return;
+      if (p.targetHeight != null) vals.push(p.targetHeight);
+      if (!autoPole && p.autoPoleHeight) autoPole = p.autoPoleHeight;
+    });
+    return { medianM: medianAbs(vals), autoPole: autoPole };
+  }
+
+  function resolveActivityRod(opts, csvMedianM, fallbackM, label) {
+    var rodUnit = opts.rodUnit || 'm';
+    var fromCsv = false;
+    var input = opts.rodHeight;
+    if (opts.useCsvRodHeight && csvMedianM != null) {
+      input = csvMedianM;
+      rodUnit = 'm';
+      fromCsv = true;
+    }
+    var heightM = toMetersPositive(input, rodUnit);
+    if (heightM == null) heightM = fallbackM;
+    var specRow = pickSpecRow(heightM);
+    return {
+      label: label,
+      rodHeightInput: input != null && input !== '' ? input : heightM,
+      rodUnit: rodUnit,
+      rodHeightM: heightM,
+      rodFromCsv: fromCsv,
+      csvRodHeightM: csvMedianM,
+      specRow: specRow,
+    };
+  }
+
   function buildReport(points, opts) {
     opts = opts || {};
     var csvUnit = coordUnitInfo(opts.coordUnit || 'usft');
@@ -338,32 +373,52 @@ var TipDevCalc = (function () {
       );
     }
 
-    var csvHeightsM = [];
-    var autoPole = '';
-    metricPoints.forEach(function (p) {
-      if (!p || !p.parsed || p.parsed.kind !== 'shot') return;
-      if (p.targetHeight != null) csvHeightsM.push(p.targetHeight);
-      if (!autoPole && p.autoPoleHeight) autoPole = p.autoPoleHeight;
-    });
-    var csvRodHeightM = medianAbs(csvHeightsM);
-    var rodHeightInput = opts.rodHeight;
-    var rodUnit = opts.rodUnit || 'm';
-    var rodFromCsv = false;
-    if (opts.useCsvRodHeight && csvRodHeightM != null) {
-      // Already meters after conversion
-      rodHeightInput = csvRodHeightM;
-      rodUnit = 'm';
-      rodFromCsv = true;
-    }
-    var heightM = toMetersPositive(rodHeightInput, rodUnit);
-    var specRow = pickSpecRow(heightM != null ? heightM : 0.2);
-    if (csvRodHeightM != null) {
+    var csvA = medianHeightForActivity(metricPoints, 'A');
+    var csvB = medianHeightForActivity(metricPoints, 'B');
+    // Activity A = UP* (tip DOWN / rod upright). Activity B = DOWN* (tip UP / Top Mount).
+    var rodA = resolveActivityRod(
+      {
+        rodHeight: opts.rodHeightA,
+        rodUnit: opts.rodUnitA || opts.rodUnit || 'm',
+        useCsvRodHeight: opts.useCsvRodHeight,
+      },
+      csvA.medianM,
+      1.55,
+      'Activity A (UP*)'
+    );
+    var rodB = resolveActivityRod(
+      {
+        rodHeight: opts.rodHeightB,
+        rodUnit: opts.rodUnitB || opts.rodUnit || 'm',
+        useCsvRodHeight: opts.useCsvRodHeight,
+      },
+      csvB.medianM,
+      0.145,
+      'Activity B (DOWN*)'
+    );
+
+    warnings.push(
+      rodA.label +
+        ' rod ' +
+        rodA.rodHeightM.toFixed(3) +
+        ' m → ' +
+        rodA.specRow.label +
+        (rodA.rodFromCsv ? ' (CSV Target Height)' : '')
+    );
+    warnings.push(
+      rodB.label +
+        ' rod ' +
+        rodB.rodHeightM.toFixed(3) +
+        ' m → ' +
+        rodB.specRow.label +
+        (rodB.rodFromCsv ? ' (CSV Target Height)' : '')
+    );
+    if (csvA.autoPole || csvB.autoPole) {
       warnings.push(
-        'CSV Target Height median |h| = ' +
-          csvRodHeightM.toFixed(3) +
-          ' m' +
-          (autoPole ? ' · Auto Pole Height: ' + autoPole : '') +
-          (rodFromCsv ? ' · used for tip-spec row' : '')
+        'Auto Pole Height: ' +
+          [csvA.autoPole, csvB.autoPole].filter(Boolean).filter(function (v, i, a) {
+            return a.indexOf(v) === i;
+          }).join(' · ')
       );
     }
 
@@ -371,26 +426,31 @@ var TipDevCalc = (function () {
       indexed.activityA,
       indexed.benchA,
       'Tip DOWN (Activity A)',
-      specRow
+      rodA.specRow
     );
     var tipUp = buildActivityRows(
       indexed.activityB,
       indexed.benchB,
       'Tip UP (Activity B)',
-      specRow
+      rodB.specRow
     );
     var compare = buildCompareRows(indexed.activityA, indexed.activityB);
     var debrief = buildDebrief(tipDown, tipUp);
 
     return {
       bench: indexed.bench,
-      rodHeightM: heightM,
-      rodHeightInput: rodHeightInput,
-      rodUnit: rodUnit,
-      rodFromCsv: rodFromCsv,
-      csvRodHeight: csvRodHeightM,
-      autoPoleHeight: autoPole,
-      specRow: specRow,
+      rodA: rodA,
+      rodB: rodB,
+      // Legacy single-rod fields (Activity A) for older UI bits
+      rodHeightM: rodA.rodHeightM,
+      rodHeightInput: rodA.rodHeightInput,
+      rodUnit: rodA.rodUnit,
+      rodFromCsv: rodA.rodFromCsv || rodB.rodFromCsv,
+      csvRodHeight: csvA.medianM != null ? csvA.medianM : csvB.medianM,
+      autoPoleHeight: csvA.autoPole || csvB.autoPole || '',
+      specRow: rodA.specRow,
+      specRowA: rodA.specRow,
+      specRowB: rodB.specRow,
       csvUnit: csvUnit.id,
       csvUnitLabel: csvUnit.label,
       coordUnit: 'm',
@@ -449,7 +509,19 @@ var TipDevCalc = (function () {
       lines.push('');
       lines.push(['Origin_0deg', report.bench.name, report.bench.n, report.bench.e, report.bench.z].join(','));
     }
-    lines.push(['RodHeight_m', report.rodHeightM != null ? report.rodHeightM : '', 'SpecRow', report.specRow.label, 'CoordUnit', report.coordUnitLabel || ''].join(','));
+    if (report.rodA) {
+      lines.push([
+        'RodHeightA_m', report.rodA.rodHeightM,
+        'SpecRowA', report.rodA.specRow.label,
+      ].join(','));
+    }
+    if (report.rodB) {
+      lines.push([
+        'RodHeightB_m', report.rodB.rodHeightM,
+        'SpecRowB', report.rodB.specRow.label,
+      ].join(','));
+    }
+    lines.push(['CoordUnit', report.coordUnitLabel || ''].join(','));
     return lines.join('\r\n');
   }
 
