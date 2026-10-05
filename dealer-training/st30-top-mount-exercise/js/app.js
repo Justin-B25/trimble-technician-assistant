@@ -106,7 +106,8 @@
       var absZ = r.d ? Math.abs(r.d.dz) : null;
       var vs = vsAdvertised(r);
       var leanTxt = fmtDeg(r.imuLean);
-      if (r.inverted && r.imuLean != null) leanTxt += ' (inv)';
+      if (r.leanFromName && r.imuLean != null) leanTxt = fmtDeg(r.imuLean) + ' (named)';
+      else if (r.inverted && r.imuLean != null) leanTxt += ' (inv)';
       td(r.tiltLabel);
       td(leanTxt);
       td(r.pointName);

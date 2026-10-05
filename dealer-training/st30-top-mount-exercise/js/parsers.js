@@ -261,6 +261,15 @@ var TipDevParsers = (function () {
       var rollDeg = iRoll >= 0 ? parseAngle(cells[iRoll]) : null;
       var tiltAngleDeg = iTilt >= 0 ? parseAngle(cells[iTilt]) : null;
       var imu = resolveLean(pitchDeg, rollDeg, tiltAngleDeg);
+      // No Pitch/Roll/Tilt Angle → use named lean from UP5 / DOWN15 etc.
+      var leanDeg = imu ? imu.leanDeg : null;
+      var inverted = imu ? imu.inverted : false;
+      var leanFromName = false;
+      if (leanDeg == null && parsed.kind === 'shot' && parsed.tilt != null) {
+        leanDeg = parsed.tilt;
+        leanFromName = true;
+        inverted = parsed.activity === 'B';
+      }
       points.push({
         name: name,
         n: n,
@@ -272,8 +281,9 @@ var TipDevParsers = (function () {
         tiltAngleDeg: tiltAngleDeg,
         pitchDeg: pitchDeg,
         rollDeg: rollDeg,
-        leanDeg: imu ? imu.leanDeg : null,
-        inverted: imu ? imu.inverted : false,
+        leanDeg: leanDeg,
+        inverted: inverted,
+        leanFromName: leanFromName,
         autoPoleHeight: iAuto >= 0 ? String(cells[iAuto] || '').trim() : '',
       });
     }
@@ -311,8 +321,5 @@ var TipDevParsers = (function () {
     parseAngle: parseAngle,
     leanFromPitchRoll: leanFromPitchRoll,
     resolveLean: resolveLean,
-  };
-})();
-    toNum: toNum,
   };
 })();
