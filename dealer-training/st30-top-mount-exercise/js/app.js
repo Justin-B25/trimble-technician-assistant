@@ -334,7 +334,7 @@
     $('btn-pdf').addEventListener('click', function () {
       if (!state.report) return;
       TipDevPdf.open(state.report, {
-        job: $('job-name').value.trim(),
+        job: '',
         date: new Date().toLocaleString(),
       });
     });

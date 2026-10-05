@@ -71,7 +71,7 @@ var TipDevPdf = (function () {
   function compareTable(rows) {
     var html =
       '<h3>UP vs DOWN (same tilt)</h3><table class="data"><thead><tr>' +
-      '<th>Tilt</th><th>UP</th><th>DOWN</th><th>ΔN mm</th><th>ΔE mm</th><th>ΔZ mm</th><th>Horiz mm</th>' +
+      '<th>Tilt</th><th>UP</th><th>DOWN</th><th>ΔN mm</th><th>ΔE mm</th><th>ΔZ mm</th><th>Horiz Δ mm</th>' +
       '</tr></thead><tbody>';
     rows.forEach(function (r) {
       html +=

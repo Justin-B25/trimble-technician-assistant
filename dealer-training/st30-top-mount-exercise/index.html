@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="styles.css?v=6" />
 </head>
 <body class="st30-ex" data-dt-page="st30-top-mount-exercise">
   <header class="tc-app-header">
@@ -46,10 +46,6 @@
     <section class="card">
       <h2>2 · Rod heights</h2>
       <div class="job-grid rod-grid">
-        <div>
-          <label class="muted" for="job-name">Job / site (optional)</label>
-          <input id="job-name" type="text" placeholder="e.g. Bootcamp Station 4" />
-        </div>
         <div>
           <label class="muted" for="coord-unit">CSV coordinate units</label>
           <select id="coord-unit">
@@ -205,12 +201,16 @@
                 <th>ΔN mm</th>
                 <th>ΔE mm</th>
                 <th>ΔZ mm</th>
-                <th>Horiz mm</th>
+                <th>Horiz Δ mm</th>
               </tr>
             </thead>
             <tbody id="tbody-compare"></tbody>
           </table>
         </div>
+        <p class="muted naming-help" style="margin:8px 0 0">
+          Horiz Δ mm is the 2D distance between the UP shot and the DOWN shot at that same tilt
+          (√(ΔN² + ΔE²)). It is not a tip-spec check — it shows how close the two orientations landed.
+        </p>
       </section>
     </div>
   </main>
@@ -223,9 +223,9 @@
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
-  <script src="js/parsers.js?v=13"></script>
-  <script src="js/calc.js?v=13"></script>
-  <script src="js/pdf.js?v=11"></script>
-  <script src="js/app.js?v=13"></script>
+  <script src="js/parsers.js?v=14"></script>
+  <script src="js/calc.js?v=14"></script>
+  <script src="js/pdf.js?v=12"></script>
+  <script src="js/app.js?v=14"></script>
 </body>
 </html>
