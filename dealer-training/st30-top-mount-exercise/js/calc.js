@@ -124,6 +124,8 @@ var TipDevCalc = (function () {
       tiltAngleDeg: p.tiltAngleDeg,
       pitchDeg: p.pitchDeg,
       rollDeg: p.rollDeg,
+      leanDeg: p.leanDeg,
+      inverted: p.inverted,
       autoPoleHeight: p.autoPoleHeight,
       csvUnit: coordUnitInfo(unit).id,
       unit: 'm',
@@ -236,6 +238,8 @@ var TipDevCalc = (function () {
       var shot = shots[tilt] || null;
       var isOrigin = tilt === 0 && shot && bench && shot === bench;
       var d = shot && bench ? delta(shot, bench) : null;
+      var imuLean = shot && shot.leanDeg != null ? shot.leanDeg : null;
+      var specTilt = isOrigin ? 0 : (imuLean != null ? imuLean : tilt);
       return {
         activity: label, tilt: tilt,
         tiltLabel: tilt === 0 ? '0° Plumb (origin)' : tilt + '°',
@@ -243,11 +247,14 @@ var TipDevCalc = (function () {
         shot: shot,
         d: d,
         isOrigin: !!isOrigin,
+        imuLean: imuLean,
+        specTilt: specTilt,
+        inverted: !!(shot && shot.inverted),
         targetHeight: shot && shot.targetHeight != null ? shot.targetHeight : null,
         tiltAngleDeg: shot && shot.tiltAngleDeg != null ? shot.tiltAngleDeg : null,
         pitchDeg: shot && shot.pitchDeg != null ? shot.pitchDeg : null,
         rollDeg: shot && shot.rollDeg != null ? shot.rollDeg : null,
-        check: d ? passCheck(d, tilt, specRow, tsMm) : null,
+        check: d && !isOrigin ? passCheck(d, specTilt, specRow, tsMm) : (d && isOrigin ? passCheck(d, 0, specRow, tsMm) : null),
       };
     });
   }
@@ -477,6 +484,15 @@ var TipDevCalc = (function () {
         '  (XY = TS + ' + rodB.specRow.xyConst + ' + ' + rodB.specRow.xyPerDeg + ' mm/°tilt)'
     );
     warnings.push('TS in this lab = ' + tsMm.toFixed(1) + ' mm (0 = vs your own 0° shot; instrument cancels).');
+    var imuCount = 0;
+    (metricPoints || []).forEach(function (p) {
+      if (p && p.leanDeg != null) imuCount += 1;
+    });
+    if ((metricPoints || []).length && imuCount === 0) {
+      warnings.push('No Pitch/Roll found — spec uses the named 5/15/30°. Export Siteworks columns Pitch and Roll (CB / CC).');
+    } else if (imuCount) {
+      warnings.push('Spec uses IMU lean from Pitch/Roll (inverted near 180° folds to 0° when plumb). Named 5/15/30 is only the point label.');
+    }
 
     var tipDown = buildActivityRows(
       indexed.activityA,
@@ -526,13 +542,17 @@ var TipDevCalc = (function () {
 
   function rowsToCsv(report) {
     var lines = [[
-      'Section', 'Tilt', 'Point', 'N_m', 'E_m', 'Z_m',
+      'Section', 'Tilt', 'IMU_lean_deg', 'Pitch_deg', 'Roll_deg', 'Point', 'N_m', 'E_m', 'Z_m',
       'dN_mm', 'dE_mm', 'dZ_mm', 'Horiz_mm', 'SpecXY_mm', 'SpecZ_mm',
     ].join(',')];
     function add(section, rows) {
       rows.forEach(function (r) {
         lines.push([
-          section, r.tiltLabel, r.pointName,
+          section, r.tiltLabel,
+          r.imuLean != null ? r.imuLean : '',
+          r.pitchDeg != null ? r.pitchDeg : '',
+          r.rollDeg != null ? r.rollDeg : '',
+          r.pointName,
           r.shot ? r.shot.n : '', r.shot ? r.shot.e : '', r.shot ? r.shot.z : '',
           r.d ? r.d.dn * 1000 : '', r.d ? r.d.de * 1000 : '', r.d ? r.d.dz * 1000 : '',
           r.d ? r.d.horiz * 1000 : '',

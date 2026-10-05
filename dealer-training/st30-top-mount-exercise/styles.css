@@ -97,3 +97,25 @@
 .st30-ex details.howto .howto-lede { margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: var(--tc-grey-700,#5c6370); }
 .st30-ex details.howto ol { margin: 8px 0 0; padding-left: 1.2rem; font-size: 13px; line-height: 1.45; }
 .st30-ex details.howto code { background: #e8f1f8; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+.st30-ex .vs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 900px) { .st30-ex .vs-grid { grid-template-columns: 1fr; } }
+.st30-ex .vs-panel { border: 1px solid var(--tc-grey-300,#e0e1e9); border-radius: 8px; padding: 10px 12px; background: var(--tc-surface,#fff); color: var(--tc-text,#252a2e); }
+.st30-ex .vs-panel h3 { margin: 0 0 8px; font-size: 13px; color: var(--tc-blue,#005f9e); }
+.st30-ex .vs-shot { margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px solid var(--tc-grey-300,#e0e1e9); }
+.st30-ex .vs-shot:last-child { margin-bottom: 0; border-bottom: 0; padding-bottom: 0; }
+.st30-ex .vs-shot__head { font-size: 13px; }
+.st30-ex .vs-shot__meta { font-size: 11px; color: var(--tc-grey-600,#6a6e79); margin: 2px 0 6px; }
+.st30-ex .vs-meter { display: grid; grid-template-columns: 28px 1fr 110px; gap: 8px; align-items: center; margin: 4px 0; }
+.st30-ex .vs-meter__lab { font-size: 11px; font-weight: 800; }
+.st30-ex .vs-meter__track { position: relative; height: 16px; background: #eceff1; border-radius: 4px; overflow: hidden; }
+.st30-ex .vs-meter__spec { position: absolute; left: 0; top: 0; height: 16px; background: #90caf9; }
+.st30-ex .vs-meter__act { position: absolute; left: 0; top: 4px; height: 8px; border-radius: 2px; }
+.st30-ex .vs-meter__act.is-ok { background: #2e7d32; }
+.st30-ex .vs-meter__act.is-over { background: #c62828; }
+.st30-ex .vs-meter__nums { font-size: 11px; font-weight: 700; text-align: right; }
+[data-theme="dark"] .st30-ex .vs-panel { background: #1e2430; border-color: #3a4250; color: #e8eaed; }
+[data-theme="dark"] .st30-ex .vs-panel h3 { color: #7ec8f0; }
+[data-theme="dark"] .st30-ex .vs-shot { border-color: #3a4250; }
+[data-theme="dark"] .st30-ex .vs-shot__meta { color: #c5c9d0; }
+[data-theme="dark"] .st30-ex .vs-meter__track { background: #3a4250; }
+[data-theme="dark"] .st30-ex .vs-meter__spec { background: #1565c0; }

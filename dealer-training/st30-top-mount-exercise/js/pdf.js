@@ -27,13 +27,13 @@ var TipDevPdf = (function () {
       '<h3>' +
       esc(title) +
       '</h3><table class="data"><thead><tr>' +
-      '<th>Tilt</th><th>Point</th><th>Horiz mm</th><th>Spec XY</th><th>|ΔZ| mm</th><th>Spec Z</th><th>vs advertised</th>' +
+      '<th>Named</th><th>IMU lean</th><th>Point</th><th>Horiz mm</th><th>Spec XY</th><th>|ΔZ| mm</th><th>Spec Z</th><th>actual vs spec</th>' +
       '</tr></thead><tbody>';
     rows.forEach(function (r) {
       var horiz = r.d ? Math.abs(r.d.horiz) : null;
       var absZ = r.d ? Math.abs(r.d.dz) : null;
       var vs = '—';
-      if (r.tilt === 0) vs = 'origin (0°)';
+      if (r.isOrigin) vs = 'origin';
       else if (r.check) {
         vs =
           (r.check.passXY ? 'XY ok' : 'XY over') +
@@ -43,11 +43,16 @@ var TipDevPdf = (function () {
           r.check.horizMm.toFixed(1) +
           ' / ' +
           r.check.zMm.toFixed(1) +
-          ' mm)';
+          ' mm @ ' +
+          (r.imuLean != null ? r.imuLean.toFixed(1) + '° IMU' : r.tilt + '°') +
+          ')';
       }
+      var lean = r.imuLean != null ? r.imuLean.toFixed(1) + '°' : '—';
       html +=
         '<tr><td>' +
         esc(r.tiltLabel) +
+        '</td><td>' +
+        esc(lean) +
         '</td><td>' +
         esc(r.pointName) +
         '</td>' +

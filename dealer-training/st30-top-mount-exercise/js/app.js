@@ -64,9 +64,10 @@
     $('btn-pdf').disabled = !has;
   }
 
-  function vsAdvertised(check, tilt) {
-    if (tilt === 0) return { text: 'origin (0°)', cls: '' };
-    if (!check) return { text: '—', cls: '' };
+  function vsAdvertised(r) {
+    if (r.isOrigin) return { text: 'origin', cls: '' };
+    if (!r.check) return { text: '—', cls: '' };
+    var check = r.check;
     var bits = [];
     var cls = 'ok';
     if (check.passXY) {
@@ -84,6 +85,11 @@
     return { text: bits.join(' · '), cls: cls };
   }
 
+  function fmtDeg(n) {
+    if (n == null || !Number.isFinite(n)) return '—';
+    return n.toFixed(1) + '°';
+  }
+
   function fillActivityTable(tbodyId, rows) {
     var tbody = $(tbodyId);
     if (!tbody) return;
@@ -98,16 +104,87 @@
       }
       var horiz = r.d ? Math.abs(r.d.horiz) : null;
       var absZ = r.d ? Math.abs(r.d.dz) : null;
-      var vs = vsAdvertised(r.check, r.tilt);
+      var vs = vsAdvertised(r);
+      var leanTxt = fmtDeg(r.imuLean);
+      if (r.inverted && r.imuLean != null) leanTxt += ' (inv)';
       td(r.tiltLabel);
+      td(leanTxt);
       td(r.pointName);
-      td(TipDevCalc.fmtMm(horiz), r.check ? (r.check.passXY || r.tilt === 0 ? 'ok' : 'bad') : 'delta');
+      td(TipDevCalc.fmtMm(horiz), r.check ? (r.check.passXY || r.isOrigin ? 'ok' : 'bad') : 'delta');
       td(r.check ? r.check.specXY.toFixed(1) : '—');
-      td(TipDevCalc.fmtMm(absZ), r.check ? (r.check.passZ || r.tilt === 0 ? 'ok' : 'bad') : '');
+      td(TipDevCalc.fmtMm(absZ), r.check ? (r.check.passZ || r.isOrigin ? 'ok' : 'bad') : '');
       td(r.check ? r.check.specZ.toFixed(1) : '—');
       td(vs.text, vs.cls);
       tbody.appendChild(tr);
     });
+  }
+
+  function meterHtml(actual, spec, label) {
+    if (actual == null || spec == null) return '';
+    var max = Math.max(actual, spec, 1);
+    var ok = actual <= spec + 1e-9;
+    return (
+      '<div class="vs-meter">' +
+      '<div class="vs-meter__lab">' +
+      label +
+      '</div>' +
+      '<div class="vs-meter__track">' +
+      '<div class="vs-meter__spec" style="width:' +
+      ((spec / max) * 100).toFixed(1) +
+      '%"></div>' +
+      '<div class="vs-meter__act ' +
+      (ok ? 'is-ok' : 'is-over') +
+      '" style="width:' +
+      ((actual / max) * 100).toFixed(1) +
+      '%"></div>' +
+      '</div>' +
+      '<div class="vs-meter__nums">' +
+      actual.toFixed(1) +
+      ' / ' +
+      spec.toFixed(1) +
+      ' mm</div></div>'
+    );
+  }
+
+  function renderVsVisual(report) {
+    var host = $('vs-visual');
+    if (!host) return;
+    function panel(title, rows) {
+      var shots = (rows || []).filter(function (r) {
+        return r.shot && !r.isOrigin;
+      });
+      if (!shots.length) return '';
+      var body = shots
+        .map(function (r) {
+          var check = r.check;
+          var imu = r.imuLean != null ? r.imuLean.toFixed(1) + '°' : 'named ' + r.tilt + '°';
+          var pitch = r.pitchDeg != null ? r.pitchDeg.toFixed(1) + '°' : '—';
+          var roll = r.rollDeg != null ? r.rollDeg.toFixed(1) + '°' : '—';
+          return (
+            '<div class="vs-shot">' +
+            '<div class="vs-shot__head">' +
+            '<strong>' +
+            r.pointName +
+            '</strong> · named ' +
+            r.tilt +
+            '° · IMU ' +
+            imu +
+            (r.inverted ? ' inverted' : '') +
+            '</div>' +
+            '<div class="vs-shot__meta">Pitch ' +
+            pitch +
+            ' · Roll ' +
+            roll +
+            '</div>' +
+            (check ? meterHtml(check.horizMm, check.specXY, 'XY') : '') +
+            (check ? meterHtml(check.zMm, check.specZ, 'Z') : '') +
+            '</div>'
+          );
+        })
+        .join('');
+      return '<div class="vs-panel"><h3>' + title + '</h3>' + body + '</div>';
+    }
+    host.innerHTML = panel('UP vs UP0', report.tipDown) + panel('DOWN vs DOWN0', report.tipUp);
   }
 
   function fillCompare(rows) {
@@ -288,6 +365,7 @@
     fillActivityTable('tbody-down', report.tipDown);
     fillActivityTable('tbody-up', report.tipUp);
     fillCompare(report.compare);
+    renderVsVisual(report);
     if (state.warnings.length) setAlert(state.warnings.join('\n'), !report.bench);
     else setAlert('');
     updateButtons();

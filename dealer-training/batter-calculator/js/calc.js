@@ -274,12 +274,14 @@ var BatterCalc = (function () {
         var pitches = [];
         var rolls = [];
         var auto = '';
+        var leans = [];
         function collect(pts) {
           (pts || []).forEach(function (p) {
             if (p.targetHeight != null) th.push(Math.abs(p.targetHeight));
             if (p.tiltAngleDeg != null) tilts.push(p.tiltAngleDeg);
             if (p.pitchDeg != null) pitches.push(p.pitchDeg);
             if (p.rollDeg != null) rolls.push(p.rollDeg);
+            if (p.leanDeg != null) leans.push(p.leanDeg);
             if (!auto && p.autoPoleHeight) auto = p.autoPoleHeight;
           });
         }
@@ -291,12 +293,27 @@ var BatterCalc = (function () {
           var m = Math.floor(a.length / 2);
           return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
         }
+        function shotRow(p) {
+          return {
+            name: p.name,
+            ring: p.parsed && p.parsed.ring,
+            idx: p.parsed && p.parsed.idx,
+            targetHeight: p.targetHeight,
+            pitchDeg: p.pitchDeg,
+            rollDeg: p.rollDeg,
+            leanDeg: p.leanDeg,
+            inverted: !!p.inverted,
+            tiltAngleDeg: p.tiltAngleDeg,
+          };
+        }
         return {
           targetHeightAbs: med(th),
           tiltAngleDeg: med(tilts),
           pitchDeg: med(pitches),
           rollDeg: med(rolls),
+          leanDeg: med(leans),
           autoPoleHeight: auto,
+          shots: (bPts || []).map(shotRow).concat((tPts || []).map(shotRow)),
         };
       })(),
     };

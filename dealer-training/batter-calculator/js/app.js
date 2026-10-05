@@ -79,37 +79,51 @@
     };
   }
 
-  function drawCrosshair(dN, dE, caption) {
+  function drawPilePlan(r) {
     var wrap = document.createElement('div');
     wrap.className = 'crosshair';
-    var size = 240;
-    var pad = 32;
+    var size = 280;
+    var pad = 36;
     var inner = size - pad * 2;
-    var has = dN != null && dE != null && Number.isFinite(dN) && Number.isFinite(dE);
-    var mag = has ? Math.max(Math.abs(dN), Math.abs(dE), 0.02) : 1;
-    mag *= 1.25;
-    var cx = size / 2;
-    var cy = size / 2;
+    var marks = [];
+    function addPts(pts, kind) {
+      (pts || []).forEach(function (p) {
+        if (!p || p.n == null || p.e == null) return;
+        var lab = (p.parsed && p.parsed.key) || p.name || kind;
+        marks.push({ n: p.n, e: p.e, label: lab, kind: kind });
+      });
+    }
+    addPts(r.bottomPts, 'b');
+    addPts(r.topPts, 't');
+    if (r.bottom) marks.push({ n: r.bottom.n, e: r.bottom.e, label: 'Bot', kind: 'cb' });
+    if (r.top) marks.push({ n: r.top.n, e: r.top.e, label: 'Top', kind: 'ct' });
+    if (!marks.length) {
+      wrap.textContent = 'Need B1–B3 and T1–T3';
+      return wrap;
+    }
+    var ns = marks.map(function (m) { return m.n; });
+    var es = marks.map(function (m) { return m.e; });
+    var nMin = Math.min.apply(null, ns);
+    var nMax = Math.max.apply(null, ns);
+    var eMin = Math.min.apply(null, es);
+    var eMax = Math.max.apply(null, es);
+    var spanN = Math.max(nMax - nMin, 0.05);
+    var spanE = Math.max(eMax - eMin, 0.05);
+    var span = Math.max(spanN, spanE) * 1.35;
+    var nMid = (nMin + nMax) / 2;
+    var eMid = (eMin + eMax) / 2;
     function xOf(e) {
-      return cx + (e / mag) * (inner / 2);
+      return size / 2 + ((e - eMid) / span) * inner;
     }
     function yOf(n) {
-      return cy - (n / mag) * (inner / 2);
+      return size / 2 - ((n - nMid) / span) * inner;
     }
-    var px = has ? xOf(dE) : cx;
-    var py = has ? yOf(dN) : cy;
-    var tick = mag;
     var svgNS = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(svgNS, 'svg');
     svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
     svg.setAttribute('class', 'crosshair-svg');
     svg.setAttribute('role', 'img');
-    svg.setAttribute(
-      'aria-label',
-      has
-        ? 'North-east crosshair. ΔN ' + dN.toFixed(3) + ', ΔE ' + dE.toFixed(3)
-        : 'North-east crosshair. Enter design coordinates.'
-    );
+    svg.setAttribute('aria-label', 'Plan view of rim shots B1–B3 and T1–T3');
 
     function line(x1, y1, x2, y2, cls) {
       var el = document.createElementNS(svgNS, 'line');
@@ -120,51 +134,50 @@
       el.setAttribute('class', cls);
       svg.appendChild(el);
     }
-    function txt(x, y, text, anchor) {
+    function txt(x, y, text, cls) {
       var el = document.createElementNS(svgNS, 'text');
       el.setAttribute('x', x);
       el.setAttribute('y', y);
-      el.setAttribute('text-anchor', anchor || 'middle');
-      el.setAttribute('class', 'crosshair-label');
+      el.setAttribute('text-anchor', 'middle');
+      el.setAttribute('class', cls || 'rim-label');
       el.textContent = text;
       svg.appendChild(el);
     }
-
-    line(pad, cy, size - pad, cy, 'crosshair-axis');
-    line(cx, pad, cx, size - pad, 'crosshair-axis');
-    txt(size - 10, cy - 6, 'E', 'end');
-    txt(10, cy - 6, 'W', 'start');
-    txt(cx, 16, 'N');
-    txt(cx, size - 8, 'S');
-    txt(cx + 8, pad + 12, '+' + BatterCalc.fmt(tick), 'start');
-
-    var origin = document.createElementNS(svgNS, 'circle');
-    origin.setAttribute('cx', cx);
-    origin.setAttribute('cy', cy);
-    origin.setAttribute('r', 4);
-    origin.setAttribute('class', 'crosshair-origin');
-    svg.appendChild(origin);
-
-    if (has) {
-      var arm = document.createElementNS(svgNS, 'line');
-      arm.setAttribute('x1', cx);
-      arm.setAttribute('y1', cy);
-      arm.setAttribute('x2', px);
-      arm.setAttribute('y2', py);
-      arm.setAttribute('class', 'crosshair-arm');
-      svg.appendChild(arm);
-      var dot = document.createElementNS(svgNS, 'circle');
-      dot.setAttribute('cx', px);
-      dot.setAttribute('cy', py);
-      dot.setAttribute('r', 7);
-      dot.setAttribute('class', 'crosshair-meas');
-      svg.appendChild(dot);
+    function dot(x, y, rad, cls) {
+      var el = document.createElementNS(svgNS, 'circle');
+      el.setAttribute('cx', x);
+      el.setAttribute('cy', y);
+      el.setAttribute('r', rad);
+      el.setAttribute('class', cls);
+      svg.appendChild(el);
     }
+
+    line(pad, size / 2, size - pad, size / 2, 'crosshair-axis');
+    line(size / 2, pad, size / 2, size - pad, 'crosshair-axis');
+    txt(size - 14, size / 2 - 8, 'E', 'compass-label');
+    txt(14, size / 2 - 8, 'W', 'compass-label');
+    txt(size / 2, 18, 'N', 'compass-label');
+    txt(size / 2, size - 8, 'S', 'compass-label');
+
+    if (r.bottom && r.top) {
+      line(xOf(r.bottom.e), yOf(r.bottom.n), xOf(r.top.e), yOf(r.top.n), 'crosshair-arm');
+    }
+
+    marks.forEach(function (m) {
+      var x = xOf(m.e);
+      var y = yOf(m.n);
+      var isCenter = m.kind === 'cb' || m.kind === 'ct';
+      dot(x, y, isCenter ? 6 : 5, m.kind === 't' || m.kind === 'ct' ? 'rim-top' : 'rim-bot');
+      txt(x, y - 10, m.label, 'rim-label');
+    });
 
     wrap.appendChild(svg);
     var cap = document.createElement('div');
     cap.className = 'crosshair-caption';
-    cap.textContent = caption || (has ? BatterCalc.fmtDeviation({ hasXy: true, dN: dN, dE: dE, planMiss: Math.sqrt(dN * dN + dE * dE) }) : 'Enter design Y/N and X/E');
+    cap.textContent =
+      r.dn != null
+        ? 'Pile lean ΔN ' + BatterCalc.fmt(r.dn) + '  ΔE ' + BatterCalc.fmt(r.de) + (r.favor ? '  ·  ' + r.favor : '')
+        : 'Need B1–B3 and T1–T3';
     wrap.appendChild(cap);
     return wrap;
   }
@@ -178,7 +191,7 @@
 
       var title = document.createElement('div');
       title.className = 'pile-result-card__title';
-      title.textContent = (r.pileId === '1' ? 'Sono tube (single pile)' : 'Pile ' + r.pileId) + (r.ok ? '' : ' — incomplete');
+      title.textContent = (r.pileId === '1' ? 'Sono tube' : 'Pile ' + r.pileId) + (r.ok ? '' : ' — incomplete');
       card.appendChild(title);
 
       var rowHost = card;
@@ -199,95 +212,109 @@
       if (r.ok) {
         var vs = r.vsDesign || {};
         var measuredCut = (r.measuredPosition && r.measuredPosition.cutoff) || r.top;
-        var compareCut = r.cutoff || measuredCut;
         var nums = document.createElement('div');
         nums.className = 'pile-result-card__nums';
         rowHost = nums;
         row(
-          'Measured pile position (top / cut-off)',
-          measuredCut
-            ? 'Y/N ' +
-              BatterCalc.fmt(measuredCut.n) +
-              '   X/E ' +
-              BatterCalc.fmt(measuredCut.e) +
-              '   Z ' +
-              BatterCalc.fmt(measuredCut.z)
-            : '—',
+          'Top / cut-off',
+          'N ' + BatterCalc.fmt(measuredCut.n) + '   E ' + BatterCalc.fmt(measuredCut.e) + '   Z ' + BatterCalc.fmt(measuredCut.z),
           true
         );
-        row('Bottom of pile center', BatterCalc.fmtCoord(r.bottom));
-        row('Top of pile center', BatterCalc.fmtCoord(r.top));
-        row('Estimated pile OD (tape check)', BatterCalc.fmtOdPair(r.bottomOd, r.topOd), true);
-        row('Batter angle (inclination)', BatterCalc.fmtInclination(r), true);
-        row(
-          'Azimuth (lean direction)',
-          BatterCalc.fmtAzimuth(r.azimuthDeg) + (r.favor ? '  ·  ' + r.favor : ''),
-          true
-        );
-        row('Lean from plumb (ΔN, ΔE)', BatterCalc.fmtVector(r), true);
-        if (r.csvMeta) {
-          var metaBits = [];
-          if (r.csvMeta.targetHeightAbs != null) {
-            metaBits.push('Target Ht |h| ' + BatterCalc.fmt(r.csvMeta.targetHeightAbs));
-          }
-          if (r.csvMeta.tiltAngleDeg != null) metaBits.push('Tilt° ' + r.csvMeta.tiltAngleDeg.toFixed(2));
-          if (r.csvMeta.pitchDeg != null) metaBits.push('Pitch ' + r.csvMeta.pitchDeg.toFixed(2) + '°');
-          if (r.csvMeta.rollDeg != null) metaBits.push('Roll ' + r.csvMeta.rollDeg.toFixed(2) + '°');
-          if (r.csvMeta.autoPoleHeight) metaBits.push('Auto pole ' + r.csvMeta.autoPoleHeight);
-          if (metaBits.length) row('From CSV (median of rim shots)', metaBits.join('  ·  '));
+        row('Batter', BatterCalc.fmtInclination(r), true);
+        row('Azimuth', BatterCalc.fmtAzimuth(r.azimuthDeg) + (r.favor ? '  ·  ' + r.favor : ''));
+        row('Tape OD', BatterCalc.fmtOdPair(r.bottomOd, r.topOd));
+        if (vs.hasXy) row('Δ vs design', BatterCalc.fmtDeviation(vs), true);
+        if (vs.hasIncl) {
+          row(
+            'Lean vs design',
+            BatterCalc.fmt(r.angleDeg, 2) + '° measured  ·  ' + BatterCalc.fmt(vs.design.inclinationFromVerticalDeg, 2) + '° design'
+          );
         }
-        if (vs.hasXy || vs.hasZ || vs.hasIncl) {
-          if (vs.hasXy) {
-            row(
-              'Design cut-off (X, Y, Z)',
-              'Y/N ' +
-                BatterCalc.fmt(vs.design.n) +
-                '   X/E ' +
-                BatterCalc.fmt(vs.design.e) +
-                (vs.design.z != null ? '   Z ' + BatterCalc.fmt(vs.design.z) : '')
-            );
-            if (compareCut && vs.hasZ) {
-              row(
-                'Measured at design Z',
-                'Y/N ' + BatterCalc.fmt(compareCut.n) + '   X/E ' + BatterCalc.fmt(compareCut.e) + '   Z ' + BatterCalc.fmt(compareCut.z)
-              );
-            }
-            row('Deviation (ΔX, ΔY)', BatterCalc.fmtDeviation(vs), true);
-          }
-          if (vs.hasZ) row('ΔZ cut / fill vs design', BatterCalc.fmtCutFill(vs), true);
-          if (vs.hasIncl) {
-            row(
-              'Inclination vs design',
-              'Measured ' +
-                BatterCalc.fmt(r.angleDeg, 2) +
-                '°  ·  design ' +
-                BatterCalc.fmt(vs.design.inclinationFromVerticalDeg, 2) +
-                '°  ·  Δ ' +
-                BatterCalc.fmt(vs.dInclinationDeg, 2) +
-                '°'
-            );
-          }
-        }
-        if (r.inclination && r.inclination.smartLevelNote) {
-          row('Smart level check', r.inclination.smartLevelNote);
-        }
-        var plotDn = vs.hasXy ? vs.dN : r.dn;
-        var plotDe = vs.hasXy ? vs.dE : r.de;
-        var plotCap = vs.hasXy
-          ? 'Measured cut-off vs design  ·  origin = design'
-          : 'Measured lean from plumb (ΔN / ΔE) — design coords optional';
         var body = document.createElement('div');
         body.className = 'pile-result-card__body';
         body.appendChild(nums);
-        body.appendChild(drawCrosshair(plotDn, plotDe, plotCap));
+        body.appendChild(drawPilePlan(r));
         card.appendChild(body);
       } else {
         row('Status', (r.warnings || ['Need B1–B3 and T1–T3']).join(' · '));
-        if (r.bottom) row('Bottom center (partial)', BatterCalc.fmtCoord(r.bottom));
-        if (r.top) row('Top center (partial)', BatterCalc.fmtCoord(r.top));
       }
 
       host.appendChild(card);
+    });
+  }
+
+  function fmtDeg(n) {
+    if (n == null || !Number.isFinite(n)) return '—';
+    return n.toFixed(1) + '°';
+  }
+
+  function leanMeter(actual, spec, label) {
+    if (actual == null) return '';
+    var max = Math.max(actual, spec != null ? spec : 0, 5);
+    var over = spec != null && actual > spec + 0.05;
+    return (
+      '<div class="vs-meter">' +
+      '<div class="vs-meter__lab">' +
+      label +
+      '</div>' +
+      '<div class="vs-meter__track">' +
+      (spec != null
+        ? '<div class="vs-meter__spec" style="width:' + ((spec / max) * 100).toFixed(1) + '%"></div>'
+        : '') +
+      '<div class="vs-meter__act ' +
+      (over ? 'is-over' : 'is-ok') +
+      '" style="width:' +
+      ((actual / max) * 100).toFixed(1) +
+      '%"></div>' +
+      '</div>' +
+      '<div class="vs-meter__nums">' +
+      actual.toFixed(1) +
+      '°' +
+      (spec != null ? ' / spec ' + spec.toFixed(1) + '°' : '') +
+      '</div></div>'
+    );
+  }
+
+  function renderImuVisual(report) {
+    var host = $('imu-visual');
+    if (!host) return;
+    host.innerHTML = '';
+    (report.rows || []).forEach(function (r) {
+      var wrap = document.createElement('div');
+      wrap.className = 'vs-panel';
+      var vs = r.vsDesign || {};
+      var pileLean = r.angleDeg;
+      var designLean = vs.hasIncl ? vs.design.inclinationFromVerticalDeg : null;
+      var html =
+        '<h3>Rod IMU on each rim shot</h3>' +
+        leanMeter(pileLean, designLean, 'Pile') +
+        (r.csvMeta && r.csvMeta.leanDeg != null
+          ? leanMeter(r.csvMeta.leanDeg, null, 'Pole')
+          : '<p class="muted naming-help">No Pitch/Roll on these shots — export CB / CC.</p>');
+      var shots = (r.csvMeta && r.csvMeta.shots) || [];
+      if (shots.length) {
+        html +=
+          '<table class="qc-table imu-table"><thead><tr>' +
+          '<th>Point</th><th>Target Ht</th><th>Pitch</th><th>Roll</th><th>IMU lean</th></tr></thead><tbody>';
+        shots.forEach(function (s) {
+          html +=
+            '<tr><td>' +
+            (s.name || '—') +
+            '</td><td>' +
+            (s.targetHeight != null ? BatterCalc.fmt(s.targetHeight) : '—') +
+            '</td><td>' +
+            fmtDeg(s.pitchDeg) +
+            '</td><td>' +
+            fmtDeg(s.rollDeg) +
+            '</td><td>' +
+            fmtDeg(s.leanDeg) +
+            (s.inverted ? ' inv' : '') +
+            '</td></tr>';
+        });
+        html += '</tbody></table>';
+      }
+      wrap.innerHTML = html;
+      host.appendChild(wrap);
     });
   }
 
@@ -310,6 +337,7 @@
     $('stat-batter').textContent = BatterCalc.fmtBatter(report.avg.batter);
 
     renderPileCards(report);
+    renderImuVisual(report);
 
     var tbody = $('table-body');
     tbody.innerHTML = '';

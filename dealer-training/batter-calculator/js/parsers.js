@@ -106,12 +106,71 @@ var BatterParsers = (function () {
     if (v == null || v === '') return null;
     var s = String(v)
       .trim()
-      .replace(/°/g, '')
-      .replace(/\u00b0/g, '')
-      .replace(/[^\d.+\-eE]/g, '');
-    if (!s) return null;
+      .replace(/[\u00c2]/g, '')
+      .replace(/[°º]/g, '')
+      .replace(/A\?/g, '')
+      .replace(/[\u2212\u2013\u2014]/g, '-');
+    s = s.replace(/[^\d.+\-eE]/g, '');
+    if (!s || s === '-' || s === '+' || s === '.') return null;
     var n = Number(s);
     return Number.isFinite(n) ? n : null;
+  }
+
+  function leanFromPitchRoll(pitchDeg, rollDeg) {
+    if (pitchDeg == null || rollDeg == null) return null;
+    if (!Number.isFinite(pitchDeg) || !Number.isFinite(rollDeg)) return null;
+    var p = (pitchDeg * Math.PI) / 180;
+    var r = (rollDeg * Math.PI) / 180;
+    var cz = Math.cos(p) * Math.cos(r);
+    if (cz > 1) cz = 1;
+    if (cz < -1) cz = -1;
+    var fromUpright = (Math.acos(cz) * 180) / Math.PI;
+    var inverted = fromUpright > 90;
+    var lean = inverted ? 180 - fromUpright : fromUpright;
+    if (lean < 0) lean = 0;
+    if (lean > 90) lean = 90;
+    return { leanDeg: lean, inverted: inverted, fromUprightDeg: fromUpright };
+  }
+
+  function resolveLean(pitchDeg, rollDeg, tiltAngleDeg) {
+    var imu = leanFromPitchRoll(pitchDeg, rollDeg);
+    if (imu) return imu;
+    if (tiltAngleDeg != null && Number.isFinite(tiltAngleDeg)) {
+      var t = Math.abs(tiltAngleDeg);
+      if (t > 90) t = 180 - t;
+      if (t < 0) t = 0;
+      if (t > 90) t = 90;
+      return { leanDeg: t, inverted: Math.abs(tiltAngleDeg) > 90, fromUprightDeg: Math.abs(tiltAngleDeg) };
+    }
+    return null;
+  }
+
+  function findPitchRollCols(headers) {
+    var iPitch = headerExact(headers, ['Pitch']);
+    var iRoll = headerExact(headers, ['Roll']);
+    if (iPitch < 0) {
+      var lower = headers.map(function (h) { return String(h || '').trim().toLowerCase(); });
+      for (var i = 0; i < lower.length; i++) {
+        if (lower[i] === 'pitch' || lower[i] === 'pitch (°)' || lower[i] === 'pitch (deg)') {
+          iPitch = i;
+          break;
+        }
+      }
+    }
+    if (iRoll < 0) {
+      var lowerR = headers.map(function (h) { return String(h || '').trim().toLowerCase(); });
+      for (var j = 0; j < lowerR.length; j++) {
+        if (lowerR[j] === 'roll' || lowerR[j] === 'roll (°)' || lowerR[j] === 'roll (deg)') {
+          iRoll = j;
+          break;
+        }
+      }
+    }
+    if ((iPitch < 0 || iRoll < 0) && headers.length >= 81) {
+      if (iPitch < 0) iPitch = 79;
+      if (iRoll < 0) iRoll = 80;
+    }
+    return { iPitch: iPitch, iRoll: iRoll };
   }
 
   /**
@@ -195,8 +254,9 @@ var BatterParsers = (function () {
       iZ = headerIndex(headers, ['Elevation', 'Elev', 'Z', 'Height']);
       iTh = headerExact(headers, ['Target Height']);
       iTilt = headerExact(headers, ['Tilt Angle']);
-      iPitch = headerExact(headers, ['Pitch']);
-      iRoll = headerExact(headers, ['Roll']);
+      var pr = findPitchRollCols(headers);
+      iPitch = pr.iPitch;
+      iRoll = pr.iRoll;
       iAuto = headerExact(headers, ['Auto Pole Height']);
       start = 1;
       if (iName < 0 || iN < 0 || iE < 0 || iZ < 0) {
@@ -232,6 +292,10 @@ var BatterParsers = (function () {
         skipped.push(name);
         continue;
       }
+      var pitchDeg = iPitch >= 0 ? parseAngle(cells[iPitch]) : null;
+      var rollDeg = iRoll >= 0 ? parseAngle(cells[iRoll]) : null;
+      var tiltAngleDeg = iTilt >= 0 ? parseAngle(cells[iTilt]) : null;
+      var imu = resolveLean(pitchDeg, rollDeg, tiltAngleDeg);
       points.push({
         name: name,
         n: n,
@@ -240,9 +304,11 @@ var BatterParsers = (function () {
         parsed: parsed,
         source: sourceName,
         targetHeight: iTh >= 0 ? toNum(cells[iTh]) : null,
-        tiltAngleDeg: iTilt >= 0 ? parseAngle(cells[iTilt]) : null,
-        pitchDeg: iPitch >= 0 ? parseAngle(cells[iPitch]) : null,
-        rollDeg: iRoll >= 0 ? parseAngle(cells[iRoll]) : null,
+        tiltAngleDeg: tiltAngleDeg,
+        pitchDeg: pitchDeg,
+        rollDeg: rollDeg,
+        leanDeg: imu ? imu.leanDeg : null,
+        inverted: imu ? imu.inverted : false,
         autoPoleHeight: iAuto >= 0 ? String(cells[iAuto] || '').trim() : '',
       });
     }
@@ -281,5 +347,8 @@ var BatterParsers = (function () {
     parseSiteworksCsv: parseSiteworksCsv,
     loadCsvFiles: loadCsvFiles,
     toNum: toNum,
+    parseAngle: parseAngle,
+    leanFromPitchRoll: leanFromPitchRoll,
+    resolveLean: resolveLean,
   };
 })();

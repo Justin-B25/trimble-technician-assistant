@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=7" />
+  <link rel="stylesheet" href="styles.css?v=8" />
 </head>
 <body class="st30-ex" data-dt-page="st30-top-mount-exercise">
   <header class="tc-app-header">
@@ -29,15 +29,17 @@
   <main class="tc-main st30-main">
     <p class="st30-intro">
       1) Drop a Siteworks CSV with <code>UP0/5/15/30</code> and <code>DOWN0/5/15/30</code>
-      (US Survey Feet → meters). 2) Enter rod height for UP shots and DOWN shots.
-      3) Results are tip deltas vs <code>UP0</code> / <code>DOWN0</code> in <strong>mm</strong>, next to published Top Mount tip specs.
+      (US Survey Feet → meters). Aim for 0°, 5°, 15°, 30° in about 10 minutes — keep those names
+      even if the pole is not exact (no bipod). 2) Enter rod height for UP and DOWN.
+      3) Pitch / Roll (columns CB / CC) become IMU lean. Spec is evaluated at that lean, not the named 5/15/30.
+      Inverted (ST30 toward the ground): Pitch/Roll near 180°, folding toward 0° as the inverted pole is plumb.
     </p>
 
     <section class="card">
       <h2>1 · Siteworks CSV</h2>
       <div class="dropzone" id="dz-csv">
         <h3>Drop tip-table CSV here</h3>
-        <p>Point Name, Northing, Easting, Elevation · names UP0…UP30 and DOWN0…DOWN30</p>
+        <p>Needs Point Name, N/E/Z, plus Pitch and Roll (CB / CC). Names UP0…UP30 and DOWN0…DOWN30.</p>
         <input id="file-csv" type="file" accept=".csv,text/csv,text/plain" multiple />
         <ul class="file-list" id="list-csv"></ul>
       </div>
@@ -147,13 +149,14 @@
           <table class="qc-table">
             <thead>
               <tr>
-                <th>Tilt</th>
+                <th>Named</th>
+                <th>IMU lean</th>
                 <th>Point</th>
                 <th>Horiz mm</th>
                 <th>Spec XY</th>
                 <th>|ΔZ| mm</th>
                 <th>Spec Z</th>
-                <th>vs advertised</th>
+                <th>actual vs spec</th>
               </tr>
             </thead>
             <tbody id="tbody-down"></tbody>
@@ -167,13 +170,14 @@
           <table class="qc-table">
             <thead>
               <tr>
-                <th>Tilt</th>
+                <th>Named</th>
+                <th>IMU lean</th>
                 <th>Point</th>
                 <th>Horiz mm</th>
                 <th>Spec XY</th>
                 <th>|ΔZ| mm</th>
                 <th>Spec Z</th>
-                <th>vs advertised</th>
+                <th>actual vs spec</th>
               </tr>
             </thead>
             <tbody id="tbody-up"></tbody>
@@ -200,9 +204,17 @@
           </table>
         </div>
         <p class="muted naming-help" style="margin:8px 0 0">
-          Horiz Δ mm is the 2D distance between the UP shot and the DOWN shot at that same tilt
+          Horiz Δ mm is the 2D distance between the UP shot and the DOWN shot at that same named tilt
           (√(ΔN² + ΔE²)). It is not a tip-spec check — it shows how close the two orientations landed.
         </p>
+      </section>
+
+      <section class="card">
+        <h2>Actual vs spec (IMU lean)</h2>
+        <p class="muted naming-help" style="margin:-4px 0 10px">
+          Blue = advertised budget at the measured IMU lean. Fill = measured tip delta (green in spec, orange over).
+        </p>
+        <div class="vs-grid" id="vs-visual"></div>
       </section>
     </div>
   </main>
@@ -215,9 +227,9 @@
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
-  <script src="js/parsers.js?v=15"></script>
-  <script src="js/calc.js?v=15"></script>
-  <script src="js/pdf.js?v=13"></script>
-  <script src="js/app.js?v=15"></script>
+  <script src="js/parsers.js?v=16"></script>
+  <script src="js/calc.js?v=16"></script>
+  <script src="js/pdf.js?v=14"></script>
+  <script src="js/app.js?v=16"></script>
 </body>
 </html>
