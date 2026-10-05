@@ -69,9 +69,40 @@ var BatterCalc = (function () {
     return 'leans ' + ew;
   }
 
-  function chordOdEstimate(pts) {
+  /**
+   * Plan circle through 3 rim shots (circumcenter). Does not assume 120° spacing.
+   * Averaging N/E only equals the true center when the shots are equally spaced.
+   */
+  function circumFit(pts) {
     if (!pts || pts.length < 3) return null;
-    // mean of pairwise plan distances ≈ chord of 120° on circle → OD = chord / (√3/2) = chord * 2/√3
+    var a = pts[0];
+    var b = pts[1];
+    var c = pts[2];
+    var D = 2 * (a.n * (b.e - c.e) + b.n * (c.e - a.e) + c.n * (a.e - b.e));
+    if (!Number.isFinite(D) || Math.abs(D) < 1e-10) {
+      return { ok: false, reason: 'rim shots nearly collinear' };
+    }
+    var n =
+      ((a.n * a.n + a.e * a.e) * (b.e - c.e) +
+        (b.n * b.n + b.e * b.e) * (c.e - a.e) +
+        (c.n * c.n + c.e * c.e) * (a.e - b.e)) /
+      D;
+    var e =
+      ((a.n * a.n + a.e * a.e) * (c.n - b.n) +
+        (b.n * b.n + b.e * b.e) * (a.n - c.n) +
+        (c.n * c.n + c.e * c.e) * (b.n - a.n)) /
+      D;
+    if (!Number.isFinite(n) || !Number.isFinite(e)) return { ok: false, reason: 'could not fit rim circle' };
+    var r = Math.sqrt((n - a.n) * (n - a.n) + (e - a.e) * (e - a.e));
+    var z = (a.z + b.z + c.z) / 3;
+    return { ok: true, n: n, e: e, z: z, r: r, od: 2 * r, count: 3 };
+  }
+
+  function chordOdEstimate(pts) {
+    var fit = circumFit(pts);
+    if (fit && fit.ok) return { meanChord: null, od: fit.od, method: 'circumcircle' };
+    if (!pts || pts.length < 3) return null;
+    // Fallback if points are nearly collinear: old 120° chord mean
     var chords = [];
     for (var i = 0; i < pts.length; i++) {
       for (var j = i + 1; j < pts.length; j++) {
@@ -83,7 +114,7 @@ var BatterCalc = (function () {
     for (var k = 0; k < chords.length; k++) sum += chords[k];
     var meanChord = sum / chords.length;
     var od = meanChord * (2 / Math.sqrt(3));
-    return { meanChord: meanChord, od: od };
+    return { meanChord: meanChord, od: od, method: 'chord120' };
   }
 
   function groupByPile(points) {
@@ -128,8 +159,16 @@ var BatterCalc = (function () {
     if (missingB.length) warnings.push('Missing bottom: B' + missingB.join(', B'));
     if (missingT.length) warnings.push('Missing top: T' + missingT.join(', T'));
 
-    var bottom = avgPts(bPts);
-    var top = avgPts(tPts);
+    var botFit = circumFit(bPts);
+    var topFit = circumFit(tPts);
+    var bottom = botFit && botFit.ok ? { n: botFit.n, e: botFit.e, z: botFit.z, count: 3 } : avgPts(bPts);
+    var top = topFit && topFit.ok ? { n: topFit.n, e: topFit.e, z: topFit.z, count: 3 } : avgPts(tPts);
+    if (bPts.length === 3 && !(botFit && botFit.ok)) {
+      warnings.push('Bottom rim: ' + (botFit && botFit.reason ? botFit.reason : 'used average, not circle fit'));
+    }
+    if (tPts.length === 3 && !(topFit && topFit.ok)) {
+      warnings.push('Top rim: ' + (topFit && topFit.reason ? topFit.reason : 'used average, not circle fit'));
+    }
     if (!bottom || !top || bPts.length < 3 || tPts.length < 3) {
       return {
         pileId: pile.pileId,
@@ -179,12 +218,12 @@ var BatterCalc = (function () {
       fromHorizontalDeg: inclineFromHorizontalDeg,
       smartLevelAlongPileDeg: inclineFromHorizontalDeg,
       smartLevelNote:
-        inclineFromHorizontalDeg != null
-          ? 'Place smart level along the tube. Expect ' +
-            inclineFromHorizontalDeg.toFixed(2) +
-            '° from horizontal (or ' +
+        angleDeg != null
+          ? 'Smart level on the tube vs plumb: expect ' +
             angleDeg.toFixed(2) +
-            '° from vertical/plumb).'
+            '° from vertical  (that is ' +
+            inclineFromHorizontalDeg.toFixed(2) +
+            '° from horizontal).'
           : 'Need ΔZ to compute inclination',
     };
 
@@ -475,9 +514,9 @@ var BatterCalc = (function () {
     if (!r || r.angleDeg == null) return '—';
     return (
       r.angleDeg.toFixed(2) +
-      '° from vertical  ·  smart level along pile: ' +
+      '° from vertical  ·  (' +
       r.inclineFromHorizontalDeg.toFixed(2) +
-      '° from horizontal'
+      '° from horizontal)'
     );
   }
 
