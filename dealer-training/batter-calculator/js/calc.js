@@ -498,6 +498,20 @@ var BatterCalc = (function () {
     return line;
   }
 
+  function fmtOd(est) {
+    if (!est || est.od == null || !Number.isFinite(est.od)) return '—';
+    var ft = est.od;
+    var inches = ft * 12;
+    return fmt(ft, 3) + ' US ft  (' + inches.toFixed(1) + ' in)  ·  tape check';
+  }
+
+  function fmtOdPair(bottomOd, topOd) {
+    var b = fmtOd(bottomOd);
+    var t = fmtOd(topOd);
+    if (b === '—' && t === '—') return 'Need 3 rim shots at ~120° to estimate OD';
+    return 'Bottom ' + b + '   ·   Top ' + t;
+  }
+
   return {
     buildReport: buildReport,
     computePile: computePile,
@@ -512,6 +526,8 @@ var BatterCalc = (function () {
     fmtAzimuth: fmtAzimuth,
     fmtDeviation: fmtDeviation,
     fmtCutFill: fmtCutFill,
+    fmtOd: fmtOd,
+    fmtOdPair: fmtOdPair,
     rowsToCsv: rowsToCsv,
   };
 })();

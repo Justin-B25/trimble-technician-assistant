@@ -217,6 +217,7 @@
         );
         row('Bottom of pile center', BatterCalc.fmtCoord(r.bottom));
         row('Top of pile center', BatterCalc.fmtCoord(r.top));
+        row('Estimated pile OD (tape check)', BatterCalc.fmtOdPair(r.bottomOd, r.topOd), true);
         row('Batter angle (inclination)', BatterCalc.fmtInclination(r), true);
         row(
           'Azimuth (lean direction)',
@@ -450,8 +451,8 @@
   function exportPdf() {
     if (!state.report) return;
     BatterPdf.open(state.report, {
-      job: $('job-name').value.trim(),
-      notes: $('job-notes').value.trim(),
+      job: '',
+      notes: '',
       date: new Date().toLocaleString(),
       design: readDesign(),
     });
