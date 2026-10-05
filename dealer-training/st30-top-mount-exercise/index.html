@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <link rel="stylesheet" href="styles.css?v=7" />
 </head>
 <body class="st30-ex" data-dt-page="st30-top-mount-exercise">
   <header class="tc-app-header">
@@ -83,7 +83,8 @@
       </div>
       <p class="muted naming-help" style="margin:8px 0 0">
         Tip-spec row = nearest published height (0.2 m Top Mount · 1.6 m · 2.0 m).
-        Example: 5.070 US ft ≈ 1.545 m → <strong>1.6 m</strong> row; 0.145 m → <strong>0.2 m Top Mount</strong> row.
+        Example: 5.070 US ft ≈ 1.545 m → <strong>1.6 m</strong> formula;
+        0.145 m → <strong>0.2 m Top Mount</strong> formula.
       </p>
       <div class="actions actions-compute">
         <button type="button" class="btn btn-primary btn-compute" id="btn-compute">Compute tip results</button>
@@ -94,47 +95,38 @@
     </section>
 
     <section class="card spec-card">
-      <h2>Advertised tip specs (Top Mount Accuracy slide)</h2>
+      <h2>What the advertised spec means</h2>
       <p class="st30-intro" style="margin-top:-4px">
-        Estimated tilt-correction point precision (XY | Z) in mm — same values as the product slide.
-        Your active row for UP / DOWN is highlighted after you enter rod heights.
+        Optical TIP tilt error is a <strong>budget</strong>, not a mystery number:
+        <code>spec = TS + constant + (mm per °tilt × tilt°)</code>.
+        This lab compares each tilt to your own 0° shot, so the total station (TS) is the same on every shot — leave TS at 0.
       </p>
-      <div class="table-wrap">
-        <table class="qc-table spec-table" id="spec-table">
-          <thead>
-            <tr>
-              <th>Rod height</th>
-              <th>5° (XY | Z)</th>
-              <th>15° (XY | Z)</th>
-              <th>30° (XY | Z)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr data-height="0.2">
-              <td>0.2 m (Top Mount Accessory)</td>
-              <td>0 | 1</td>
-              <td>1 | 1</td>
-              <td>1 | 1</td>
-            </tr>
-            <tr data-height="1.6">
-              <td>1.6 m</td>
-              <td>3 | 1</td>
-              <td>5 | 1</td>
-              <td>8 | 2</td>
-            </tr>
-            <tr data-height="2.0">
-              <td>2.0 m</td>
-              <td>4 | 1</td>
-              <td>7 | 1</td>
-              <td>11 | 3</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="formula-grid" id="formula-grid">
+        <article class="formula-card" data-height="0.2">
+          <h3>0.2 m Top Mount</h3>
+          <p class="formula-line">XY: TS + <strong>1 mm</strong> + <strong>0.1 mm/°</strong> × tilt</p>
+          <p class="formula-line">Z: TS + <strong>1 mm</strong> + <strong>0.1 mm/°</strong> × tilt</p>
+        </article>
+        <article class="formula-card" data-height="1.6">
+          <h3>1.6 m rod</h3>
+          <p class="formula-line">XY: TS + <strong>2 mm</strong> + <strong>0.3 mm/°</strong> × tilt</p>
+          <p class="formula-line">Z: TS + <strong>1 mm</strong> + <strong>0.1 mm/°</strong> × tilt</p>
+        </article>
+        <article class="formula-card" data-height="2.0">
+          <h3>2.0 m rod</h3>
+          <p class="formula-line">XY: TS + <strong>2.5 mm</strong> + <strong>0.3 mm/°</strong> × tilt</p>
+          <p class="formula-line">Z: TS + <strong>1 mm</strong> + <strong>0.1 mm/°</strong> × tilt</p>
+        </article>
+      </div>
+      <div class="ts-row">
+        <label class="muted" for="ts-mm">TS (total station) mm — leave 0 for this lab</label>
+        <input id="ts-mm" type="number" step="0.1" min="0" value="0" />
       </div>
       <p class="spec-legend">
         <span class="chip chip-a" id="chip-a">UP → —</span>
         <span class="chip chip-b" id="chip-b">DOWN → —</span>
       </p>
+      <div class="worked-grid" id="spec-worked"></div>
     </section>
 
     <div id="alert" class="alert hidden"></div>
@@ -223,9 +215,9 @@
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
-  <script src="js/parsers.js?v=14"></script>
-  <script src="js/calc.js?v=14"></script>
-  <script src="js/pdf.js?v=12"></script>
-  <script src="js/app.js?v=14"></script>
+  <script src="js/parsers.js?v=15"></script>
+  <script src="js/calc.js?v=15"></script>
+  <script src="js/pdf.js?v=13"></script>
+  <script src="js/app.js?v=15"></script>
 </body>
 </html>

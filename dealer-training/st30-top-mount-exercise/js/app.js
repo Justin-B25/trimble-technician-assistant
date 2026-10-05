@@ -70,15 +70,15 @@
     var bits = [];
     var cls = 'ok';
     if (check.passXY) {
-      bits.push('XY ' + check.horizMm.toFixed(1) + ' ≤ ' + check.specXY);
+      bits.push('XY ' + check.horizMm.toFixed(1) + ' ≤ ' + check.specXY.toFixed(1));
     } else {
-      bits.push('XY ' + check.horizMm.toFixed(1) + ' > ' + check.specXY);
+      bits.push('XY ' + check.horizMm.toFixed(1) + ' > ' + check.specXY.toFixed(1));
       cls = 'bad';
     }
     if (check.passZ) {
-      bits.push('Z ' + check.zMm.toFixed(1) + ' ≤ ' + check.specZ);
+      bits.push('Z ' + check.zMm.toFixed(1) + ' ≤ ' + check.specZ.toFixed(1));
     } else {
-      bits.push('Z ' + check.zMm.toFixed(1) + ' > ' + check.specZ);
+      bits.push('Z ' + check.zMm.toFixed(1) + ' > ' + check.specZ.toFixed(1));
       cls = 'bad';
     }
     return { text: bits.join(' · '), cls: cls };
@@ -102,9 +102,9 @@
       td(r.tiltLabel);
       td(r.pointName);
       td(TipDevCalc.fmtMm(horiz), r.check ? (r.check.passXY || r.tilt === 0 ? 'ok' : 'bad') : 'delta');
-      td(r.check ? String(r.check.specXY) : '—');
+      td(r.check ? r.check.specXY.toFixed(1) : '—');
       td(TipDevCalc.fmtMm(absZ), r.check ? (r.check.passZ || r.tilt === 0 ? 'ok' : 'bad') : '');
-      td(r.check ? String(r.check.specZ) : '—');
+      td(r.check ? r.check.specZ.toFixed(1) : '—');
       td(vs.text, vs.cls);
       tbody.appendChild(tr);
     });
@@ -134,19 +134,20 @@
   }
 
   function highlightSpecRows(report) {
-    var table = $('spec-table');
-    if (!table) return;
-    var hA = report && report.rodA && report.rodA.specRow ? report.rodA.specRow.heightM : null;
-    var hB = report && report.rodB && report.rodB.specRow ? report.rodB.specRow.heightM : null;
-    Array.prototype.forEach.call(table.querySelectorAll('tbody tr'), function (tr) {
-      var h = Number(tr.getAttribute('data-height'));
-      tr.classList.remove('is-up', 'is-down', 'is-both');
-      var matchA = hA != null && Math.abs(h - hA) < 0.001;
-      var matchB = hB != null && Math.abs(h - hB) < 0.001;
-      if (matchA && matchB) tr.classList.add('is-both');
-      else if (matchA) tr.classList.add('is-up');
-      else if (matchB) tr.classList.add('is-down');
-    });
+    var grid = $('formula-grid');
+    if (grid) {
+      var hA = report && report.rodA && report.rodA.specRow ? report.rodA.specRow.heightM : null;
+      var hB = report && report.rodB && report.rodB.specRow ? report.rodB.specRow.heightM : null;
+      Array.prototype.forEach.call(grid.querySelectorAll('.formula-card'), function (el) {
+        var h = Number(el.getAttribute('data-height'));
+        el.classList.remove('is-up', 'is-down', 'is-both');
+        var matchA = hA != null && Math.abs(h - hA) < 0.001;
+        var matchB = hB != null && Math.abs(h - hB) < 0.001;
+        if (matchA && matchB) el.classList.add('is-both');
+        else if (matchA) el.classList.add('is-up');
+        else if (matchB) el.classList.add('is-down');
+      });
+    }
     if ($('chip-a')) {
       $('chip-a').textContent = report && report.rodA
         ? 'UP → ' + TipDevCalc.fmt(report.rodA.rodHeightM, 3) + ' m · ' + report.rodA.specRow.label
@@ -157,6 +158,79 @@
         ? 'DOWN → ' + TipDevCalc.fmt(report.rodB.rodHeightM, 3) + ' m · ' + report.rodB.specRow.label
         : 'DOWN → —';
     }
+    renderWorkedExamples(report);
+  }
+
+  function barHtml(budget, axis) {
+    if (!budget) return '';
+    var ts = budget.tsMm;
+    var c = axis === 'z' ? budget.zConst : budget.xyConst;
+    var t = axis === 'z' ? budget.zTilt : budget.xyTilt;
+    var total = axis === 'z' ? budget.specZ : budget.specXY;
+    var max = Math.max(total, 1);
+    function w(v) {
+      return ((v / max) * 100).toFixed(1) + '%';
+    }
+    return (
+      '<div class="spec-bar" title="' +
+      (axis === 'z' ? budget.formulaZ : budget.formulaXY) +
+      '">' +
+      (ts > 0 ? '<span class="seg seg-ts" style="width:' + w(ts) + '">TS ' + ts.toFixed(1) + '</span>' : '') +
+      '<span class="seg seg-const" style="width:' + w(c) + '">' + c + ' mm</span>' +
+      '<span class="seg seg-tilt" style="width:' + w(t) + '">' + t.toFixed(1) + ' mm tilt</span>' +
+      '<span class="seg-total">' +
+      total.toFixed(1) +
+      ' mm</span></div>'
+    );
+  }
+
+  function workedPanel(title, rod, cls) {
+    if (!rod || !rod.specRow) return '';
+    var ts = Number($('ts-mm') && $('ts-mm').value) || 0;
+    var rows = [5, 15, 30]
+      .map(function (tilt) {
+        var b = TipDevCalc.specBudget(rod.specRow, tilt, ts);
+        return (
+          '<div class="worked-tilt">' +
+          '<div class="worked-tilt__label">' +
+          tilt +
+          '°</div>' +
+          '<div class="worked-tilt__bars">' +
+          '<div class="worked-axis">XY ' +
+          barHtml(b, 'xy') +
+          '</div>' +
+          '<div class="worked-axis">Z ' +
+          barHtml(b, 'z') +
+          '</div>' +
+          '</div></div>'
+        );
+      })
+      .join('');
+    var ex = TipDevCalc.specBudget(rod.specRow, 15, ts);
+    return (
+      '<div class="worked-panel ' +
+      cls +
+      '"><h3>' +
+      title +
+      ' · ' +
+      rod.specRow.label +
+      '</h3>' +
+      '<p class="worked-ex">Example at 15° XY: ' +
+      ex.formulaXY +
+      ' = <strong>' +
+      ex.specXY.toFixed(1) +
+      ' mm</strong></p>' +
+      rows +
+      '</div>'
+    );
+  }
+
+  function renderWorkedExamples(report) {
+    var host = $('spec-worked');
+    if (!host) return;
+    var rodA = report && report.rodA;
+    var rodB = report && report.rodB;
+    host.innerHTML = workedPanel('UP shots', rodA, 'worked-up') + workedPanel('DOWN shots', rodB, 'worked-down');
   }
 
   function updateSpecChipsFromForm() {
@@ -226,6 +300,7 @@
       rodHeightB: $('rod-height-b').value,
       rodUnitB: $('rod-unit-b').value,
       coordUnit: $('coord-unit').value,
+      tsMm: $('ts-mm') ? $('ts-mm').value : 0,
       useCsvRodHeight: false,
     };
   }
@@ -297,7 +372,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     wireDropzone();
     // Rod / unit edits only refresh the tip-spec highlight — press Compute for results
-    ['rod-height-a', 'rod-unit-a', 'rod-height-b', 'rod-unit-b', 'coord-unit'].forEach(function (id) {
+    ['rod-height-a', 'rod-unit-a', 'rod-height-b', 'rod-unit-b', 'coord-unit', 'ts-mm'].forEach(function (id) {
       if (!$(id)) return;
       $(id).addEventListener('input', updateSpecChipsFromForm);
       $(id).addEventListener('change', updateSpecChipsFromForm);

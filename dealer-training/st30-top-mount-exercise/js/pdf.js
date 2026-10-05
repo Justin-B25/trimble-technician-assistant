@@ -54,12 +54,12 @@ var TipDevPdf = (function () {
         '<td>' +
         fmtMm(horiz) +
         '</td><td>' +
-        (r.check ? r.check.specXY : '—') +
+        (r.check ? r.check.specXY.toFixed(1) : '—') +
         '</td>' +
         '<td>' +
         fmtMm(absZ) +
         '</td><td>' +
-        (r.check ? r.check.specZ : '—') +
+        (r.check ? r.check.specZ.toFixed(1) : '—') +
         '</td>' +
         '<td>' +
         esc(vs) +
@@ -97,12 +97,37 @@ var TipDevPdf = (function () {
   }
 
   function specBlock(report) {
+    function cell(row, tilt) {
+      var b = TipDevCalc.specBudget(row, tilt, report.tsMm || 0);
+      return b.specXY.toFixed(1) + ' | ' + b.specZ.toFixed(1);
+    }
     return (
-      '<h3>Advertised tip specs (XY | Z mm)</h3>' +
-      '<table class="data"><thead><tr><th>Rod height</th><th>5°</th><th>15°</th><th>30°</th></tr></thead><tbody>' +
-      '<tr><td>0.2 m Top Mount Accessory</td><td>0 | 1</td><td>1 | 1</td><td>1 | 1</td></tr>' +
-      '<tr><td>1.6 m</td><td>3 | 1</td><td>5 | 1</td><td>8 | 2</td></tr>' +
-      '<tr><td>2.0 m</td><td>4 | 1</td><td>7 | 1</td><td>11 | 3</td></tr>' +
+      '<h3>Optical TIP formula (mm)</h3>' +
+      '<p class="sub">spec = TS + constant + (mm/°tilt × tilt). TS in this report = ' +
+      (report.tsMm != null ? Number(report.tsMm).toFixed(1) : '0.0') +
+      ' mm.</p>' +
+      '<table class="data"><thead><tr><th>Rod height</th><th>Formula XY / Z</th><th>5°</th><th>15°</th><th>30°</th></tr></thead><tbody>' +
+      TipDevCalc.TIP_SPECS.map(function (row) {
+        return (
+          '<tr><td>' +
+          esc(row.label) +
+          '</td><td>XY TS+' +
+          row.xyConst +
+          '+' +
+          row.xyPerDeg +
+          '×° &nbsp; Z TS+' +
+          row.zConst +
+          '+' +
+          row.zPerDeg +
+          '×°</td><td>' +
+          cell(row, 5) +
+          '</td><td>' +
+          cell(row, 15) +
+          '</td><td>' +
+          cell(row, 30) +
+          '</td></tr>'
+        );
+      }).join('') +
       '</tbody></table>' +
       '<p class="sub">Active: UP → ' +
       esc(report.rodA ? report.rodA.specRow.label : '—') +

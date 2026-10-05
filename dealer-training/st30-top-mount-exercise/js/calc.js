@@ -3,12 +3,79 @@
  */
 var TipDevCalc = (function () {
   var TILTS = [0, 5, 15, 30];
-  // Top Mount Accuracy slide — Estimated Tilt Correction Point Precision (XY | Z) mm
+  /**
+   * Optical TIP tilt specs from Top Mount Accuracy slide:
+   *   Error = TS + constant + (mm per °tilt × tilt°)
+   * Lab compare is vs UP0/DOWN0 (same instrument) so TS defaults to 0.
+   */
   var TIP_SPECS = [
-    { heightM: 0.2, label: '0.2 m Top Mount Accessory', specs: { 0: [0, 0], 5: [0, 1], 15: [1, 1], 30: [1, 1] } },
-    { heightM: 1.6, label: '1.6 m', specs: { 0: [0, 0], 5: [3, 1], 15: [5, 1], 30: [8, 2] } },
-    { heightM: 2.0, label: '2.0 m', specs: { 0: [0, 0], 5: [4, 1], 15: [7, 1], 30: [11, 3] } },
+    {
+      heightM: 0.2,
+      label: '0.2 m Top Mount Accessory',
+      xyConst: 1,
+      xyPerDeg: 0.1,
+      zConst: 1,
+      zPerDeg: 0.1,
+    },
+    {
+      heightM: 1.6,
+      label: '1.6 m',
+      xyConst: 2,
+      xyPerDeg: 0.3,
+      zConst: 1,
+      zPerDeg: 0.1,
+    },
+    {
+      heightM: 2.0,
+      label: '2.0 m',
+      xyConst: 2.5,
+      xyPerDeg: 0.3,
+      zConst: 1,
+      zPerDeg: 0.1,
+    },
   ];
+
+  function specBudget(row, tiltDeg, tsMm) {
+    if (!row) return null;
+    var tilt = Number(tiltDeg) || 0;
+    var ts = Number(tsMm);
+    if (!Number.isFinite(ts) || ts < 0) ts = 0;
+    var xyTilt = row.xyPerDeg * tilt;
+    var zTilt = row.zPerDeg * tilt;
+    return {
+      row: row,
+      tilt: tilt,
+      tsMm: ts,
+      xyConst: row.xyConst,
+      zConst: row.zConst,
+      xyPerDeg: row.xyPerDeg,
+      zPerDeg: row.zPerDeg,
+      xyTilt: xyTilt,
+      zTilt: zTilt,
+      specXY: ts + row.xyConst + xyTilt,
+      specZ: ts + row.zConst + zTilt,
+      formulaXY:
+        'TS ' +
+        ts.toFixed(1) +
+        ' + ' +
+        row.xyConst +
+        ' + ' +
+        row.xyPerDeg +
+        '×' +
+        tilt +
+        '°',
+      formulaZ:
+        'TS ' +
+        ts.toFixed(1) +
+        ' + ' +
+        row.zConst +
+        ' + ' +
+        row.zPerDeg +
+        '×' +
+        tilt +
+        '°',
+    };
+  }
 
   function delta(meas, bench) {
     if (!meas || !bench) return null;
@@ -92,21 +159,22 @@ var TipDevCalc = (function () {
     return best;
   }
 
-  /** d is already in meters. Specs are mm. */
-  function passCheck(d, tilt, specRow) {
+  /** d is already in meters. Specs are mm from the TIP formula. */
+  function passCheck(d, tilt, specRow, tsMm) {
     if (!d || !specRow) return null;
-    var sp = specRow.specs[tilt];
-    if (!sp) return null;
+    var b = specBudget(specRow, tilt, tsMm);
+    if (!b) return null;
     var horizMm = d.horiz * 1000;
     var zMm = Math.abs(d.dz) * 1000;
     return {
-      passXY: horizMm <= sp[0] + 0.5,
-      passZ: zMm <= sp[1] + 0.5,
-      pass: horizMm <= sp[0] + 0.5 && zMm <= sp[1] + 0.5,
-      specXY: sp[0],
-      specZ: sp[1],
+      passXY: horizMm <= b.specXY,
+      passZ: zMm <= b.specZ,
+      pass: horizMm <= b.specXY && zMm <= b.specZ,
+      specXY: b.specXY,
+      specZ: b.specZ,
       horizMm: horizMm,
       zMm: zMm,
+      budget: b,
     };
   }
 
@@ -163,7 +231,7 @@ var TipDevCalc = (function () {
     };
   }
 
-  function buildActivityRows(shots, bench, label, specRow) {
+  function buildActivityRows(shots, bench, label, specRow, tsMm) {
     return TILTS.map(function (tilt) {
       var shot = shots[tilt] || null;
       var isOrigin = tilt === 0 && shot && bench && shot === bench;
@@ -179,7 +247,7 @@ var TipDevCalc = (function () {
         tiltAngleDeg: shot && shot.tiltAngleDeg != null ? shot.tiltAngleDeg : null,
         pitchDeg: shot && shot.pitchDeg != null ? shot.pitchDeg : null,
         rollDeg: shot && shot.rollDeg != null ? shot.rollDeg : null,
-        check: d ? passCheck(d, tilt, specRow) : null,
+        check: d ? passCheck(d, tilt, specRow, tsMm) : null,
       };
     });
   }
@@ -244,11 +312,11 @@ var TipDevCalc = (function () {
             '° horiz ' +
             row.check.horizMm.toFixed(1) +
             ' mm (spec ' +
-            row.check.specXY +
+            row.check.specXY.toFixed(1) +
             ') / |ΔZ| ' +
             row.check.zMm.toFixed(1) +
             ' mm (spec ' +
-            row.check.specZ +
+            row.check.specZ.toFixed(1) +
             ')'
         );
       }
@@ -397,24 +465,32 @@ var TipDevCalc = (function () {
       'DOWN shots'
     );
 
+    var tsMm = Number(opts.tsMm);
+    if (!Number.isFinite(tsMm) || tsMm < 0) tsMm = 0;
+
     warnings.push(
-      'UP rod ' + rodA.rodHeightM.toFixed(3) + ' m → tip-spec ' + rodA.specRow.label
+      'UP rod ' + rodA.rodHeightM.toFixed(3) + ' m → ' + rodA.specRow.label +
+        '  (XY = TS + ' + rodA.specRow.xyConst + ' + ' + rodA.specRow.xyPerDeg + ' mm/°tilt)'
     );
     warnings.push(
-      'DOWN rod ' + rodB.rodHeightM.toFixed(3) + ' m → tip-spec ' + rodB.specRow.label
+      'DOWN rod ' + rodB.rodHeightM.toFixed(3) + ' m → ' + rodB.specRow.label +
+        '  (XY = TS + ' + rodB.specRow.xyConst + ' + ' + rodB.specRow.xyPerDeg + ' mm/°tilt)'
     );
+    warnings.push('TS in this lab = ' + tsMm.toFixed(1) + ' mm (0 = vs your own 0° shot; instrument cancels).');
 
     var tipDown = buildActivityRows(
       indexed.activityA,
       indexed.benchA,
       'Tip DOWN (Activity A)',
-      rodA.specRow
+      rodA.specRow,
+      tsMm
     );
     var tipUp = buildActivityRows(
       indexed.activityB,
       indexed.benchB,
       'Tip UP (Activity B)',
-      rodB.specRow
+      rodB.specRow,
+      tsMm
     );
     var compare = buildCompareRows(indexed.activityA, indexed.activityB);
     var debrief = buildDebrief(tipDown, tipUp);
@@ -432,6 +508,7 @@ var TipDevCalc = (function () {
       specRow: rodA.specRow,
       specRowA: rodA.specRow,
       specRowB: rodB.specRow,
+      tsMm: tsMm,
       csvUnit: csvUnit.id,
       csvUnitLabel: csvUnit.label,
       coordUnit: 'm',
@@ -512,6 +589,7 @@ var TipDevCalc = (function () {
     buildReport: buildReport,
     buildDebrief: buildDebrief,
     pickSpecRow: pickSpecRow,
+    specBudget: specBudget,
     toMeters: toMetersPositive,
     coordUnitInfo: coordUnitInfo,
     pointsToMeters: pointsToMeters,

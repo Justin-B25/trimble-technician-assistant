@@ -10,14 +10,38 @@
 @media (max-width: 1100px) { .st30-ex .rod-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 900px) { .st30-ex .job-grid { grid-template-columns: 1fr 1fr; } }
 .st30-ex .h2-meta { font-size: 12px; font-weight: 600; color: var(--tc-grey-600,#6a6e79); text-transform: none; letter-spacing: 0; margin-left: 8px; }
-.st30-ex .spec-card .spec-table td { color: #1a1a1a; background: #fff; }
-.st30-ex .spec-card .spec-table tr.is-up td { background: #e8f5e9; color: #1b5e20; }
-.st30-ex .spec-card .spec-table tr.is-down td { background: #e3f2fd; color: #0d47a1; }
-.st30-ex .spec-card .spec-table tr.is-both td { background: #fff3e0; color: #e65100; }
-[data-theme="dark"] .st30-ex .spec-card .spec-table td { background: #2a3038; color: #e8eaed; }
-[data-theme="dark"] .st30-ex .spec-card .spec-table tr.is-up td { background: #1b5e20; color: #e8f5e9; }
-[data-theme="dark"] .st30-ex .spec-card .spec-table tr.is-down td { background: #0d47a1; color: #e3f2fd; }
-[data-theme="dark"] .st30-ex .spec-card .spec-table tr.is-both td { background: #e65100; color: #fff8e1; }
+.st30-ex .formula-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 10px 0 12px; }
+@media (max-width: 900px) { .st30-ex .formula-grid { grid-template-columns: 1fr; } }
+.st30-ex .formula-card { border: 1px solid var(--tc-grey-300,#e0e1e9); border-radius: 8px; padding: 12px; background: var(--tc-surface,#fff); color: var(--tc-text,#252a2e); }
+.st30-ex .formula-card h3 { margin: 0 0 8px; font-size: 13px; color: var(--tc-blue,#005f9e); }
+.st30-ex .formula-line { margin: 0 0 4px; font-size: 13px; line-height: 1.4; }
+.st30-ex .formula-card.is-up { border-color: #2e7d32; background: #e8f5e9; }
+.st30-ex .formula-card.is-down { border-color: #1565c0; background: #e3f2fd; }
+.st30-ex .formula-card.is-both { border-color: #ef6c00; background: #fff3e0; }
+[data-theme="dark"] .st30-ex .formula-card { background: #2a3038; color: #e8eaed; border-color: #3a4250; }
+[data-theme="dark"] .st30-ex .formula-card h3 { color: #7ec8f0; }
+[data-theme="dark"] .st30-ex .formula-card.is-up { background: #1b5e20; color: #e8f5e9; }
+[data-theme="dark"] .st30-ex .formula-card.is-down { background: #0d47a1; color: #e3f2fd; }
+[data-theme="dark"] .st30-ex .formula-card.is-both { background: #e65100; color: #fff8e1; }
+.st30-ex .ts-row { max-width: 280px; margin: 8px 0 12px; }
+.st30-ex .worked-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+@media (max-width: 900px) { .st30-ex .worked-grid { grid-template-columns: 1fr; } }
+.st30-ex .worked-panel { border: 1px solid var(--tc-grey-300,#e0e1e9); border-radius: 8px; padding: 10px 12px; background: var(--tc-surface,#fff); }
+.st30-ex .worked-panel h3 { margin: 0 0 6px; }
+.st30-ex .worked-ex { font-size: 12px; margin: 0 0 10px; color: var(--tc-grey-600,#6a6e79); }
+.st30-ex .worked-tilt { display: grid; grid-template-columns: 36px 1fr; gap: 8px; align-items: start; margin-bottom: 8px; }
+.st30-ex .worked-tilt__label { font-weight: 800; font-size: 13px; padding-top: 4px; }
+.st30-ex .worked-axis { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+.st30-ex .spec-bar { display: flex; align-items: stretch; height: 22px; border-radius: 4px; overflow: hidden; background: #eceff1; margin-top: 2px; position: relative; }
+.st30-ex .spec-bar .seg { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; min-width: 0; overflow: hidden; white-space: nowrap; }
+.st30-ex .seg-ts { background: #90a4ae; color: #102027; }
+.st30-ex .seg-const { background: #005f9e; color: #fff; }
+.st30-ex .seg-tilt { background: #c45c26; color: #fff; }
+.st30-ex .seg-total { position: absolute; right: 6px; top: 0; height: 22px; line-height: 22px; font-size: 11px; font-weight: 800; color: #102027; text-shadow: 0 0 4px #fff; }
+[data-theme="dark"] .st30-ex .worked-panel { background: #1e2430; border-color: #3a4250; color: #e8eaed; }
+[data-theme="dark"] .st30-ex .worked-ex { color: #c5c9d0; }
+[data-theme="dark"] .st30-ex .spec-bar { background: #3a4250; }
+[data-theme="dark"] .st30-ex .seg-total { color: #fff; text-shadow: 0 0 4px #000; }
 .st30-ex .spec-legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
 .st30-ex .chip { display: inline-block; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; }
 .st30-ex .chip-a { background: #e8f5e9; color: #1b5e20; }
