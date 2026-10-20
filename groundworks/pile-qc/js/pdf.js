@@ -175,9 +175,13 @@ var PilePdf = (function () {
     if (report.hasGnss) html += avgBlock('GNSS rover vs design', report.avg.gnssVsDesign, 'avg-gnss');
     if (report.hasUts) html += avgBlock('UTS vs design', report.avg.utsVsDesign, 'avg-uts');
     if (report.hasMachine) html += avgBlock('Machine vs design', report.avg.machineVsDesign, 'avg-mach');
+    if (report.hasGnss && report.hasMachine)
+      html += avgBlock('GNSS vs machine', report.avg.gnssVsMachine, 'avg-gnss-mach');
+    if (report.hasUts && report.hasMachine)
+      html += avgBlock('UTS vs machine', report.avg.utsVsMachine, 'avg-uts-mach');
     html += '</div>';
     html +=
-      '<p class="median-line">Median ΔZ — ' +
+      '<p class="median-line">Median ΔZ vs design — ' +
       (report.hasGnss
         ? 'GNSS ' + escapeHtml(med.gnssDz != null ? fmt(med.gnssDz) : '—') + ' · '
         : '') +
@@ -187,7 +191,18 @@ var PilePdf = (function () {
       (report.hasMachine
         ? 'Machine ' + escapeHtml(med.machineDz != null ? fmt(med.machineDz) : '—')
         : '') +
-      ' ft vs design</p>';
+      ((report.hasGnss && report.hasMachine) || (report.hasUts && report.hasMachine)
+        ? ' · vs machine — ' +
+          (report.hasGnss && report.hasMachine
+            ? 'GNSS ' +
+              escapeHtml(med.gnssVsMachineDz != null ? fmt(med.gnssVsMachineDz) : '—') +
+              (report.hasUts && report.hasMachine ? ' · ' : '')
+            : '') +
+          (report.hasUts && report.hasMachine
+            ? 'UTS ' + escapeHtml(med.utsVsMachineDz != null ? fmt(med.utsVsMachineDz) : '—')
+            : '')
+        : '') +
+      ' ft</p>';
     return html;
   }
 
@@ -236,9 +251,15 @@ var PilePdf = (function () {
       '</div>' +
       '<div class="pile-sources">' +
       sourceBlock('Design', r.design, null, 'src-design') +
-      (report.hasGnss ? sourceBlock('GNSS rover', r.gnss, r.gd, 'src-gnss') : '') +
-      (report.hasUts ? sourceBlock('UTS rover', r.uts, r.ud, 'src-uts') : '') +
-      (report.hasMachine ? sourceBlock('Machine as-built', r.machine, r.kd, 'src-mach') : '') +
+      (report.hasGnss ? sourceBlock('GNSS rover (vs design)', r.gnss, r.gd, 'src-gnss') : '') +
+      (report.hasUts ? sourceBlock('UTS rover (vs design)', r.uts, r.ud, 'src-uts') : '') +
+      (report.hasMachine ? sourceBlock('Machine (vs design)', r.machine, r.kd, 'src-mach') : '') +
+      (report.hasGnss && report.hasMachine
+        ? sourceBlock('GNSS vs machine', r.gnss, r.gm, 'src-gnss')
+        : '') +
+      (report.hasUts && report.hasMachine
+        ? sourceBlock('UTS vs machine', r.uts, r.um, 'src-uts')
+        : '') +
       '</div>' +
       '</div></div>'
     );
@@ -274,8 +295,10 @@ var PilePdf = (function () {
       '.avg-gnss{border-left:4px solid #005f9e;background:#f4f9fc;}' +
       '.avg-uts{border-left:4px solid #e36c0a;background:#fff8f1;}' +
       '.avg-mach{border-left:4px solid #006638;background:#f2f8f5;}' +
+      '.avg-gnss-mach{border-left:4px solid #005f9e;background:#eef5fa;border-style:solid dashed solid solid;}' +
+      '.avg-uts-mach{border-left:4px solid #e36c0a;background:#fff4ea;border-style:solid dashed solid solid;}' +
       '.avg-title{font-size:11px;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}' +
-      '.avg-gnss .avg-title{color:#005f9e;}.avg-uts .avg-title{color:#e36c0a;}.avg-mach .avg-title{color:#006638;}' +
+      '.avg-gnss .avg-title,.avg-gnss-mach .avg-title{color:#005f9e;}.avg-uts .avg-title,.avg-uts-mach .avg-title{color:#e36c0a;}.avg-mach .avg-title{color:#006638;}' +
       '.avg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}' +
       '.avg-grid span{display:block;font-size:10px;color:#6a6e79;}.avg-grid b{font-size:14px;}' +
       '.favor-cell{grid-column:1/-1;}' +

@@ -305,6 +305,8 @@
     var gd = report.avg.gnssVsDesign;
     var ud = report.avg.utsVsDesign;
     var kd = report.avg.machineVsDesign;
+    var gm = report.avg.gnssVsMachine;
+    var um = report.avg.utsVsMachine;
 
     $('stat-count').textContent = String(report.counts.common);
     $('stat-count-note').textContent =
@@ -325,6 +327,8 @@
     showBlock('stat-gnss-block', report.hasGnss);
     showBlock('stat-uts-block', report.hasUts);
     showBlock('stat-mach-block', report.hasMachine);
+    showBlock('stat-gnss-mach-block', report.hasGnss && report.hasMachine);
+    showBlock('stat-uts-mach-block', report.hasUts && report.hasMachine);
     showBlock('median-gnss-wrap', report.hasGnss);
     showBlock('median-uts-wrap', report.hasUts);
     showBlock('median-mach-wrap', report.hasMachine);
@@ -332,6 +336,8 @@
     if ($('stat-gnss')) $('stat-gnss').textContent = fmtTriple(gd);
     if ($('stat-uts')) $('stat-uts').textContent = fmtTriple(ud);
     if ($('stat-mach')) $('stat-mach').textContent = fmtTriple(kd);
+    if ($('stat-gnss-mach')) $('stat-gnss-mach').textContent = fmtTriple(gm);
+    if ($('stat-uts-mach')) $('stat-uts-mach').textContent = fmtTriple(um);
 
     var med = report.medianZ || {};
     if ($('stat-median-gnss'))
@@ -344,13 +350,19 @@
     var favor = '';
     if (gd)
       favor +=
-        'GNSS favors <span class="chip chip-info">' + gd.favor + '</span> ';
+        'GNSS vs design <span class="chip chip-info">' + gd.favor + '</span> ';
     if (ud)
       favor +=
-        'UTS favors <span class="chip chip-uts">' + ud.favor + '</span> ';
+        'UTS vs design <span class="chip chip-uts">' + ud.favor + '</span> ';
     if (kd)
       favor +=
-        'Machine favors <span class="chip chip-ok">' + kd.favor + '</span>';
+        'Machine vs design <span class="chip chip-ok">' + kd.favor + '</span> ';
+    if (gm)
+      favor +=
+        'GNSS vs machine <span class="chip chip-info">' + gm.favor + '</span> ';
+    if (um)
+      favor +=
+        'UTS vs machine <span class="chip chip-uts">' + um.favor + '</span>';
     $('favor-text').innerHTML = favor || '—';
 
     PileCharts.drawBullseye($('canvas-bullseye'), report);
@@ -377,6 +389,8 @@
     if (report.hasGnss) cols.push('GNSS N', 'GNSS E', 'GNSS Z', 'ΔN g−d', 'ΔE g−d', 'ΔZ g−d', 'Horiz g');
     if (report.hasUts) cols.push('UTS N', 'UTS E', 'UTS Z', 'ΔN u−d', 'ΔE u−d', 'ΔZ u−d', 'Horiz u');
     if (report.hasMachine) cols.push('Mach N', 'Mach E', 'Mach Z', 'ΔN k−d', 'ΔE k−d', 'ΔZ k−d');
+    if (report.hasGnss && report.hasMachine) cols.push('ΔN g−k', 'ΔE g−k', 'ΔZ g−k');
+    if (report.hasUts && report.hasMachine) cols.push('ΔN u−k', 'ΔE u−k', 'ΔZ u−k');
     thead.innerHTML =
       '<tr>' +
       cols
@@ -410,7 +424,7 @@
         state.tableShown +
         ' of ' +
         rows.length +
-        ' rows. g−d = GNSS − design · u−d = UTS − design · k−d = machine − design. Units: ft.';
+        ' rows. g−d = GNSS − design · u−d = UTS − design · k−d = machine − design · g−k = GNSS − machine · u−k = UTS − machine. Units: ft.';
     }
     var wrap = $('table-more-wrap');
     if (wrap) wrap.style.display = state.tableShown < rows.length ? 'flex' : 'none';
@@ -453,6 +467,16 @@
       tr.appendChild(cell(r.kd && r.kd.dn));
       tr.appendChild(cell(r.kd && r.kd.de));
       tr.appendChild(cell(r.kd && r.kd.dz));
+    }
+    if (report.hasGnss && report.hasMachine) {
+      tr.appendChild(cell(r.gm && r.gm.dn));
+      tr.appendChild(cell(r.gm && r.gm.de));
+      tr.appendChild(cell(r.gm && r.gm.dz));
+    }
+    if (report.hasUts && report.hasMachine) {
+      tr.appendChild(cell(r.um && r.um.dn));
+      tr.appendChild(cell(r.um && r.um.de));
+      tr.appendChild(cell(r.um && r.um.dz));
     }
     return tr;
   }

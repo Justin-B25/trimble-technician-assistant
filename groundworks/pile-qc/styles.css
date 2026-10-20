@@ -150,6 +150,24 @@
 
 .pile-qc .stat .value-sm { font-size: 18px; }
 
+.pile-qc .stat--rover-mach {
+  border-left: 3px solid #005f9e;
+}
+
+.pile-qc #stat-uts-mach-block {
+  border-left-color: #e36c0a;
+}
+
+.pile-qc #stat-gnss-mach .value,
+.pile-qc #stat-gnss-mach {
+  color: #005f9e;
+}
+
+.pile-qc #stat-uts-mach .value,
+.pile-qc #stat-uts-mach {
+  color: #e36c0a;
+}
+
 .pile-qc .stat .note {
   font-size: 11px;
   color: var(--tc-grey-600, #6a6e79);

@@ -149,6 +149,8 @@ var PileQC = (function () {
     var kdList = [];
     var kgList = [];
     var kuList = [];
+    var gmList = [];
+    var umList = [];
 
     for (var i = 0; i < common.ids.length; i++) {
       var id = common.ids[i];
@@ -161,11 +163,15 @@ var PileQC = (function () {
       var kd = d && k ? delta(k, d) : null;
       var kg = g && k ? delta(k, g) : null;
       var ku = u && k ? delta(k, u) : null;
+      var gm = g && k ? delta(g, k) : null; // GNSS − machine
+      var um = u && k ? delta(u, k) : null; // UTS − machine
       if (gd) gdList.push(gd);
       if (ud) udList.push(ud);
       if (kd) kdList.push(kd);
       if (kg) kgList.push(kg);
       if (ku) kuList.push(ku);
+      if (gm) gmList.push(gm);
+      if (um) umList.push(um);
       rows.push({
         id: id,
         design: d,
@@ -178,6 +184,8 @@ var PileQC = (function () {
         kd: kd,
         kg: kg,
         ku: ku,
+        gm: gm,
+        um: um,
         md: gd, // legacy alias (measured/GNSS vs design)
         km: kg, // legacy alias (machine vs GNSS)
       });
@@ -206,12 +214,16 @@ var PileQC = (function () {
         machineVsGnss: packAvg(kgList),
         machineVsUts: packAvg(kuList),
         machineVsMeasured: packAvg(kgList),
+        gnssVsMachine: packAvg(gmList),
+        utsVsMachine: packAvg(umList),
       },
       medianZ: {
         gnssDz: medianOf(gdList, 'dz'),
         utsDz: medianOf(udList, 'dz'),
         roverDz: medianOf(gdList, 'dz'),
         machineDz: medianOf(kdList, 'dz'),
+        gnssVsMachineDz: medianOf(gmList, 'dz'),
+        utsVsMachineDz: medianOf(umList, 'dz'),
       },
       colors: COLORS,
     };
@@ -257,6 +269,14 @@ var PileQC = (function () {
       'dE_mach_uts',
       'dZ_mach_uts',
       'Horiz_mach_uts',
+      'dN_gnss_mach',
+      'dE_gnss_mach',
+      'dZ_gnss_mach',
+      'Horiz_gnss_mach',
+      'dN_uts_mach',
+      'dE_uts_mach',
+      'dZ_uts_mach',
+      'Horiz_uts_mach',
     ];
     var lines = [header.join(',')];
     report.rows.forEach(function (r) {
@@ -301,6 +321,14 @@ var PileQC = (function () {
           dz(r.ku, 'de'),
           dz(r.ku, 'dz'),
           dz(r.ku, 'horiz'),
+          dz(r.gm, 'dn'),
+          dz(r.gm, 'de'),
+          dz(r.gm, 'dz'),
+          dz(r.gm, 'horiz'),
+          dz(r.um, 'dn'),
+          dz(r.um, 'de'),
+          dz(r.um, 'dz'),
+          dz(r.um, 'horiz'),
         ].join(',')
       );
     });
