@@ -1,12 +1,22 @@
 /**
- * Canvas visuals: directional bullseye (ΔE vs ΔN) and virtualized Z visualizer (ΔZ).
- * Z chart uses a scroll viewport so thousands of piles do not exceed canvas size limits.
+ * Canvas visuals: directional bullseye (ΔE vs ΔN), virtualized Z visualizer (ΔZ),
+ * and per-pile landing plots for PDF.
+ * Colors: GNSS blue · UTS orange · Machine green
  */
 var PileCharts = (function () {
-  var Z_PX_PER_PILE = 56;
+  var Z_PX_PER_PILE = 64;
   var Z_PDF_PILES_PER_PAGE = 10;
   var MAX_CANVAS_W = 8192;
   var BULLSEYE_MAX_DOTS = 2500;
+
+  function colors() {
+    return (typeof PileQC !== 'undefined' && PileQC.COLORS) || {
+      gnss: '#005f9e',
+      uts: '#e36c0a',
+      machine: '#006638',
+      design: '#6a6e79',
+    };
+  }
 
   function clear(canvas) {
     var ctx = canvas.getContext('2d');
@@ -14,21 +24,97 @@ var PileCharts = (function () {
     return ctx;
   }
 
+  function seriesList(report) {
+    var c = colors();
+    var list = [];
+    if (report.hasGnss || report.avg.gnssVsDesign || report.avg.measuredVsDesign) {
+      list.push({
+        key: 'gnss',
+        deltaKey: 'gd',
+        avg: report.avg.gnssVsDesign || report.avg.measuredVsDesign,
+        color: c.gnss,
+        label: 'GNSS vs design',
+        short: 'GNSS',
+      });
+    }
+    if (report.hasUts || report.avg.utsVsDesign) {
+      list.push({
+        key: 'uts',
+        deltaKey: 'ud',
+        avg: report.avg.utsVsDesign,
+        color: c.uts,
+        label: 'UTS vs design',
+        short: 'UTS',
+      });
+    }
+    if (report.hasMachine || report.avg.machineVsDesign) {
+      list.push({
+        key: 'machine',
+        deltaKey: 'kd',
+        avg: report.avg.machineVsDesign,
+        color: c.machine,
+        label: 'Machine vs design',
+        short: 'Mach',
+      });
+    }
+    // Fallback if flags missing but rows have deltas
+    if (!list.length) {
+      var sample = report.rows[0];
+      if (sample && (sample.gd || sample.md)) {
+        list.push({
+          key: 'gnss',
+          deltaKey: sample.gd ? 'gd' : 'md',
+          avg: report.avg.gnssVsDesign || report.avg.measuredVsDesign,
+          color: c.gnss,
+          label: 'GNSS vs design',
+          short: 'GNSS',
+        });
+      }
+      if (sample && sample.ud) {
+        list.push({
+          key: 'uts',
+          deltaKey: 'ud',
+          avg: report.avg.utsVsDesign,
+          color: c.uts,
+          label: 'UTS vs design',
+          short: 'UTS',
+        });
+      }
+      if (sample && sample.kd) {
+        list.push({
+          key: 'machine',
+          deltaKey: 'kd',
+          avg: report.avg.machineVsDesign,
+          color: c.machine,
+          label: 'Machine vs design',
+          short: 'Mach',
+        });
+      }
+    }
+    return list;
+  }
+
+  function rowDelta(r, deltaKey) {
+    return r[deltaKey] || (deltaKey === 'gd' ? r.md : null);
+  }
+
   function computeMaxAbsZ(report, rows) {
-    var md = report.avg.measuredVsDesign;
-    var kd = report.avg.machineVsDesign;
+    var series = seriesList(report);
     var maxAbs = 0.05;
     function considerDz(v) {
       if (v == null || !Number.isFinite(v)) return;
       maxAbs = Math.max(maxAbs, Math.abs(v));
     }
-    if (md) considerDz(md.dz);
-    if (kd) considerDz(kd.dz);
+    series.forEach(function (s) {
+      if (s.avg) considerDz(s.avg.dz);
+    });
     var list = rows || report.rows;
     for (var i = 0; i < list.length; i++) {
       var r = list[i];
-      if (r.md) considerDz(r.md.dz);
-      if (r.kd) considerDz(r.kd.dz);
+      series.forEach(function (s) {
+        var d = rowDelta(r, s.deltaKey);
+        if (d) considerDz(d.dz);
+      });
     }
     return maxAbs;
   }
@@ -41,6 +127,7 @@ var PileCharts = (function () {
     var cy = h / 2;
     var pad = 28;
     var radius = Math.min(w, h) / 2 - pad;
+    var series = seriesList(report);
 
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
@@ -69,23 +156,20 @@ var PileCharts = (function () {
     ctx.fillText('North', cx + 18, pad + 4);
     ctx.fillText('South', cx + 18, h - 10);
 
-    var md = report.avg.measuredVsDesign;
-    var kd = report.avg.machineVsDesign;
-
     var maxAbs = 0.05;
-    function consider(avg) {
-      if (!avg) return;
-      maxAbs = Math.max(maxAbs, Math.abs(avg.de), Math.abs(avg.dn));
-    }
-    consider(md);
-    consider(kd);
+    series.forEach(function (s) {
+      if (!s.avg) return;
+      maxAbs = Math.max(maxAbs, Math.abs(s.avg.de), Math.abs(s.avg.dn));
+    });
 
     var rows = report.rows;
     var step = rows.length > BULLSEYE_MAX_DOTS ? Math.ceil(rows.length / BULLSEYE_MAX_DOTS) : 1;
-    for (var i = 0; i < rows.length; i += step) {
+    for (i = 0; i < rows.length; i += step) {
       var r = rows[i];
-      if (r.md) maxAbs = Math.max(maxAbs, Math.abs(r.md.de), Math.abs(r.md.dn));
-      if (r.kd) maxAbs = Math.max(maxAbs, Math.abs(r.kd.de), Math.abs(r.kd.dn));
+      series.forEach(function (s) {
+        var d = rowDelta(r, s.deltaKey);
+        if (d) maxAbs = Math.max(maxAbs, Math.abs(d.de), Math.abs(d.dn));
+      });
     }
     var scale = radius / maxAbs;
 
@@ -105,51 +189,57 @@ var PileCharts = (function () {
       ctx.fillText(label, x + 10, y + 4);
     }
 
-    ctx.globalAlpha = 0.25;
-    for (i = 0; i < rows.length; i += step) {
-      r = rows[i];
-      if (!r.md) continue;
-      var x = cx + r.md.de * scale;
-      var y = cy - r.md.dn * scale;
-      ctx.fillStyle = '#005f9e';
-      ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
+    series.forEach(function (s) {
+      ctx.globalAlpha = 0.22;
+      for (i = 0; i < rows.length; i += step) {
+        r = rows[i];
+        var d = rowDelta(r, s.deltaKey);
+        if (!d) continue;
+        var x = cx + d.de * scale;
+        var y = cy - d.dn * scale;
+        ctx.fillStyle = s.color;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    });
 
-    if (md) plotPoint(md.de, md.dn, '#005f9e', 'Meas avg');
-    if (kd) plotPoint(kd.de, kd.dn, '#006638', 'Mach avg');
+    series.forEach(function (s) {
+      if (s.avg) plotPoint(s.avg.de, s.avg.dn, s.color, s.short + ' avg');
+    });
 
     ctx.fillStyle = '#252a2e';
     ctx.font = '12px "Open Sans", Arial, sans-serif';
     ctx.textAlign = 'left';
-    var note = 'Center = design';
+    var note = 'Center = design · GNSS blue · UTS orange · Machine green';
     if (step > 1) note += ' · dots sampled 1/' + step;
     ctx.fillText(note, 12, h - 12);
   }
 
-  /**
-   * Draw Z points for a row slice onto canvas.
-   * options: rows, pxPerPile, height, maxAbs, title, pageLabel, selected,
-   *          scrollOffset (world X of left edge), viewOnly (boolean)
-   */
+  function seriesOffsets(count) {
+    if (count <= 1) return [0];
+    if (count === 2) return [-7, 7];
+    return [-10, 0, 10];
+  }
+
   function drawZ(canvas, report, options) {
     options = options || {};
     var rows = options.rows || report.rows;
     var pxPerPile = options.pxPerPile || Z_PX_PER_PILE;
     var padL = 52;
     var padR = 24;
-    var padT = 32;
-    var padB = 78;
+    var padT = 36;
+    var padB = 86;
     var scrollOffset = options.scrollOffset || 0;
     var n = Math.max(1, rows.length);
     var h = options.height || 420;
+    var series = seriesList(report);
+    var offsets = seriesOffsets(series.length);
 
     var fullPlotW = n * pxPerPile;
     var fullW = padL + padR + fullPlotW;
 
-    // Fixed-size canvas for UI viewport mode; full width for PDF page slices
     var w;
     if (options.viewWidth) {
       w = Math.min(options.viewWidth, MAX_CANVAS_W);
@@ -158,7 +248,6 @@ var PileCharts = (function () {
     } else {
       w = Math.min(fullW, MAX_CANVAS_W);
       if (!options.rows || options.rows === report.rows) {
-        // safety: never allocate giant canvas for full report in UI
         if (fullW > MAX_CANVAS_W && !options.allowFullWidth) {
           w = MAX_CANVAS_W;
         }
@@ -171,8 +260,6 @@ var PileCharts = (function () {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
 
-    var md = report.avg.measuredVsDesign;
-    var kd = report.avg.machineVsDesign;
     var maxAbs = (options.maxAbs != null ? options.maxAbs : computeMaxAbsZ(report)) * 1.1;
 
     function yOf(dz) {
@@ -185,7 +272,6 @@ var PileCharts = (function () {
     var worldLeft = scrollOffset;
     var worldRight = scrollOffset + w;
 
-    // Design ΔZ = 0
     ctx.setLineDash([5, 5]);
     ctx.strokeStyle = '#6a6e79';
     ctx.lineWidth = 2;
@@ -195,19 +281,17 @@ var PileCharts = (function () {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    function drawAvgLine(avg, color, dash) {
-      if (!avg) return;
-      ctx.setLineDash(dash);
-      ctx.strokeStyle = color;
+    series.forEach(function (s, si) {
+      if (!s.avg) return;
+      ctx.setLineDash(si === 0 ? [] : si === 1 ? [6, 4] : [2, 4]);
+      ctx.strokeStyle = s.color;
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.moveTo(0, yOf(avg.dz));
-      ctx.lineTo(w, yOf(avg.dz));
+      ctx.moveTo(0, yOf(s.avg.dz));
+      ctx.lineTo(w, yOf(s.avg.dz));
       ctx.stroke();
       ctx.setLineDash([]);
-    }
-    drawAvgLine(md, '#005f9e', []);
-    drawAvgLine(kd, '#006638', [7, 4]);
+    });
 
     function drawDot(x, y, color, radius, ring) {
       ctx.fillStyle = color;
@@ -237,52 +321,40 @@ var PileCharts = (function () {
       ctx.lineTo(cx, h - padB + 8);
       ctx.stroke();
 
-      if (r.md) {
-        var yM = yOf(r.md.dz);
-        var xM = cx - 6;
-        ctx.strokeStyle = 'rgba(0,95,158,0.35)';
+      series.forEach(function (s, si) {
+        var d = rowDelta(r, s.deltaKey);
+        if (!d) return;
+        var x = cx + offsets[si];
+        var y = yOf(d.dz);
+        ctx.strokeStyle = s.color.replace(')', ',0.35)').replace('rgb', 'rgba').replace('#', '');
+        // simple alpha via rgba from hex
+        ctx.strokeStyle =
+          'rgba(' +
+          parseInt(s.color.slice(1, 3), 16) +
+          ',' +
+          parseInt(s.color.slice(3, 5), 16) +
+          ',' +
+          parseInt(s.color.slice(5, 7), 16) +
+          ',0.35)';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(xM, yZero);
-        ctx.lineTo(xM, yM);
+        ctx.moveTo(x, yZero);
+        ctx.lineTo(x, y);
         ctx.stroke();
-        var selM = selected && selected.id === r.id && selected.series === 'measured';
-        drawDot(xM, yM, '#005f9e', selM ? 8 : 5, selM ? '#fbad26' : '#ffffff');
+        var sel = selected && selected.id === r.id && selected.series === s.key;
+        drawDot(x, y, s.color, sel ? 8 : 5, sel ? '#fbad26' : '#ffffff');
         hits.push({
-          x: xM,
-          y: yM,
+          x: x,
+          y: y,
           r: 14,
           id: r.id,
-          series: 'measured',
-          label: 'Measured vs design',
-          color: '#005f9e',
+          series: s.key,
+          label: s.label,
+          color: s.color,
           row: r,
-          plotted: { dz: r.md.dz, dn: r.md.dn, de: r.md.de, horiz: r.md.horiz },
+          plotted: { dz: d.dz, dn: d.dn, de: d.de, horiz: d.horiz },
         });
-      }
-      if (r.kd) {
-        var yK = yOf(r.kd.dz);
-        var xK = cx + 6;
-        ctx.strokeStyle = 'rgba(0,102,56,0.35)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(xK, yZero);
-        ctx.lineTo(xK, yK);
-        ctx.stroke();
-        var selK = selected && selected.id === r.id && selected.series === 'machine';
-        drawDot(xK, yK, '#006638', selK ? 8 : 5, selK ? '#fbad26' : '#ffffff');
-        hits.push({
-          x: xK,
-          y: yK,
-          r: 14,
-          id: r.id,
-          series: 'machine',
-          label: 'Machine vs design',
-          color: '#006638',
-          row: r,
-          plotted: { dz: r.kd.dz, dn: r.kd.dn, de: r.kd.de, horiz: r.kd.horiz },
-        });
-      }
+      });
 
       ctx.fillStyle = '#6a6e79';
       ctx.font = '10px "Open Sans", Arial, sans-serif';
@@ -290,15 +362,15 @@ var PileCharts = (function () {
       ctx.fillText(String(r.id), cx, h - padB + 18);
     }
 
-    // Top series legend
     ctx.font = '11px "Open Sans", Arial, sans-serif';
     ctx.textAlign = 'left';
-    drawDot(padL + 6, 14, '#005f9e', 5);
-    ctx.fillStyle = '#005f9e';
-    ctx.fillText('Measured vs design', padL + 16, 18);
-    drawDot(padL + 156, 14, '#006638', 5);
-    ctx.fillStyle = '#006638';
-    ctx.fillText('Machine vs design', padL + 166, 18);
+    var lx = padL;
+    series.forEach(function (s) {
+      drawDot(lx + 6, 14, s.color, 5);
+      ctx.fillStyle = s.color;
+      ctx.fillText(s.label, lx + 16, 18);
+      lx += 150;
+    });
 
     if (options.pageLabel) {
       ctx.fillStyle = '#6a6e79';
@@ -306,7 +378,6 @@ var PileCharts = (function () {
       ctx.fillText(options.pageLabel, w - 12, 18);
     }
 
-    // Bottom legend
     var legY = h - 18;
     function lineSample(x, color, dash) {
       ctx.setLineDash(dash);
@@ -325,18 +396,14 @@ var PileCharts = (function () {
     lineSample(x, '#6a6e79', [5, 5]);
     ctx.fillStyle = '#6a6e79';
     ctx.fillText('Design ΔZ = 0', x + 28, legY);
-    x += 130;
-    if (md) {
-      lineSample(x, '#005f9e', []);
-      ctx.fillStyle = '#005f9e';
-      ctx.fillText('Meas avg ' + md.dz.toFixed(3) + ' ft', x + 28, legY);
+    x += 120;
+    series.forEach(function (s, si) {
+      if (!s.avg) return;
+      lineSample(x, s.color, si === 0 ? [] : si === 1 ? [6, 4] : [2, 4]);
+      ctx.fillStyle = s.color;
+      ctx.fillText(s.short + ' avg ' + s.avg.dz.toFixed(3) + ' ft', x + 28, legY);
       x += 168;
-    }
-    if (kd) {
-      lineSample(x, '#006638', [7, 4]);
-      ctx.fillStyle = '#006638';
-      ctx.fillText('Mach avg ' + kd.dz.toFixed(3) + ' ft', x + 28, legY);
-    }
+    });
 
     ctx.fillStyle = '#6a6e79';
     ctx.font = '10px "Open Sans", Arial, sans-serif';
@@ -360,7 +427,6 @@ var PileCharts = (function () {
     return hits;
   }
 
-  /** Bind scrollable Z viewport (handles thousands of piles). */
   function bindZViewport(scrollEl, canvas, spacerEl, report, options) {
     options = options || {};
     var px = options.pxPerPile || Z_PX_PER_PILE;
@@ -420,10 +486,6 @@ var PileCharts = (function () {
     return best;
   }
 
-  /**
-   * Build landscape PDF page images: 10 piles per page.
-   * Caps pages to avoid browser OOM; returns { pages, truncated, totalPages }.
-   */
   function buildZPageImages(report, limits) {
     limits = limits || {};
     var maxPages = limits.maxPages != null ? limits.maxPages : 100;
@@ -464,6 +526,158 @@ var PileCharts = (function () {
     };
   }
 
+  /**
+   * Per-pile landing plot: design at center, GNSS / UTS / machine as ΔE vs ΔN dots.
+   */
+  function drawPileLanding(canvas, row, report) {
+    var w = canvas.width || 640;
+    var h = canvas.height || 420;
+    canvas.width = w;
+    canvas.height = h;
+    var ctx = clear(canvas);
+    var c = colors();
+    var series = seriesList(report || { rows: [row], avg: {}, hasGnss: !!row.gnss, hasUts: !!row.uts, hasMachine: !!row.machine });
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+
+    var cx = w * 0.38;
+    var cy = h / 2;
+    var radius = Math.min(w * 0.32, h / 2 - 36);
+
+    ctx.strokeStyle = '#e0e1e9';
+    for (var i = 1; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, (radius * i) / 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#9b9faa';
+    ctx.beginPath();
+    ctx.moveTo(cx - radius - 8, cy);
+    ctx.lineTo(cx + radius + 8, cy);
+    ctx.moveTo(cx, cy - radius - 8);
+    ctx.lineTo(cx, cy + radius + 8);
+    ctx.stroke();
+
+    ctx.fillStyle = '#6a6e79';
+    ctx.font = '11px "Open Sans", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('E', cx + radius + 14, cy + 4);
+    ctx.fillText('W', cx - radius - 14, cy + 4);
+    ctx.fillText('N', cx + 10, cy - radius - 10);
+    ctx.fillText('S', cx + 10, cy + radius + 16);
+
+    var maxAbs = 0.05;
+    series.forEach(function (s) {
+      var d = rowDelta(row, s.deltaKey);
+      if (d) maxAbs = Math.max(maxAbs, Math.abs(d.de), Math.abs(d.dn), Math.abs(d.dz));
+    });
+    var scale = radius / (maxAbs * 1.15 || 0.05);
+
+    // Design marker
+    ctx.fillStyle = c.design;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    series.forEach(function (s) {
+      var d = rowDelta(row, s.deltaKey);
+      if (!d) return;
+      var x = cx + d.de * scale;
+      var y = cy - d.dn * scale;
+      ctx.fillStyle = s.color;
+      ctx.beginPath();
+      ctx.arc(x, y, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = s.color;
+      ctx.font = '600 12px "Open Sans", Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(s.short, x + 11, y + 4);
+    });
+
+    // Side legend with Δ values
+    var lx = w * 0.68;
+    var ly = 40;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#252a2e';
+    ctx.font = '700 13px "Open Sans", Arial, sans-serif';
+    ctx.fillText('Pile ' + row.id + ' vs design', lx, ly);
+    ly += 22;
+    ctx.font = '11px "Open Sans", Arial, sans-serif';
+    ctx.fillStyle = '#6a6e79';
+    ctx.fillText('Center = design', lx, ly);
+    ly += 20;
+
+    function legendLine(label, color, d) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(lx + 6, ly - 3, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#252a2e';
+      ctx.font = '600 12px "Open Sans", Arial, sans-serif';
+      ctx.fillText(label, lx + 16, ly);
+      ly += 16;
+      if (d) {
+        ctx.fillStyle = '#6a6e79';
+        ctx.font = '11px "Open Sans", Arial, sans-serif';
+        ctx.fillText(
+          'ΔN ' +
+            d.dn.toFixed(3) +
+            '  ΔE ' +
+            d.de.toFixed(3) +
+            '  ΔZ ' +
+            d.dz.toFixed(3) +
+            '  H ' +
+            d.horiz.toFixed(3) +
+            ' ft',
+          lx + 16,
+          ly
+        );
+        ly += 22;
+      } else {
+        ctx.fillStyle = '#6a6e79';
+        ctx.fillText('— not loaded for this pile set', lx + 16, ly);
+        ly += 22;
+      }
+    }
+
+    series.forEach(function (s) {
+      legendLine(s.label, s.color, rowDelta(row, s.deltaKey));
+    });
+
+    return toDataUrl(canvas);
+  }
+
+  function buildPilePageImages(report, limits) {
+    limits = limits || {};
+    var maxPiles = limits.maxPiles != null ? limits.maxPiles : 250;
+    var pages = [];
+    var total = report.rows.length;
+    var renderCount = Math.min(total, maxPiles);
+    var canvas = document.createElement('canvas');
+    canvas.width = 960;
+    canvas.height = 540;
+    for (var i = 0; i < renderCount; i++) {
+      pages.push({
+        id: report.rows[i].id,
+        row: report.rows[i],
+        image: drawPileLanding(canvas, report.rows[i], report),
+      });
+    }
+    return {
+      pages: pages,
+      truncated: renderCount < total,
+      totalPiles: total,
+      renderedPiles: renderCount,
+    };
+  }
+
   function toDataUrl(canvas) {
     try {
       return canvas.toDataURL('image/png');
@@ -478,8 +692,11 @@ var PileCharts = (function () {
     bindZViewport: bindZViewport,
     hitTestZ: hitTestZ,
     buildZPageImages: buildZPageImages,
+    drawPileLanding: drawPileLanding,
+    buildPilePageImages: buildPilePageImages,
     toDataUrl: toDataUrl,
     computeMaxAbsZ: computeMaxAbsZ,
+    seriesList: seriesList,
     Z_PX_PER_PILE: Z_PX_PER_PILE,
     Z_PDF_PILES_PER_PAGE: Z_PDF_PILES_PER_PAGE,
   };

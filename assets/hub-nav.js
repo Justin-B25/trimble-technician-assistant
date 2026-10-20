@@ -41,7 +41,7 @@
           href: './groundworks/pile-qc/index.html',
           icon: 'QC',
           name: 'Pile QC / Deviation Calculator',
-          summary: 'Design vs rover stakeout vs machine as-built — XY/Z deltas, median ΔZ, bullseye, and PDF report',
+          summary: 'Design vs GNSS / UTS stakeout vs machine — XY/Z deltas, bullseye, and landscape PDF',
         },
       ],
     },

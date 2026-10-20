@@ -1,8 +1,16 @@
 /**
  * Join loaded sources on common pile IDs and compute QC deltas / averages.
+ * Sources: design, gnss (rover), uts (rover), machine.
  * Only IDs present in every loaded source type are reported.
  */
 var PileQC = (function () {
+  var COLORS = {
+    gnss: '#005f9e',
+    uts: '#e36c0a',
+    machine: '#006638',
+    design: '#6a6e79',
+  };
+
   function delta(a, b) {
     if (!a || !b) return null;
     return {
@@ -45,7 +53,6 @@ var PileQC = (function () {
     var ns = absN < eps ? '' : dn > 0 ? 'N' : 'S';
     var ew = absE < eps ? '' : de > 0 ? 'E' : 'W';
     if (ns && ew) {
-      // Prefer primary direction when one axis dominates strongly
       if (absN >= absE * 2) return ns + ' of design';
       if (absE >= absN * 2) return ew + ' of design';
       return ns + ew + ' of design';
@@ -58,23 +65,28 @@ var PileQC = (function () {
     return Object.keys(map || {});
   }
 
+  function isLoaded(map) {
+    return !!(map && mapKeys(map).length);
+  }
+
   /**
    * Intersection of keys across provided maps (only maps that exist / have data).
-   * sourceMaps: { design?, measured?, machine? }
+   * sourceMaps: { design?, gnss?, uts?, machine? }
+   * Also accepts legacy `measured` as alias for gnss.
    */
   function commonIds(sourceMaps) {
+    var maps = normalizeSourceMaps(sourceMaps);
     var sets = [];
     var labels = [];
-    ['design', 'measured', 'machine'].forEach(function (key) {
-      var m = sourceMaps[key];
-      if (m && mapKeys(m).length) {
+    ['design', 'gnss', 'uts', 'machine'].forEach(function (key) {
+      var m = maps[key];
+      if (isLoaded(m)) {
         sets.push(m);
         labels.push(key);
       }
     });
     if (!sets.length) return { ids: [], sourcesUsed: [] };
 
-    // Intersect starting from the smallest map for large datasets
     var order = sets
       .map(function (m, i) {
         return { m: m, i: i, n: mapKeys(m).length };
@@ -98,71 +110,110 @@ var PileQC = (function () {
     return { ids: ids, sourcesUsed: labels };
   }
 
-  function buildReport(sourceMaps) {
-    var design = sourceMaps.design || Object.create(null);
-    var measured = sourceMaps.measured || Object.create(null);
-    var machine = sourceMaps.machine || Object.create(null);
+  function normalizeSourceMaps(sourceMaps) {
+    sourceMaps = sourceMaps || {};
+    var gnss = sourceMaps.gnss || sourceMaps.measured || null;
+    return {
+      design: sourceMaps.design || null,
+      gnss: gnss,
+      uts: sourceMaps.uts || null,
+      machine: sourceMaps.machine || null,
+    };
+  }
 
-    var common = commonIds({ design: design, measured: measured, machine: machine });
+  function packAvg(list) {
+    if (!list.length) return null;
+    var avg = {
+      dn: avgOf(list, 'dn'),
+      de: avgOf(list, 'de'),
+      dz: avgOf(list, 'dz'),
+      horiz: avgOf(list, 'horiz'),
+      medianDz: medianOf(list, 'dz'),
+      count: list.length,
+    };
+    avg.favor = favorLabel(avg.de, avg.dn);
+    return avg;
+  }
+
+  function buildReport(sourceMaps) {
+    var maps = normalizeSourceMaps(sourceMaps);
+    var design = maps.design || Object.create(null);
+    var gnss = maps.gnss || Object.create(null);
+    var uts = maps.uts || Object.create(null);
+    var machine = maps.machine || Object.create(null);
+
+    var common = commonIds(maps);
     var rows = [];
-    var mdList = [];
+    var gdList = [];
+    var udList = [];
     var kdList = [];
-    var kmList = [];
+    var kgList = [];
+    var kuList = [];
 
     for (var i = 0; i < common.ids.length; i++) {
       var id = common.ids[i];
       var d = design[id] || null;
-      var m = measured[id] || null;
+      var g = gnss[id] || null;
+      var u = uts[id] || null;
       var k = machine[id] || null;
-      var md = d && m ? delta(m, d) : null;
+      var gd = d && g ? delta(g, d) : null;
+      var ud = d && u ? delta(u, d) : null;
       var kd = d && k ? delta(k, d) : null;
-      var km = m && k ? delta(k, m) : null;
-      if (md) mdList.push(md);
+      var kg = g && k ? delta(k, g) : null;
+      var ku = u && k ? delta(k, u) : null;
+      if (gd) gdList.push(gd);
+      if (ud) udList.push(ud);
       if (kd) kdList.push(kd);
-      if (km) kmList.push(km);
+      if (kg) kgList.push(kg);
+      if (ku) kuList.push(ku);
       rows.push({
         id: id,
         design: d,
-        measured: m,
+        gnss: g,
+        uts: u,
+        measured: g, // legacy alias for charts/UI during transition
         machine: k,
-        md: md,
+        gd: gd,
+        ud: ud,
         kd: kd,
-        km: km,
+        kg: kg,
+        ku: ku,
+        md: gd, // legacy alias (measured/GNSS vs design)
+        km: kg, // legacy alias (machine vs GNSS)
       });
-    }
-
-    function packAvg(list) {
-      if (!list.length) return null;
-      var avg = {
-        dn: avgOf(list, 'dn'),
-        de: avgOf(list, 'de'),
-        dz: avgOf(list, 'dz'),
-        horiz: avgOf(list, 'horiz'),
-        medianDz: medianOf(list, 'dz'),
-        count: list.length,
-      };
-      avg.favor = favorLabel(avg.de, avg.dn);
-      return avg;
     }
 
     return {
       rows: rows,
       sourcesUsed: common.sourcesUsed,
+      hasGnss: isLoaded(gnss),
+      hasUts: isLoaded(uts),
+      hasMachine: isLoaded(machine),
+      hasDesign: isLoaded(design),
       counts: {
         design: mapKeys(design).length,
-        measured: mapKeys(measured).length,
+        gnss: mapKeys(gnss).length,
+        uts: mapKeys(uts).length,
+        measured: mapKeys(gnss).length,
         machine: mapKeys(machine).length,
         common: rows.length,
       },
       avg: {
-        measuredVsDesign: packAvg(mdList),
+        gnssVsDesign: packAvg(gdList),
+        utsVsDesign: packAvg(udList),
+        measuredVsDesign: packAvg(gdList),
         machineVsDesign: packAvg(kdList),
-        machineVsMeasured: packAvg(kmList),
+        machineVsGnss: packAvg(kgList),
+        machineVsUts: packAvg(kuList),
+        machineVsMeasured: packAvg(kgList),
       },
       medianZ: {
-        roverDz: medianOf(mdList, 'dz'),
+        gnssDz: medianOf(gdList, 'dz'),
+        utsDz: medianOf(udList, 'dz'),
+        roverDz: medianOf(gdList, 'dz'),
         machineDz: medianOf(kdList, 'dz'),
       },
+      colors: COLORS,
     };
   }
 
@@ -177,24 +228,35 @@ var PileQC = (function () {
       'Design_N',
       'Design_E',
       'Design_Z',
-      'Measured_N',
-      'Measured_E',
-      'Measured_Z',
+      'GNSS_N',
+      'GNSS_E',
+      'GNSS_Z',
+      'UTS_N',
+      'UTS_E',
+      'UTS_Z',
       'Machine_N',
       'Machine_E',
       'Machine_Z',
-      'dN_meas_design',
-      'dE_meas_design',
-      'dZ_meas_design',
-      'Horiz_meas_design',
+      'dN_gnss_design',
+      'dE_gnss_design',
+      'dZ_gnss_design',
+      'Horiz_gnss_design',
+      'dN_uts_design',
+      'dE_uts_design',
+      'dZ_uts_design',
+      'Horiz_uts_design',
       'dN_mach_design',
       'dE_mach_design',
       'dZ_mach_design',
       'Horiz_mach_design',
-      'dN_mach_meas',
-      'dE_mach_meas',
-      'dZ_mach_meas',
-      'Horiz_mach_meas',
+      'dN_mach_gnss',
+      'dE_mach_gnss',
+      'dZ_mach_gnss',
+      'Horiz_mach_gnss',
+      'dN_mach_uts',
+      'dE_mach_uts',
+      'dZ_mach_uts',
+      'Horiz_mach_uts',
     ];
     var lines = [header.join(',')];
     report.rows.forEach(function (r) {
@@ -210,24 +272,35 @@ var PileQC = (function () {
           nz(r.design, 'n'),
           nz(r.design, 'e'),
           nz(r.design, 'z'),
-          nz(r.measured, 'n'),
-          nz(r.measured, 'e'),
-          nz(r.measured, 'z'),
+          nz(r.gnss, 'n'),
+          nz(r.gnss, 'e'),
+          nz(r.gnss, 'z'),
+          nz(r.uts, 'n'),
+          nz(r.uts, 'e'),
+          nz(r.uts, 'z'),
           nz(r.machine, 'n'),
           nz(r.machine, 'e'),
           nz(r.machine, 'z'),
-          dz(r.md, 'dn'),
-          dz(r.md, 'de'),
-          dz(r.md, 'dz'),
-          dz(r.md, 'horiz'),
+          dz(r.gd, 'dn'),
+          dz(r.gd, 'de'),
+          dz(r.gd, 'dz'),
+          dz(r.gd, 'horiz'),
+          dz(r.ud, 'dn'),
+          dz(r.ud, 'de'),
+          dz(r.ud, 'dz'),
+          dz(r.ud, 'horiz'),
           dz(r.kd, 'dn'),
           dz(r.kd, 'de'),
           dz(r.kd, 'dz'),
           dz(r.kd, 'horiz'),
-          dz(r.km, 'dn'),
-          dz(r.km, 'de'),
-          dz(r.km, 'dz'),
-          dz(r.km, 'horiz'),
+          dz(r.kg, 'dn'),
+          dz(r.kg, 'de'),
+          dz(r.kg, 'dz'),
+          dz(r.kg, 'horiz'),
+          dz(r.ku, 'dn'),
+          dz(r.ku, 'de'),
+          dz(r.ku, 'dz'),
+          dz(r.ku, 'horiz'),
         ].join(',')
       );
     });
@@ -235,6 +308,7 @@ var PileQC = (function () {
   }
 
   return {
+    COLORS: COLORS,
     buildReport: buildReport,
     commonIds: commonIds,
     favorLabel: favorLabel,

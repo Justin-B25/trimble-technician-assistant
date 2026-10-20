@@ -1,17 +1,20 @@
 /**
  * Pile QC Report — multi-file upload UI and report rendering.
- * Handles large pile counts via virtualized Z chart + paginated table.
+ * Supports GNSS and UTS stakeout imports (selector), plus design and machine.
  */
 (function () {
   var TABLE_PAGE = 400;
-  var PDF_Z_MAX_PAGES = 100; // 1000 piles of Z charts in PDF
+  var PDF_Z_MAX_PAGES = 100;
+  var PDF_PILE_MAX = 250;
 
   var state = {
     designFiles: [],
-    measuredFiles: [],
+    gnssFiles: [],
+    utsFiles: [],
     machineFiles: [],
     design: null,
-    measured: null,
+    gnss: null,
+    uts: null,
     machine: null,
     report: null,
     warnings: [],
@@ -38,8 +41,14 @@
     });
   }
 
+  function selectedStakeoutKind() {
+    var uts = $('kind-uts');
+    return uts && uts.checked ? 'uts' : 'gnss';
+  }
+
   function renderFileList(ulId, files, onRemove) {
     var ul = $(ulId);
+    if (!ul) return;
     ul.innerHTML = '';
     files.forEach(function (f, idx) {
       var li = document.createElement('li');
@@ -64,8 +73,13 @@
       refreshLists();
       scheduleRebuild();
     });
-    renderFileList('list-measured', state.measuredFiles, function (i) {
-      state.measuredFiles.splice(i, 1);
+    renderFileList('list-gnss', state.gnssFiles, function (i) {
+      state.gnssFiles.splice(i, 1);
+      refreshLists();
+      scheduleRebuild();
+    });
+    renderFileList('list-uts', state.utsFiles, function (i) {
+      state.utsFiles.splice(i, 1);
       refreshLists();
       scheduleRebuild();
     });
@@ -79,9 +93,11 @@
   function wireDropzone(zoneId, inputId, kind) {
     var zone = $(zoneId);
     var input = $(inputId);
+    if (!zone || !input) return;
 
     zone.addEventListener('click', function (e) {
-      if (e.target.tagName === 'BUTTON') return;
+      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('label')) return;
+      if (e.target.closest('.stakeout-kind')) return;
       input.click();
     });
     zone.addEventListener('dragover', function (e) {
@@ -95,19 +111,26 @@
       e.preventDefault();
       zone.classList.remove('is-drag');
       if (e.dataTransfer && e.dataTransfer.files) {
-        addFiles(state[kind + 'Files'], e.dataTransfer.files);
-        refreshLists();
-        scheduleRebuild();
+        ingestStakeoutOrKind(kind, e.dataTransfer.files);
       }
     });
     input.addEventListener('change', function () {
       if (input.files && input.files.length) {
-        addFiles(state[kind + 'Files'], input.files);
+        ingestStakeoutOrKind(kind, input.files);
         input.value = '';
-        refreshLists();
-        scheduleRebuild();
       }
     });
+  }
+
+  function ingestStakeoutOrKind(kind, fileList) {
+    if (kind === 'stakeout') {
+      var sk = selectedStakeoutKind();
+      addFiles(sk === 'uts' ? state.utsFiles : state.gnssFiles, fileList);
+    } else {
+      addFiles(state[kind + 'Files'], fileList);
+    }
+    refreshLists();
+    scheduleRebuild();
   }
 
   var rebuildTimer = null;
@@ -128,7 +151,8 @@
     var token = ++state.rebuildToken;
     state.warnings = [];
     state.design = null;
-    state.measured = null;
+    state.gnss = null;
+    state.uts = null;
     state.machine = null;
     state.report = null;
     state.zSelected = null;
@@ -152,9 +176,15 @@
       }
       if (token !== state.rebuildToken) return;
 
-      if (state.measuredFiles.length) {
-        state.measured = await PileParsers.loadMeasuredFiles(state.measuredFiles);
-        state.warnings = state.warnings.concat(state.measured.warnings || []);
+      if (state.gnssFiles.length) {
+        state.gnss = await PileParsers.loadMeasuredFiles(state.gnssFiles);
+        state.warnings = state.warnings.concat(state.gnss.warnings || []);
+      }
+      if (token !== state.rebuildToken) return;
+
+      if (state.utsFiles.length) {
+        state.uts = await PileParsers.loadMeasuredFiles(state.utsFiles);
+        state.warnings = state.warnings.concat(state.uts.warnings || []);
       }
       if (token !== state.rebuildToken) return;
 
@@ -175,15 +205,21 @@
 
     var loadedTypes = 0;
     if (state.design && state.design.count) loadedTypes++;
-    if (state.measured && state.measured.count) loadedTypes++;
+    if (state.gnss && state.gnss.count) loadedTypes++;
+    if (state.uts && state.uts.count) loadedTypes++;
     if (state.machine && state.machine.count) loadedTypes++;
 
     if (loadedTypes < 2) {
       alertEl.textContent =
-        'Load at least two source types (design, measured, and/or machine). Report shows only pile IDs common to every loaded type.';
+        'Load at least two source types (design, GNSS stakeout, UTS stakeout, and/or machine). Report shows only pile IDs common to every loaded type.';
       alertEl.classList.toggle(
         'hidden',
-        !(state.designFiles.length || state.measuredFiles.length || state.machineFiles.length)
+        !(
+          state.designFiles.length ||
+          state.gnssFiles.length ||
+          state.utsFiles.length ||
+          state.machineFiles.length
+        )
       );
       $('results').classList.add('hidden');
       updateButtons();
@@ -197,7 +233,8 @@
     try {
       report = PileQC.buildReport({
         design: state.design ? state.design.map : null,
-        measured: state.measured ? state.measured.map : null,
+        gnss: state.gnss ? state.gnss.map : null,
+        uts: state.uts ? state.uts.map : null,
         machine: state.machine ? state.machine.map : null,
       });
     } catch (err) {
@@ -215,8 +252,10 @@
       alertEl.textContent =
         'No common pile IDs across loaded sources. Design=' +
         report.counts.design +
-        ', Measured=' +
-        report.counts.measured +
+        ', GNSS=' +
+        report.counts.gnss +
+        ', UTS=' +
+        report.counts.uts +
         ', Machine=' +
         report.counts.machine +
         '.';
@@ -257,35 +296,61 @@
     });
   }
 
-  function setStat(id, value, note) {
-    var el = $(id);
-    if (el) el.textContent = value;
-    var noteEl = $(id + '-note');
-    if (noteEl) noteEl.textContent = note || '';
+  function fmtTriple(avg) {
+    if (!avg) return '—';
+    return PileQC.fmt(avg.dn) + ' / ' + PileQC.fmt(avg.de) + ' / ' + PileQC.fmt(avg.dz);
   }
 
   function renderReport(report) {
-    var md = report.avg.measuredVsDesign;
+    var gd = report.avg.gnssVsDesign;
+    var ud = report.avg.utsVsDesign;
     var kd = report.avg.machineVsDesign;
 
-    setStat(
-      'stat-count',
-      String(report.counts.common),
-      'of D' + report.counts.design + ' / M' + report.counts.measured + ' / K' + report.counts.machine
-    );
-    setStat('stat-dn', md ? PileQC.fmt(md.dn) : kd ? PileQC.fmt(kd.dn) : '—', md ? 'meas − design' : 'mach − design');
-    setStat('stat-de', md ? PileQC.fmt(md.de) : kd ? PileQC.fmt(kd.de) : '—', md ? 'meas − design' : 'mach − design');
-    setStat('stat-dz', md ? PileQC.fmt(md.dz) : kd ? PileQC.fmt(kd.dz) : '—', md ? 'meas − design' : 'mach − design');
+    $('stat-count').textContent = String(report.counts.common);
+    $('stat-count-note').textContent =
+      'D' +
+      report.counts.design +
+      ' / G' +
+      report.counts.gnss +
+      ' / U' +
+      report.counts.uts +
+      ' / K' +
+      report.counts.machine;
+
+    function showBlock(id, on) {
+      var el = $(id);
+      if (el) el.style.display = on ? '' : 'none';
+    }
+
+    showBlock('stat-gnss-block', report.hasGnss);
+    showBlock('stat-uts-block', report.hasUts);
+    showBlock('stat-mach-block', report.hasMachine);
+    showBlock('median-gnss-wrap', report.hasGnss);
+    showBlock('median-uts-wrap', report.hasUts);
+    showBlock('median-mach-wrap', report.hasMachine);
+
+    if ($('stat-gnss')) $('stat-gnss').textContent = fmtTriple(gd);
+    if ($('stat-uts')) $('stat-uts').textContent = fmtTriple(ud);
+    if ($('stat-mach')) $('stat-mach').textContent = fmtTriple(kd);
 
     var med = report.medianZ || {};
-    var roverEl = $('stat-median-rover');
-    var machEl = $('stat-median-machine');
-    if (roverEl) roverEl.textContent = med.roverDz != null ? PileQC.fmt(med.roverDz) : '—';
-    if (machEl) machEl.textContent = med.machineDz != null ? PileQC.fmt(med.machineDz) : '—';
+    if ($('stat-median-gnss'))
+      $('stat-median-gnss').textContent = med.gnssDz != null ? PileQC.fmt(med.gnssDz) : '—';
+    if ($('stat-median-uts'))
+      $('stat-median-uts').textContent = med.utsDz != null ? PileQC.fmt(med.utsDz) : '—';
+    if ($('stat-median-machine'))
+      $('stat-median-machine').textContent = med.machineDz != null ? PileQC.fmt(med.machineDz) : '—';
 
     var favor = '';
-    if (md) favor += 'Measured favors <span class="chip chip-info">' + md.favor + '</span> ';
-    if (kd) favor += 'Machine favors <span class="chip chip-ok">' + kd.favor + '</span>';
+    if (gd)
+      favor +=
+        'GNSS favors <span class="chip chip-info">' + gd.favor + '</span> ';
+    if (ud)
+      favor +=
+        'UTS favors <span class="chip chip-uts">' + ud.favor + '</span> ';
+    if (kd)
+      favor +=
+        'Machine favors <span class="chip chip-ok">' + kd.favor + '</span>';
     $('favor-text').innerHTML = favor || '—';
 
     PileCharts.drawBullseye($('canvas-bullseye'), report);
@@ -293,6 +358,7 @@
     var zScroll = $('z-scroll');
     if (zScroll) zScroll.scrollLeft = 0;
 
+    buildTableHead(report);
     state.tableShown = 0;
     renderTablePage(true);
 
@@ -302,6 +368,23 @@
       ' common ID(s) across: ' +
       report.sourcesUsed.join(', ') +
       '.';
+  }
+
+  function buildTableHead(report) {
+    var thead = $('table-head');
+    if (!thead) return;
+    var cols = ['ID', 'Des N', 'Des E', 'Des Z'];
+    if (report.hasGnss) cols.push('GNSS N', 'GNSS E', 'GNSS Z', 'ΔN g−d', 'ΔE g−d', 'ΔZ g−d', 'Horiz g');
+    if (report.hasUts) cols.push('UTS N', 'UTS E', 'UTS Z', 'ΔN u−d', 'ΔE u−d', 'ΔZ u−d', 'Horiz u');
+    if (report.hasMachine) cols.push('Mach N', 'Mach E', 'Mach Z', 'ΔN k−d', 'ΔE k−d', 'ΔZ k−d');
+    thead.innerHTML =
+      '<tr>' +
+      cols
+        .map(function (c) {
+          return '<th' + (c === 'ID' ? ' class="id"' : '') + '>' + c + '</th>';
+        })
+        .join('') +
+      '</tr>';
   }
 
   function renderTablePage(reset) {
@@ -315,7 +398,7 @@
     var frag = document.createDocumentFragment();
 
     for (var i = start; i < end; i++) {
-      frag.appendChild(buildRow(rows[i]));
+      frag.appendChild(buildRow(rows[i], state.report));
     }
     tbody.appendChild(frag);
     state.tableShown = end;
@@ -327,13 +410,13 @@
         state.tableShown +
         ' of ' +
         rows.length +
-        ' rows. m−d = measured − design · k−d = machine − design · k−m = machine − measured. Units: ft.';
+        ' rows. g−d = GNSS − design · u−d = UTS − design · k−d = machine − design. Units: ft.';
     }
     var wrap = $('table-more-wrap');
     if (wrap) wrap.style.display = state.tableShown < rows.length ? 'flex' : 'none';
   }
 
-  function buildRow(r) {
+  function buildRow(r, report) {
     var tr = document.createElement('tr');
     function cell(v, cls) {
       var td = document.createElement('td');
@@ -345,22 +428,32 @@
     tr.appendChild(cell(r.design && r.design.n));
     tr.appendChild(cell(r.design && r.design.e));
     tr.appendChild(cell(r.design && r.design.z));
-    tr.appendChild(cell(r.measured && r.measured.n));
-    tr.appendChild(cell(r.measured && r.measured.e));
-    tr.appendChild(cell(r.measured && r.measured.z));
-    tr.appendChild(cell(r.machine && r.machine.n));
-    tr.appendChild(cell(r.machine && r.machine.e));
-    tr.appendChild(cell(r.machine && r.machine.z));
-    tr.appendChild(cell(r.md && r.md.dn));
-    tr.appendChild(cell(r.md && r.md.de));
-    tr.appendChild(cell(r.md && r.md.dz));
-    tr.appendChild(cell(r.md && r.md.horiz));
-    tr.appendChild(cell(r.kd && r.kd.dn));
-    tr.appendChild(cell(r.kd && r.kd.de));
-    tr.appendChild(cell(r.kd && r.kd.dz));
-    tr.appendChild(cell(r.km && r.km.dn));
-    tr.appendChild(cell(r.km && r.km.de));
-    tr.appendChild(cell(r.km && r.km.dz));
+    if (report.hasGnss) {
+      tr.appendChild(cell(r.gnss && r.gnss.n));
+      tr.appendChild(cell(r.gnss && r.gnss.e));
+      tr.appendChild(cell(r.gnss && r.gnss.z));
+      tr.appendChild(cell(r.gd && r.gd.dn));
+      tr.appendChild(cell(r.gd && r.gd.de));
+      tr.appendChild(cell(r.gd && r.gd.dz));
+      tr.appendChild(cell(r.gd && r.gd.horiz));
+    }
+    if (report.hasUts) {
+      tr.appendChild(cell(r.uts && r.uts.n));
+      tr.appendChild(cell(r.uts && r.uts.e));
+      tr.appendChild(cell(r.uts && r.uts.z));
+      tr.appendChild(cell(r.ud && r.ud.dn));
+      tr.appendChild(cell(r.ud && r.ud.de));
+      tr.appendChild(cell(r.ud && r.ud.dz));
+      tr.appendChild(cell(r.ud && r.ud.horiz));
+    }
+    if (report.hasMachine) {
+      tr.appendChild(cell(r.machine && r.machine.n));
+      tr.appendChild(cell(r.machine && r.machine.e));
+      tr.appendChild(cell(r.machine && r.machine.z));
+      tr.appendChild(cell(r.kd && r.kd.dn));
+      tr.appendChild(cell(r.kd && r.kd.de));
+      tr.appendChild(cell(r.kd && r.kd.dz));
+    }
     return tr;
   }
 
@@ -393,14 +486,23 @@
     }
     var r = hit.row;
     var p = hit.plotted;
-    var src = hit.series === 'measured' ? r.measured : hit.series === 'machine' ? r.machine : null;
+    var src =
+      hit.series === 'gnss' || hit.series === 'measured'
+        ? r.gnss || r.measured
+        : hit.series === 'uts'
+          ? r.uts
+          : hit.series === 'machine'
+            ? r.machine
+            : null;
     var des = r.design;
-    var isMeas = hit.series === 'measured';
+    var isGnss = hit.series === 'gnss' || hit.series === 'measured';
+    var isUts = hit.series === 'uts';
+    var seriesLabel = isGnss ? 'GNSS' : isUts ? 'UTS' : 'Machine';
 
-    var gnssHtml = '';
-    if (isMeas && src && src.gnss) {
+    var metaHtml = '';
+    if (isGnss && src && src.gnss) {
       var g = src.gnss;
-      gnssHtml =
+      metaHtml =
         '<div><span class="lbl">Horiz precision</span><span class="val">' +
         (g.hPrec != null ? fmtPt(g.hPrec) + ' ft' : '—') +
         '</span></div>' +
@@ -409,23 +511,12 @@
         '</span></div>' +
         '<div><span class="lbl">Precision type</span><span class="val">' +
         (g.precType || '—') +
-        '</span></div>' +
-        '<div><span class="lbl">PDOP</span><span class="val">' +
-        (g.pdop != null ? fmtPt(g.pdop) : '—') +
-        '</span></div>' +
-        '<div><span class="lbl">HDOP</span><span class="val">' +
-        (g.hdop != null ? fmtPt(g.hdop) : '—') +
-        '</span></div>' +
-        '<div><span class="lbl">VDOP</span><span class="val">' +
-        (g.vdop != null ? fmtPt(g.vdop) : '—') +
-        '</span></div>' +
-        (g.tilt != null
-          ? '<div><span class="lbl">Tilt angle</span><span class="val">' + fmtPt(g.tilt) + '°</span></div>'
-          : '');
+        '</span></div>';
     }
 
     el.classList.remove('hidden');
     el.classList.toggle('series-machine', hit.series === 'machine');
+    el.classList.toggle('series-uts', isUts);
     el.innerHTML =
       '<h4>Pile ' +
       hit.id +
@@ -449,8 +540,8 @@
       fmtPt(des && des.z) +
       '</span></div>' +
       '<div><span class="lbl">' +
-      (isMeas ? 'Measured Z' : 'Machine Z') +
-      '</span><span class="val">' +
+      seriesLabel +
+      ' Z</span><span class="val">' +
       fmtPt(src && src.z) +
       '</span></div>' +
       '<div><span class="lbl">Design N / E</span><span class="val">' +
@@ -459,19 +550,17 @@
       fmtPt(des && des.e) +
       '</span></div>' +
       '<div><span class="lbl">' +
-      (isMeas ? 'Measured' : 'Machine') +
+      seriesLabel +
       ' N / E</span><span class="val">' +
       fmtPt(src && src.n) +
       ' / ' +
       fmtPt(src && src.e) +
       '</span></div>' +
-      gnssHtml +
+      metaHtml +
       '</div>' +
       '<p class="hint">Δ = ' +
-      (isMeas ? 'measured − design' : 'machine − design') +
-      '. Positive ΔZ = above design.' +
-      (isMeas ? ' GNSS values are from the rover stakeout shot.' : '') +
-      ' Click empty chart area to clear.</p>';
+      seriesLabel.toLowerCase() +
+      ' − design. Positive ΔZ = above design. Click empty chart area to clear.</p>';
   }
 
   function wireZInteractions() {
@@ -532,7 +621,13 @@
       designFiles: state.designFiles.map(function (f) {
         return f.name;
       }),
-      measuredFiles: state.measuredFiles.map(function (f) {
+      gnssFiles: state.gnssFiles.map(function (f) {
+        return f.name;
+      }),
+      utsFiles: state.utsFiles.map(function (f) {
+        return f.name;
+      }),
+      measuredFiles: state.gnssFiles.map(function (f) {
         return f.name;
       }),
       machineFiles: state.machineFiles.map(function (f) {
@@ -543,18 +638,24 @@
 
   function init() {
     wireDropzone('dz-design', 'file-design', 'design');
-    wireDropzone('dz-measured', 'file-measured', 'measured');
+    wireDropzone('dz-stakeout', 'file-stakeout', 'stakeout');
     wireDropzone('dz-machine', 'file-machine', 'machine');
 
     $('btn-pdf').addEventListener('click', function () {
       if (!state.report) return;
       try {
+        setBusy('Building landscape PDF…');
         var zPack = PileCharts.buildZPageImages(state.report, { maxPages: PDF_Z_MAX_PAGES });
+        var pilePack = PileCharts.buildPilePageImages(state.report, { maxPiles: PDF_PILE_MAX });
         PilePdf.open(state.report, metaFromState(), {
           bullseye: PileCharts.toDataUrl($('canvas-bullseye')),
           zPages: zPack.pages,
           zMeta: zPack,
+          pilePages: pilePack.pages,
+          pileMeta: pilePack,
         });
+        var alertEl = $('alert');
+        if (alertEl) alertEl.classList.add('hidden');
       } catch (err) {
         alert('PDF export failed: ' + (err && err.message ? err.message : err));
         console.error(err);
@@ -573,7 +674,8 @@
 
     $('btn-clear').addEventListener('click', function () {
       state.designFiles = [];
-      state.measuredFiles = [];
+      state.gnssFiles = [];
+      state.utsFiles = [];
       state.machineFiles = [];
       refreshLists();
       scheduleRebuild();
