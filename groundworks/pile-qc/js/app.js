@@ -296,9 +296,59 @@
     });
   }
 
-  function fmtTriple(avg) {
-    if (!avg) return '—';
-    return PileQC.fmt(avg.dn) + ' / ' + PileQC.fmt(avg.de) + ' / ' + PileQC.fmt(avg.dz);
+  function showBlock(id, on) {
+    var el = $(id);
+    if (el) el.style.display = on ? '' : 'none';
+  }
+
+  function setText(id, value) {
+    var el = $(id);
+    if (el) el.textContent = value == null || value === '' ? '—' : String(value);
+  }
+
+  function fillDeltaCard(prefix, avg, medianDz) {
+    setText('stat-' + prefix + '-dn', avg ? PileQC.fmt(avg.dn) : '—');
+    setText('stat-' + prefix + '-de', avg ? PileQC.fmt(avg.de) : '—');
+    setText('stat-' + prefix + '-dz', avg ? PileQC.fmt(avg.dz) : '—');
+    setText('stat-' + prefix + '-h', avg ? PileQC.fmt(avg.horiz) : '—');
+    if (medianDz !== undefined) {
+      setText(
+        prefix === 'mach' ? 'stat-median-machine' : 'stat-median-' + prefix,
+        medianDz != null ? PileQC.fmt(medianDz) : '—'
+      );
+    }
+    var favorId =
+      prefix === 'mach'
+        ? 'favor-mach'
+        : prefix === 'gnss-mach'
+          ? 'favor-gnss-mach'
+          : prefix === 'uts-mach'
+            ? 'favor-uts-mach'
+            : 'favor-' + prefix;
+    setText(favorId, avg && avg.favor ? avg.favor : '—');
+  }
+
+  function paintDeltaBars(prefix, avg, scaleMax) {
+    ['dn', 'de', 'dz'].forEach(function (axis) {
+      var el = $('bar-' + prefix + '-' + axis);
+      if (!el) return;
+      if (!avg || avg[axis] == null || !Number.isFinite(avg[axis]) || !scaleMax) {
+        el.style.width = '0%';
+        el.style.marginLeft = '50%';
+        el.className = '';
+        return;
+      }
+      var v = avg[axis];
+      var pct = Math.min(50, (Math.abs(v) / scaleMax) * 50);
+      el.style.width = pct + '%';
+      if (v >= 0) {
+        el.style.marginLeft = '50%';
+        el.className = 'pos';
+      } else {
+        el.style.marginLeft = 50 - pct + '%';
+        el.className = 'neg';
+      }
+    });
   }
 
   function renderReport(report) {
@@ -307,6 +357,7 @@
     var kd = report.avg.machineVsDesign;
     var gm = report.avg.gnssVsMachine;
     var um = report.avg.utsVsMachine;
+    var med = report.medianZ || {};
 
     $('stat-count').textContent = String(report.counts.common);
     $('stat-count-note').textContent =
@@ -319,33 +370,34 @@
       ' / K' +
       report.counts.machine;
 
-    function showBlock(id, on) {
-      var el = $(id);
-      if (el) el.style.display = on ? '' : 'none';
-    }
-
     showBlock('stat-gnss-block', report.hasGnss);
     showBlock('stat-uts-block', report.hasUts);
     showBlock('stat-mach-block', report.hasMachine);
     showBlock('stat-gnss-mach-block', report.hasGnss && report.hasMachine);
     showBlock('stat-uts-mach-block', report.hasUts && report.hasMachine);
-    showBlock('median-gnss-wrap', report.hasGnss);
-    showBlock('median-uts-wrap', report.hasUts);
-    showBlock('median-mach-wrap', report.hasMachine);
+    showBlock(
+      'rover-mach-heading',
+      (report.hasGnss || report.hasUts) && report.hasMachine
+    );
+    showBlock(
+      'delta-vs-machine',
+      (report.hasGnss || report.hasUts) && report.hasMachine
+    );
 
-    if ($('stat-gnss')) $('stat-gnss').textContent = fmtTriple(gd);
-    if ($('stat-uts')) $('stat-uts').textContent = fmtTriple(ud);
-    if ($('stat-mach')) $('stat-mach').textContent = fmtTriple(kd);
-    if ($('stat-gnss-mach')) $('stat-gnss-mach').textContent = fmtTriple(gm);
-    if ($('stat-uts-mach')) $('stat-uts-mach').textContent = fmtTriple(um);
+    fillDeltaCard('gnss', gd, med.gnssDz);
+    fillDeltaCard('uts', ud, med.utsDz);
+    fillDeltaCard('mach', kd, med.machineDz);
+    fillDeltaCard('gnss-mach', gm);
+    fillDeltaCard('uts-mach', um);
 
-    var med = report.medianZ || {};
-    if ($('stat-median-gnss'))
-      $('stat-median-gnss').textContent = med.gnssDz != null ? PileQC.fmt(med.gnssDz) : '—';
-    if ($('stat-median-uts'))
-      $('stat-median-uts').textContent = med.utsDz != null ? PileQC.fmt(med.utsDz) : '—';
-    if ($('stat-median-machine'))
-      $('stat-median-machine').textContent = med.machineDz != null ? PileQC.fmt(med.machineDz) : '—';
+    var scaleMax = 0.05;
+    [gd, ud, kd].forEach(function (avg) {
+      if (!avg) return;
+      scaleMax = Math.max(scaleMax, Math.abs(avg.dn), Math.abs(avg.de), Math.abs(avg.dz));
+    });
+    if (report.hasGnss) paintDeltaBars('gnss', gd, scaleMax);
+    if (report.hasUts) paintDeltaBars('uts', ud, scaleMax);
+    if (report.hasMachine) paintDeltaBars('mach', kd, scaleMax);
 
     var favor = '';
     if (gd)

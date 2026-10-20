@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body data-gw-page="pile-qc" class="pile-qc">
   <header class="tc-app-header">
@@ -108,67 +108,124 @@
 
     <div id="results" class="hidden">
       <section class="card">
-        <h2>Summary</h2>
+        <h2>Summary — design is the benchmark</h2>
         <p class="muted" id="match-note"></p>
-        <div class="stats" id="stats-grid">
-          <div class="stat">
-            <div class="label">Common piles</div>
-            <div class="value" id="stat-count">—</div>
-            <div class="note" id="stat-count-note"></div>
-          </div>
-          <div class="stat" id="stat-gnss-block">
-            <div class="label">GNSS avg ΔN / ΔE / ΔZ (ft)</div>
-            <div class="value value-sm" id="stat-gnss">—</div>
-            <div class="note">GNSS − design</div>
-          </div>
-          <div class="stat" id="stat-uts-block">
-            <div class="label">UTS avg ΔN / ΔE / ΔZ (ft)</div>
-            <div class="value value-sm" id="stat-uts">—</div>
-            <div class="note">UTS − design</div>
-          </div>
-          <div class="stat" id="stat-mach-block">
-            <div class="label">Machine avg ΔN / ΔE / ΔZ (ft)</div>
-            <div class="value value-sm" id="stat-mach">—</div>
-            <div class="note">Machine − design</div>
-          </div>
-          <div class="stat stat--rover-mach" id="stat-gnss-mach-block">
-            <div class="label">GNSS vs machine avg ΔN / ΔE / ΔZ (ft)</div>
-            <div class="value value-sm" id="stat-gnss-mach">—</div>
-            <div class="note">GNSS − machine</div>
-          </div>
-          <div class="stat stat--rover-mach" id="stat-uts-mach-block">
-            <div class="label">UTS vs machine avg ΔN / ΔE / ΔZ (ft)</div>
-            <div class="value value-sm" id="stat-uts-mach">—</div>
-            <div class="note">UTS − machine</div>
-          </div>
-          <div class="stat stat-median-z">
-            <div class="label">Median ΔZ (ft)</div>
-            <div class="median-pair" id="median-pair">
-              <div id="median-gnss-wrap">
-                <div class="median-sublabel">GNSS</div>
-                <div class="value value-sm" id="stat-median-gnss">—</div>
-              </div>
-              <div id="median-uts-wrap">
-                <div class="median-sublabel">UTS</div>
-                <div class="value value-sm" id="stat-median-uts">—</div>
-              </div>
-              <div id="median-mach-wrap">
-                <div class="median-sublabel">Machine</div>
-                <div class="value value-sm" id="stat-median-machine">—</div>
-              </div>
-            </div>
-            <div class="note">vs design · less skewed by outliers than average</div>
-          </div>
+        <p class="delta-benchmark-note">
+          All deltas below are <strong>source − design</strong> (ft). Positive ΔN = north of design · Positive ΔE = east · Positive ΔZ = above.
+        </p>
+
+        <div class="stat stat-count-alone">
+          <div class="label">Common piles in report</div>
+          <div class="value" id="stat-count">—</div>
+          <div class="note" id="stat-count-note"></div>
         </div>
+
+        <h3 class="delta-group-title">Vs design</h3>
+        <div class="delta-board" id="delta-vs-design">
+          <article class="delta-card delta-card--gnss" id="stat-gnss-block">
+            <header class="delta-card__head">
+              <span class="delta-card__name">GNSS vs design</span>
+              <span class="delta-card__favor" id="favor-gnss">—</span>
+            </header>
+            <div class="delta-card__metrics">
+              <div><span class="delta-k">ΔN</span><strong id="stat-gnss-dn">—</strong></div>
+              <div><span class="delta-k">ΔE</span><strong id="stat-gnss-de">—</strong></div>
+              <div><span class="delta-k">ΔZ</span><strong id="stat-gnss-dz">—</strong></div>
+              <div><span class="delta-k">Horiz</span><strong id="stat-gnss-h">—</strong></div>
+              <div><span class="delta-k">Med ΔZ</span><strong id="stat-median-gnss">—</strong></div>
+            </div>
+            <div class="delta-bars" aria-hidden="true">
+              <div class="delta-bar"><span>N</span><i id="bar-gnss-dn"></i></div>
+              <div class="delta-bar"><span>E</span><i id="bar-gnss-de"></i></div>
+              <div class="delta-bar"><span>Z</span><i id="bar-gnss-dz"></i></div>
+            </div>
+          </article>
+
+          <article class="delta-card delta-card--uts" id="stat-uts-block">
+            <header class="delta-card__head">
+              <span class="delta-card__name">UTS vs design</span>
+              <span class="delta-card__favor" id="favor-uts">—</span>
+            </header>
+            <div class="delta-card__metrics">
+              <div><span class="delta-k">ΔN</span><strong id="stat-uts-dn">—</strong></div>
+              <div><span class="delta-k">ΔE</span><strong id="stat-uts-de">—</strong></div>
+              <div><span class="delta-k">ΔZ</span><strong id="stat-uts-dz">—</strong></div>
+              <div><span class="delta-k">Horiz</span><strong id="stat-uts-h">—</strong></div>
+              <div><span class="delta-k">Med ΔZ</span><strong id="stat-median-uts">—</strong></div>
+            </div>
+            <div class="delta-bars" aria-hidden="true">
+              <div class="delta-bar"><span>N</span><i id="bar-uts-dn"></i></div>
+              <div class="delta-bar"><span>E</span><i id="bar-uts-de"></i></div>
+              <div class="delta-bar"><span>Z</span><i id="bar-uts-dz"></i></div>
+            </div>
+          </article>
+
+          <article class="delta-card delta-card--mach" id="stat-mach-block">
+            <header class="delta-card__head">
+              <span class="delta-card__name">Machine vs design</span>
+              <span class="delta-card__favor" id="favor-mach">—</span>
+            </header>
+            <div class="delta-card__metrics">
+              <div><span class="delta-k">ΔN</span><strong id="stat-mach-dn">—</strong></div>
+              <div><span class="delta-k">ΔE</span><strong id="stat-mach-de">—</strong></div>
+              <div><span class="delta-k">ΔZ</span><strong id="stat-mach-dz">—</strong></div>
+              <div><span class="delta-k">Horiz</span><strong id="stat-mach-h">—</strong></div>
+              <div><span class="delta-k">Med ΔZ</span><strong id="stat-median-machine">—</strong></div>
+            </div>
+            <div class="delta-bars" aria-hidden="true">
+              <div class="delta-bar"><span>N</span><i id="bar-mach-dn"></i></div>
+              <div class="delta-bar"><span>E</span><i id="bar-mach-de"></i></div>
+              <div class="delta-bar"><span>Z</span><i id="bar-mach-dz"></i></div>
+            </div>
+          </article>
+        </div>
+
+        <h3 class="delta-group-title delta-group-title--secondary" id="rover-mach-heading">Rover vs machine</h3>
+        <div class="delta-board delta-board--secondary" id="delta-vs-machine">
+          <article class="delta-card delta-card--gnss-mach" id="stat-gnss-mach-block">
+            <header class="delta-card__head">
+              <span class="delta-card__name">GNSS vs machine</span>
+              <span class="delta-card__favor" id="favor-gnss-mach">—</span>
+            </header>
+            <div class="delta-card__metrics">
+              <div><span class="delta-k">ΔN</span><strong id="stat-gnss-mach-dn">—</strong></div>
+              <div><span class="delta-k">ΔE</span><strong id="stat-gnss-mach-de">—</strong></div>
+              <div><span class="delta-k">ΔZ</span><strong id="stat-gnss-mach-dz">—</strong></div>
+              <div><span class="delta-k">Horiz</span><strong id="stat-gnss-mach-h">—</strong></div>
+            </div>
+            <p class="delta-card__note">GNSS − machine (ft)</p>
+          </article>
+
+          <article class="delta-card delta-card--uts-mach" id="stat-uts-mach-block">
+            <header class="delta-card__head">
+              <span class="delta-card__name">UTS vs machine</span>
+              <span class="delta-card__favor" id="favor-uts-mach">—</span>
+            </header>
+            <div class="delta-card__metrics">
+              <div><span class="delta-k">ΔN</span><strong id="stat-uts-mach-dn">—</strong></div>
+              <div><span class="delta-k">ΔE</span><strong id="stat-uts-mach-de">—</strong></div>
+              <div><span class="delta-k">ΔZ</span><strong id="stat-uts-mach-dz">—</strong></div>
+              <div><span class="delta-k">Horiz</span><strong id="stat-uts-mach-h">—</strong></div>
+            </div>
+            <p class="delta-card__note">UTS − machine (ft)</p>
+          </article>
+        </div>
+
         <p class="favor" id="favor-text"></p>
       </section>
 
       <section class="card">
-        <h2>Visuals</h2>
+        <h2>Visuals — design at center / ΔZ = 0</h2>
         <div class="viz-grid viz-grid--bullseye">
           <div class="viz-panel">
-            <h3>Directional bullseye (ΔE vs ΔN)</h3>
-            <canvas id="canvas-bullseye" width="480" height="360"></canvas>
+            <h3>Directional bullseye (ΔE vs ΔN from design)</h3>
+            <p class="muted viz-legend-line">
+              Center = design ·
+              <span class="legend-swatch legend-swatch--gnss">GNSS</span> ·
+              <span class="legend-swatch legend-swatch--uts">UTS</span> ·
+              <span class="legend-swatch legend-swatch--machine">Machine</span>
+            </p>
+            <canvas id="canvas-bullseye" width="520" height="400"></canvas>
           </div>
         </div>
         <div class="viz-panel viz-panel--z">
@@ -210,7 +267,7 @@
   <script src="js/parsers.js?v=2"></script>
   <script src="js/qc.js?v=3"></script>
   <script src="js/charts.js?v=2"></script>
-  <script src="js/pdf.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/pdf.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>

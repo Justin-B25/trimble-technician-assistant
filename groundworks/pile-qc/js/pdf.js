@@ -341,7 +341,8 @@ var PilePdf = (function () {
       row('Machine files', (meta.machineFiles || []).join('; ')) +
       row('Sources used', (report.sourcesUsed || []).join(', ')) +
       '</table></div>' +
-      '<div><h2>Summary</h2>' +
+      '<div><h2>Summary — design is the benchmark</h2>' +
+      '<p class="muted">Deltas are source − design (ft) unless noted. GNSS vs machine / UTS vs machine are rover − machine.</p>' +
       buildSummary(report) +
       (images.bullseye
         ? '<h2>Directional bullseye</h2><div class="viz"><img src="' +

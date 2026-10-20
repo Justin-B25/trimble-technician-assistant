@@ -134,6 +134,172 @@
   padding: 12px;
 }
 
+.pile-qc .stat-count-alone {
+  max-width: 280px;
+  margin-bottom: 14px;
+}
+
+.pile-qc .delta-benchmark-note {
+  margin: -4px 0 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--tc-grey-600, #6a6e79);
+}
+
+.pile-qc .delta-group-title {
+  margin: 4px 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tc-blue-dark, #004b7a);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pile-qc .delta-group-title--secondary {
+  margin-top: 18px;
+  color: var(--tc-grey-600, #6a6e79);
+}
+
+.pile-qc .delta-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.pile-qc .delta-card {
+  border: 1px solid var(--tc-grey-300, #e0e1e9);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--tc-surface, #fff);
+  border-left-width: 5px;
+  border-left-style: solid;
+}
+
+.pile-qc .delta-card--gnss { border-left-color: #005f9e; background: #f4f9fc; }
+.pile-qc .delta-card--uts { border-left-color: #e36c0a; background: #fff8f1; }
+.pile-qc .delta-card--mach { border-left-color: #006638; background: #f2f8f5; }
+.pile-qc .delta-card--gnss-mach { border-left-color: #005f9e; background: #eef5fa; }
+.pile-qc .delta-card--uts-mach { border-left-color: #e36c0a; background: #fff4ea; }
+
+.pile-qc .delta-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pile-qc .delta-card__name {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pile-qc .delta-card--gnss .delta-card__name,
+.pile-qc .delta-card--gnss-mach .delta-card__name { color: #005f9e; }
+.pile-qc .delta-card--uts .delta-card__name,
+.pile-qc .delta-card--uts-mach .delta-card__name { color: #e36c0a; }
+.pile-qc .delta-card--mach .delta-card__name { color: #006638; }
+
+.pile-qc .delta-card__favor {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tc-text, #252a2e);
+  white-space: nowrap;
+}
+
+.pile-qc .delta-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.pile-qc .delta-card--gnss-mach .delta-card__metrics,
+.pile-qc .delta-card--uts-mach .delta-card__metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.pile-qc .delta-k {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--tc-grey-600, #6a6e79);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pile-qc .delta-card__metrics strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--tc-text, #252a2e);
+  font-variant-numeric: tabular-nums;
+}
+
+.pile-qc .delta-card__note {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--tc-grey-600, #6a6e79);
+}
+
+.pile-qc .delta-bars {
+  margin-top: 12px;
+  display: grid;
+  gap: 5px;
+}
+
+.pile-qc .delta-bar {
+  position: relative;
+  height: 16px;
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.05);
+  background-image: linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(50% - 0.5px),
+    var(--tc-grey-400, #cbcdd6) calc(50% - 0.5px),
+    var(--tc-grey-400, #cbcdd6) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px),
+    transparent 100%
+  );
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--tc-grey-600, #6a6e79);
+  overflow: hidden;
+}
+
+.pile-qc .delta-bar span {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  font-size: 9px;
+  pointer-events: none;
+}
+
+.pile-qc .delta-bar i {
+  display: block;
+  height: 10px;
+  margin-top: 3px;
+  border-radius: 2px;
+  min-width: 0;
+}
+
+.pile-qc .delta-card--gnss .delta-bar i.pos,
+.pile-qc .delta-card--gnss .delta-bar i.neg { background: #005f9e; }
+.pile-qc .delta-card--uts .delta-bar i.pos,
+.pile-qc .delta-card--uts .delta-bar i.neg { background: #e36c0a; }
+.pile-qc .delta-card--mach .delta-bar i.pos,
+.pile-qc .delta-card--mach .delta-bar i.neg { background: #006638; }
+
+.pile-qc .viz-legend-line {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
 .pile-qc .stat .label {
   font-size: 11px;
   color: var(--tc-grey-600, #6a6e79);
