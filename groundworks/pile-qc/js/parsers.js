@@ -1,8 +1,11 @@
 /**
- * Parsers for Design CSV, Measured stakeout CSV, and Groundworks Quality Metrics XLSX.
+ * Parsers for Design CSV, Measured stakeout CSV, and machine quality:
+ * Groundworks Quality Metrics XLSX/CSV (TBC export) and on-machine PileQual XML.
  * Supports multiple files per source type; merges into Map by normalized pile ID.
  */
 var PileParsers = (function () {
+  /** US survey feet per meter (Trimble Civil / US site coords). */
+  var METERS_TO_US_FT = 3937 / 1200;
   function normalizeId(raw) {
     if (raw == null) return '';
     var s = String(raw).trim();
@@ -297,24 +300,15 @@ var PileParsers = (function () {
     return 0;
   }
 
-  function parseMachineXlsx(arrayBuffer, sourceName) {
-    if (typeof XLSX === 'undefined') {
-      return {
-        map: Object.create(null),
-        warnings: [
-          sourceName +
-            ': SheetJS (XLSX) library not loaded — check internet connection when opening this HTML, then reload.',
-        ],
-        count: 0,
-      };
-    }
-    var workbook = XLSX.read(arrayBuffer, { type: 'array' });
-    var parsed = sheetToAoA(workbook);
-    var rows = parsed.rows;
+  /**
+   * Shared path for Quality Metrics grid (XLSX sheet or TBC CSV export).
+   * Uses As-Built Top of Pile Northing / Easting / Elevation.
+   */
+  function parseMachineQualityRows(rows, sourceName, sheetName) {
     var map = Object.create(null);
     var warnings = [];
 
-    if (rows.length < 4) {
+    if (!rows || rows.length < 4) {
       return { map: map, warnings: [sourceName + ': not enough rows'], count: 0 };
     }
 
@@ -322,7 +316,9 @@ var PileParsers = (function () {
     if (!cols) {
       return {
         map: map,
-        warnings: [sourceName + ': could not find As-Built Top of Pile Northing/Easting/Elevation headers'],
+        warnings: [
+          sourceName + ': could not find As-Built Top of Pile Northing/Easting/Elevation headers',
+        ],
         count: 0,
       };
     }
@@ -349,11 +345,206 @@ var PileParsers = (function () {
         e: e,
         z: z,
         source: sourceName,
-        sheet: parsed.name,
+        sheet: sheetName || null,
         cols: cols,
+        format: 'quality-metrics',
       };
     }
     return { map: map, warnings: warnings, count: Object.keys(map).length, cols: cols };
+  }
+
+  function parseMachineXlsx(arrayBuffer, sourceName) {
+    if (typeof XLSX === 'undefined') {
+      return {
+        map: Object.create(null),
+        warnings: [
+          sourceName +
+            ': SheetJS (XLSX) library not loaded — check internet connection when opening this HTML, then reload.',
+        ],
+        count: 0,
+      };
+    }
+    var workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    var parsed = sheetToAoA(workbook);
+    return parseMachineQualityRows(parsed.rows, sourceName, parsed.name);
+  }
+
+  /** TBC / WorksManager Quality Metrics CSV (same 3-row header as the XLSX). */
+  function parseMachineCsv(text, sourceName) {
+    var rows = parseCsvText(text);
+    return parseMachineQualityRows(rows, sourceName, 'csv');
+  }
+
+  function xmlLocalName(node) {
+    if (!node || !node.nodeName) return '';
+    return String(node.nodeName).replace(/^.*:/, '');
+  }
+
+  function xmlChild(parent, name) {
+    if (!parent || !parent.childNodes) return null;
+    for (var i = 0; i < parent.childNodes.length; i++) {
+      var ch = parent.childNodes[i];
+      if (ch.nodeType === 1 && xmlLocalName(ch).toLowerCase() === name.toLowerCase()) {
+        return ch;
+      }
+    }
+    return null;
+  }
+
+  function xmlChildren(parent, name) {
+    var out = [];
+    if (!parent || !parent.childNodes) return out;
+    for (var i = 0; i < parent.childNodes.length; i++) {
+      var ch = parent.childNodes[i];
+      if (ch.nodeType === 1 && xmlLocalName(ch).toLowerCase() === name.toLowerCase()) {
+        out.push(ch);
+      }
+    }
+    return out;
+  }
+
+  function xmlPoint(el) {
+    if (!el) return null;
+    var xEl = xmlChild(el, 'PointX');
+    var yEl = xmlChild(el, 'PointY');
+    var zEl = xmlChild(el, 'PointZ');
+    var x = toNum(xEl && xEl.textContent);
+    var y = toNum(yEl && yEl.textContent);
+    var z = toNum(zEl && zEl.textContent);
+    if (x == null || y == null || z == null) return null;
+    return { x: x, y: y, z: z };
+  }
+
+  /**
+   * Groundworks on-machine PileQual XML (no TBC report needed).
+   * Tablet stores SI meters: PointX→Northing, PointY→Easting.
+   * As-Built Top ≈ StartPoint N/E + EndPoint Z (matches TBC Quality Metrics CSV).
+   */
+  function parseMachinePileQualXml(text, sourceName) {
+    var map = Object.create(null);
+    var warnings = [];
+    var doc;
+    try {
+      doc = new DOMParser().parseFromString(String(text || ''), 'application/xml');
+    } catch (err) {
+      return {
+        map: map,
+        warnings: [sourceName + ': failed to parse XML'],
+        count: 0,
+      };
+    }
+    if (doc.querySelector('parsererror')) {
+      return {
+        map: map,
+        warnings: [sourceName + ': invalid XML'],
+        count: 0,
+      };
+    }
+
+    var root = doc.documentElement;
+    if (!root || !/pilequal/i.test(xmlLocalName(root))) {
+      warnings.push(sourceName + ': root is not PileQual — parsing pile nodes anyway');
+    }
+
+    var pileNodes = doc.getElementsByTagName('Pile');
+    if (!pileNodes.length) {
+      // Case / namespace fallback
+      var all = doc.getElementsByTagName('*');
+      pileNodes = [];
+      for (var i = 0; i < all.length; i++) {
+        if (xmlLocalName(all[i]) === 'Pile') pileNodes.push(all[i]);
+      }
+    }
+
+    var scale = METERS_TO_US_FT;
+    var sample = null;
+    for (var p = 0; p < pileNodes.length; p++) {
+      var pileEl = pileNodes[p];
+      var id = normalizeId(pileEl.getAttribute('id') || pileEl.getAttribute('name'));
+      if (!id) continue;
+
+      var splices = xmlChildren(pileEl, 'Splice');
+      var splice = splices.length ? splices[splices.length - 1] : xmlChild(pileEl, 'Splice');
+      if (!splice) {
+        warnings.push(sourceName + ': pile ' + id + ' has no Splice — skipped');
+        continue;
+      }
+
+      var start = xmlPoint(xmlChild(splice, 'StartPoint'));
+      var end = xmlPoint(xmlChild(splice, 'EndPoint'));
+      if (!start) {
+        warnings.push(sourceName + ': pile ' + id + ' missing StartPoint — skipped');
+        continue;
+      }
+
+      // Heuristic: large XY already look like site feet — leave as-is.
+      if (!sample) {
+        sample = start;
+        if (Math.abs(start.x) > 10000 || Math.abs(start.y) > 10000) {
+          scale = 1;
+          warnings.push(
+            sourceName +
+              ': coordinates look like feet already — no m→ft conversion applied'
+          );
+        } else {
+          warnings.push(
+            sourceName +
+              ': PileQual XML in meters — converted to US survey feet (PointX=N, PointY=E; Top Z from EndPoint)'
+          );
+        }
+      }
+
+      var n = start.x * scale;
+      var e = start.y * scale;
+      var z = (end && end.z != null ? end.z : start.z) * scale;
+
+      if (map[id]) {
+        warnings.push(sourceName + ': duplicate machine ID ' + id + ' (last wins)');
+      }
+      map[id] = {
+        id: id,
+        n: n,
+        e: e,
+        z: z,
+        source: sourceName,
+        format: 'pilequal-xml',
+        scale: scale,
+      };
+    }
+
+    return { map: map, warnings: warnings, count: Object.keys(map).length };
+  }
+
+  function machineFileKind(fileName) {
+    var n = String(fileName || '').toLowerCase();
+    if (n.endsWith('.xml')) return 'xml';
+    if (n.endsWith('.csv')) return 'csv';
+    if (n.endsWith('.xlsx') || n.endsWith('.xls')) return 'xlsx';
+    return 'unknown';
+  }
+
+  async function parseMachineFile(file) {
+    var kind = machineFileKind(file.name);
+    if (kind === 'xml') {
+      var xmlText = await readFileAsText(file);
+      return parseMachinePileQualXml(xmlText, file.name);
+    }
+    if (kind === 'csv') {
+      var csvText = await readFileAsText(file);
+      return parseMachineCsv(csvText, file.name);
+    }
+    if (kind === 'xlsx') {
+      var buf = await readFileAsArrayBuffer(file);
+      return parseMachineXlsx(buf, file.name);
+    }
+    return {
+      map: Object.create(null),
+      warnings: [
+        file.name +
+          ': unsupported machine file type — use Quality Metrics .xlsx/.csv or PileQual .xml',
+      ],
+      count: 0,
+    };
   }
 
   function mergeMaps(parts) {
@@ -399,8 +590,7 @@ var PileParsers = (function () {
   async function loadMachineFiles(files) {
     var parts = [];
     for (var i = 0; i < files.length; i++) {
-      var buf = await readFileAsArrayBuffer(files[i]);
-      var result = parseMachineXlsx(buf, files[i].name);
+      var result = await parseMachineFile(files[i]);
       parts.push({ map: result.map, warnings: result.warnings, fileName: files[i].name });
     }
     return mergeMaps(parts);
@@ -411,6 +601,8 @@ var PileParsers = (function () {
     parseDesignCsv: parseDesignCsv,
     parseMeasuredCsv: parseMeasuredCsv,
     parseMachineXlsx: parseMachineXlsx,
+    parseMachineCsv: parseMachineCsv,
+    parseMachinePileQualXml: parseMachinePileQualXml,
     loadDesignFiles: loadDesignFiles,
     loadMeasuredFiles: loadMeasuredFiles,
     loadMachineFiles: loadMachineFiles,

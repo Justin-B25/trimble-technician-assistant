@@ -234,6 +234,134 @@ var PileQC = (function () {
     return n.toFixed(digits == null ? 3 : digits);
   }
 
+  /**
+   * Pile-to-pile Z consistency (separate from design deltas).
+   * For each pile with Z from `source`, find the nearest neighbor in plan
+   * (design N/E when available, else source N/E) and compare elevations.
+   * options: { source: 'machine'|'gnss'|'uts', specFt: number }
+   */
+  function buildPileToPileZ(report, options) {
+    options = options || {};
+    var source = options.source || 'machine';
+    var spec =
+      options.specFt != null && Number.isFinite(options.specFt) ? Math.abs(options.specFt) : 0.02;
+    var rows = (report && report.rows) || [];
+    var points = [];
+
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var src = r[source];
+      if (!src || src.z == null || !Number.isFinite(src.z)) continue;
+      var n = r.design && r.design.n != null ? r.design.n : src.n;
+      var e = r.design && r.design.e != null ? r.design.e : src.e;
+      if (n == null || e == null || !Number.isFinite(n) || !Number.isFinite(e)) continue;
+      points.push({
+        id: r.id,
+        n: n,
+        e: e,
+        z: src.z,
+        index: points.length,
+      });
+    }
+
+    var empty = {
+      source: source,
+      specFt: spec,
+      count: 0,
+      passCount: 0,
+      failCount: 0,
+      pairFailCount: 0,
+      maxAbsDz: null,
+      meanAbsDz: null,
+      medianAbsDz: null,
+      points: [],
+      edges: [],
+      ok: true,
+    };
+    if (points.length < 2) return empty;
+
+    var absList = [];
+    var edgeKey = Object.create(null);
+    var edges = [];
+    var failCount = 0;
+    var pairFailCount = 0;
+    var maxAbs = 0;
+    var sumAbs = 0;
+
+    for (var a = 0; a < points.length; a++) {
+      var pa = points[a];
+      var bestJ = -1;
+      var bestD2 = Infinity;
+      for (var b = 0; b < points.length; b++) {
+        if (a === b) continue;
+        var pb = points[b];
+        var dn = pa.n - pb.n;
+        var de = pa.e - pb.e;
+        var d2 = dn * dn + de * de;
+        if (d2 < bestD2) {
+          bestD2 = d2;
+          bestJ = b;
+        }
+      }
+      var nb = points[bestJ];
+      var dz = pa.z - nb.z;
+      var absDz = Math.abs(dz);
+      var pass = absDz <= spec + 1e-12;
+      var horiz = Math.sqrt(bestD2);
+      pa.neighborId = nb.id;
+      pa.neighborIndex = bestJ;
+      pa.dz = dz;
+      pa.absDz = absDz;
+      pa.horiz = horiz;
+      pa.pass = pass;
+      absList.push(absDz);
+      sumAbs += absDz;
+      if (absDz > maxAbs) maxAbs = absDz;
+      if (!pass) failCount++;
+
+      var lo = pa.id < nb.id ? pa.id : nb.id;
+      var hi = pa.id < nb.id ? nb.id : pa.id;
+      var key = lo + '|' + hi;
+      if (!edgeKey[key]) {
+        edgeKey[key] = true;
+        var edgePass = absDz <= spec + 1e-12;
+        edges.push({
+          idA: pa.id,
+          idB: nb.id,
+          indexA: a,
+          indexB: bestJ,
+          absDz: absDz,
+          dz: dz,
+          horiz: horiz,
+          pass: edgePass,
+        });
+        if (!edgePass) pairFailCount++;
+      }
+    }
+
+    absList.sort(function (x, y) {
+      return x - y;
+    });
+    var mid = Math.floor(absList.length / 2);
+    var medianAbs =
+      absList.length % 2 === 0 ? (absList[mid - 1] + absList[mid]) / 2 : absList[mid];
+
+    return {
+      source: source,
+      specFt: spec,
+      count: points.length,
+      passCount: points.length - failCount,
+      failCount: failCount,
+      pairFailCount: pairFailCount,
+      maxAbsDz: maxAbs,
+      meanAbsDz: sumAbs / points.length,
+      medianAbsDz: medianAbs,
+      points: points,
+      edges: edges,
+      ok: failCount === 0,
+    };
+  }
+
   function rowsToCsv(report) {
     var header = [
       'PileID',
@@ -338,6 +466,7 @@ var PileQC = (function () {
   return {
     COLORS: COLORS,
     buildReport: buildReport,
+    buildPileToPileZ: buildPileToPileZ,
     commonIds: commonIds,
     favorLabel: favorLabel,
     fmt: fmt,

@@ -12,6 +12,8 @@
     gnssFiles: [],
     utsFiles: [],
     machineFiles: [],
+    /** Active rover mode from radios: gnss | uts | both — filters report series. */
+    roverMode: 'gnss',
     design: null,
     gnss: null,
     uts: null,
@@ -21,6 +23,7 @@
     zSelected: null,
     tableShown: 0,
     rebuildToken: 0,
+    pileToPile: null,
   };
 
   function $(id) {
@@ -41,12 +44,66 @@
     });
   }
 
-  function selectedStakeoutKind() {
-    var uts = $('kind-uts');
-    return uts && uts.checked ? 'uts' : 'gnss';
+  function selectedRoverMode() {
+    var checked = document.querySelector('input[name="stakeout-kind"]:checked');
+    var v = checked ? checked.value : 'gnss';
+    if (v === 'uts' || v === 'both' || v === 'gnss') return v;
+    return 'gnss';
   }
 
-  function renderFileList(ulId, files, onRemove) {
+  function syncRoverModeFromUi() {
+    state.roverMode = selectedRoverMode();
+    var hint = $('stakeout-mode-hint');
+    if (!hint) return;
+    if (state.roverMode === 'gnss') {
+      hint.textContent =
+        'GNSS rover — imports tag as GNSS. Summary compares GNSS to design and machine.';
+    } else if (state.roverMode === 'uts') {
+      hint.textContent =
+        'UTS — imports tag as UTS. Summary compares UTS to design and machine.';
+    } else {
+      hint.textContent =
+        'Both — load a GNSS CSV and a UTS CSV. Summary shows each vs design and vs machine (Add GNSS / Add UTS, or Choose Files with …UTS… in the name).';
+    }
+  }
+
+  /**
+   * GNSS-only / UTS-only: put every stakeout file into the active list so the UI
+   * matches the radio. Both: leave lists as tagged.
+   */
+  function consolidateStakeoutListsForMode() {
+    var mode = state.roverMode;
+    if (mode === 'uts' && state.gnssFiles.length) {
+      state.gnssFiles.forEach(function (f) {
+        addFiles(state.utsFiles, [f]);
+      });
+      state.gnssFiles = [];
+    } else if (mode === 'gnss' && state.utsFiles.length) {
+      state.utsFiles.forEach(function (f) {
+        addFiles(state.gnssFiles, [f]);
+      });
+      state.utsFiles = [];
+    }
+  }
+
+  function stakeoutFilesForMode(mode) {
+    if (mode === 'uts') {
+      return state.utsFiles.length ? state.utsFiles : state.gnssFiles;
+    }
+    if (mode === 'gnss') {
+      return state.gnssFiles.length ? state.gnssFiles : state.utsFiles;
+    }
+    return null;
+  }
+
+  function guessKindFromName(name) {
+    var n = String(name || '').toUpperCase();
+    if (/\bUTS\b/.test(n) || /_UTS/.test(n) || /UTS\.CSV$/.test(n) || /UTS/.test(n)) return 'uts';
+    if (/\bGNSS\b/.test(n) || /GPS/.test(n) || /ROVER/.test(n)) return 'gnss';
+    return null;
+  }
+
+  function renderFileList(ulId, files, onRemove, otherKind) {
     var ul = $(ulId);
     if (!ul) return;
     ul.innerHTML = '';
@@ -54,6 +111,19 @@
       var li = document.createElement('li');
       var span = document.createElement('span');
       span.textContent = f.name;
+      var actions = document.createElement('span');
+      actions.className = 'file-list-actions';
+      if (otherKind) {
+        var move = document.createElement('button');
+        move.type = 'button';
+        move.textContent = otherKind === 'uts' ? '→ UTS' : '→ GNSS';
+        move.title = 'Move this file to the ' + otherKind.toUpperCase() + ' list';
+        move.addEventListener('click', function (e) {
+          e.stopPropagation();
+          moveStakeoutFile(otherKind === 'uts' ? 'gnss' : 'uts', idx);
+        });
+        actions.appendChild(move);
+      }
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.textContent = 'Remove';
@@ -61,28 +131,50 @@
         e.stopPropagation();
         onRemove(idx);
       });
+      actions.appendChild(btn);
       li.appendChild(span);
-      li.appendChild(btn);
+      li.appendChild(actions);
       ul.appendChild(li);
     });
   }
 
+  function moveStakeoutFile(fromKind, idx) {
+    var from = fromKind === 'uts' ? state.utsFiles : state.gnssFiles;
+    var to = fromKind === 'uts' ? state.gnssFiles : state.utsFiles;
+    if (idx < 0 || idx >= from.length) return;
+    var f = from.splice(idx, 1)[0];
+    addFiles(to, [f]);
+    refreshLists();
+    scheduleRebuild();
+  }
+
   function refreshLists() {
+    var allowMove = state.roverMode === 'both';
     renderFileList('list-design', state.designFiles, function (i) {
       state.designFiles.splice(i, 1);
       refreshLists();
       scheduleRebuild();
     });
-    renderFileList('list-gnss', state.gnssFiles, function (i) {
-      state.gnssFiles.splice(i, 1);
-      refreshLists();
-      scheduleRebuild();
-    });
-    renderFileList('list-uts', state.utsFiles, function (i) {
-      state.utsFiles.splice(i, 1);
-      refreshLists();
-      scheduleRebuild();
-    });
+    renderFileList(
+      'list-gnss',
+      state.gnssFiles,
+      function (i) {
+        state.gnssFiles.splice(i, 1);
+        refreshLists();
+        scheduleRebuild();
+      },
+      allowMove ? 'uts' : null
+    );
+    renderFileList(
+      'list-uts',
+      state.utsFiles,
+      function (i) {
+        state.utsFiles.splice(i, 1);
+        refreshLists();
+        scheduleRebuild();
+      },
+      allowMove ? 'gnss' : null
+    );
     renderFileList('list-machine', state.machineFiles, function (i) {
       state.machineFiles.splice(i, 1);
       refreshLists();
@@ -97,7 +189,7 @@
 
     zone.addEventListener('click', function (e) {
       if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('label')) return;
-      if (e.target.closest('.stakeout-kind')) return;
+      if (e.target.closest('.stakeout-kind') || e.target.closest('.stakeout-add-row')) return;
       input.click();
     });
     zone.addEventListener('dragover', function (e) {
@@ -122,13 +214,36 @@
     });
   }
 
+  function ingestStakeoutFiles(fileList, forceKind) {
+    Array.prototype.forEach.call(fileList, function (f) {
+      var kind = forceKind;
+      if (!kind) {
+        var mode = selectedRoverMode();
+        if (mode === 'uts') kind = 'uts';
+        else if (mode === 'gnss') kind = 'gnss';
+        else kind = guessKindFromName(f.name) || 'gnss';
+      }
+      if (kind === 'uts') addFiles(state.utsFiles, [f]);
+      else addFiles(state.gnssFiles, [f]);
+    });
+    refreshLists();
+    scheduleRebuild();
+  }
+
   function ingestStakeoutOrKind(kind, fileList) {
     if (kind === 'stakeout') {
-      var sk = selectedStakeoutKind();
-      addFiles(sk === 'uts' ? state.utsFiles : state.gnssFiles, fileList);
-    } else {
-      addFiles(state[kind + 'Files'], fileList);
+      ingestStakeoutFiles(fileList, null);
+      return;
     }
+    if (kind === 'stakeout-gnss') {
+      ingestStakeoutFiles(fileList, 'gnss');
+      return;
+    }
+    if (kind === 'stakeout-uts') {
+      ingestStakeoutFiles(fileList, 'uts');
+      return;
+    }
+    addFiles(state[kind + 'Files'], fileList);
     refreshLists();
     scheduleRebuild();
   }
@@ -161,14 +276,21 @@
     updateButtons();
 
     try {
-      if (state.machineFiles.length && typeof XLSX === 'undefined') {
+      var needsXlsx = state.machineFiles.some(function (f) {
+        return /\.xlsx?$/i.test(f.name);
+      });
+      if (needsXlsx && typeof XLSX === 'undefined') {
         throw new Error(
-          'SheetJS library not loaded. Open this HTML while online once (or use a browser that can reach the CDN), then reload.'
+          'SheetJS library not loaded (needed for .xlsx). Use a Quality Metrics .csv or PileQual .xml instead, or open this page online once and reload.'
         );
       }
 
       setBusy('Reading files…');
       await yieldToUi();
+      syncRoverModeFromUi();
+      consolidateStakeoutListsForMode();
+      refreshLists();
+      var mode = state.roverMode;
 
       if (state.designFiles.length) {
         state.design = await PileParsers.loadDesignFiles(state.designFiles);
@@ -176,15 +298,28 @@
       }
       if (token !== state.rebuildToken) return;
 
-      if (state.gnssFiles.length) {
-        state.gnss = await PileParsers.loadMeasuredFiles(state.gnssFiles);
-        state.warnings = state.warnings.concat(state.gnss.warnings || []);
-      }
-      if (token !== state.rebuildToken) return;
-
-      if (state.utsFiles.length) {
-        state.uts = await PileParsers.loadMeasuredFiles(state.utsFiles);
-        state.warnings = state.warnings.concat(state.uts.warnings || []);
+      if (mode === 'both') {
+        if (state.gnssFiles.length) {
+          state.gnss = await PileParsers.loadMeasuredFiles(state.gnssFiles);
+          state.warnings = state.warnings.concat(state.gnss.warnings || []);
+        }
+        if (token !== state.rebuildToken) return;
+        if (state.utsFiles.length) {
+          state.uts = await PileParsers.loadMeasuredFiles(state.utsFiles);
+          state.warnings = state.warnings.concat(state.uts.warnings || []);
+        }
+      } else if (mode === 'uts') {
+        var utsFiles = stakeoutFilesForMode('uts');
+        if (utsFiles && utsFiles.length) {
+          state.uts = await PileParsers.loadMeasuredFiles(utsFiles);
+          state.warnings = state.warnings.concat(state.uts.warnings || []);
+        }
+      } else {
+        var gnssFiles = stakeoutFilesForMode('gnss');
+        if (gnssFiles && gnssFiles.length) {
+          state.gnss = await PileParsers.loadMeasuredFiles(gnssFiles);
+          state.warnings = state.warnings.concat(state.gnss.warnings || []);
+        }
       }
       if (token !== state.rebuildToken) return;
 
@@ -210,8 +345,14 @@
     if (state.machine && state.machine.count) loadedTypes++;
 
     if (loadedTypes < 2) {
+      var modeHint =
+        state.roverMode === 'uts'
+          ? ' Rover mode is UTS only — add a UTS stakeout (or switch mode), plus design and/or machine.'
+          : state.roverMode === 'gnss'
+            ? ' Rover mode is GNSS only — add a GNSS stakeout (or switch mode), plus design and/or machine.'
+            : ' Add design and at least one rover (GNSS and/or UTS) or machine source.';
       alertEl.textContent =
-        'Load at least two source types (design, GNSS stakeout, UTS stakeout, and/or machine). Report shows only pile IDs common to every loaded type.';
+        'Need at least two active source types for a report.' + modeHint;
       alertEl.classList.toggle(
         'hidden',
         !(
@@ -426,12 +567,178 @@
     state.tableShown = 0;
     renderTablePage(true);
 
+    var modeLabel =
+      state.roverMode === 'both'
+        ? 'Both GNSS + UTS'
+        : state.roverMode === 'uts'
+          ? 'UTS only'
+          : 'GNSS only';
     $('match-note').textContent =
-      'Showing ' +
+      'Rover mode: ' +
+      modeLabel +
+      '. Showing ' +
       report.counts.common +
       ' common ID(s) across: ' +
       report.sourcesUsed.join(', ') +
       '.';
+
+    syncPileToPileSourceOptions(report);
+    renderPileToPile();
+  }
+
+  function readPileToPileSpec() {
+    var el = $('ptp-spec');
+    var v = el ? Number(el.value) : 0.02;
+    if (!Number.isFinite(v) || v < 0) return 0.02;
+    return v;
+  }
+
+  function syncPileToPileSourceOptions(report) {
+    var sel = $('ptp-source');
+    if (!sel || !report) return;
+    var prev = sel.value;
+    var opts = [];
+    if (report.hasMachine) opts.push({ value: 'machine', label: 'Machine' });
+    if (report.hasGnss) opts.push({ value: 'gnss', label: 'GNSS' });
+    if (report.hasUts) opts.push({ value: 'uts', label: 'UTS' });
+    sel.innerHTML = '';
+    if (!opts.length) {
+      var empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = 'No Z source';
+      sel.appendChild(empty);
+      sel.disabled = true;
+      return;
+    }
+    sel.disabled = false;
+    opts.forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.value;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    var prefer =
+      opts.some(function (o) {
+        return o.value === prev;
+      })
+        ? prev
+        : opts[0].value;
+    sel.value = prefer;
+  }
+
+  function renderPileToPile() {
+    var section = $('ptp-section');
+    if (!section || !state.report) return;
+    var sourceEl = $('ptp-source');
+    var source = sourceEl && sourceEl.value ? sourceEl.value : '';
+    if (!source) {
+      setText('ptp-pass', '—');
+      setText('ptp-fail', '—');
+      setText('ptp-max', '—');
+      setText('ptp-mean', '—');
+      setText('ptp-pass-note', '');
+      setText('ptp-fail-note', '');
+      setText('ptp-median-note', '');
+      var verdictEmpty = $('ptp-verdict');
+      if (verdictEmpty) {
+        verdictEmpty.textContent = 'Load machine, GNSS, or UTS Z to run pile-to-pile consistency.';
+        verdictEmpty.className = 'ptp-verdict';
+      }
+      state.pileToPile = null;
+      PileCharts.drawPileToPileZ($('canvas-ptp-plan'), $('canvas-ptp-bars'), null);
+      var tb = $('ptp-table-body');
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+
+    var ptp = PileQC.buildPileToPileZ(state.report, {
+      source: source,
+      specFt: readPileToPileSpec(),
+    });
+    state.pileToPile = ptp;
+
+    setText('ptp-pass', String(ptp.passCount));
+    setText('ptp-fail', String(ptp.failCount));
+    setText(
+      'ptp-pass-note',
+      ptp.count ? ptp.passCount + ' of ' + ptp.count + ' piles' : ''
+    );
+    setText(
+      'ptp-fail-note',
+      ptp.pairFailCount
+        ? ptp.pairFailCount + ' unique neighbor pair(s) over spec'
+        : ptp.count
+          ? 'All nearest-neighbor pairs within spec'
+          : ''
+    );
+    setText('ptp-max', ptp.maxAbsDz != null ? PileQC.fmt(ptp.maxAbsDz) : '—');
+    setText(
+      'ptp-mean',
+      ptp.meanAbsDz != null
+        ? PileQC.fmt(ptp.meanAbsDz) + ' / ' + PileQC.fmt(ptp.medianAbsDz)
+        : '—'
+    );
+    setText(
+      'ptp-median-note',
+      'Spec ±' + PileQC.fmt(ptp.specFt) + ' ft · source: ' + source.toUpperCase()
+    );
+
+    var verdict = $('ptp-verdict');
+    if (verdict) {
+      if (ptp.count < 2) {
+        verdict.textContent = 'Need at least two piles with Z for this check.';
+        verdict.className = 'ptp-verdict';
+      } else if (ptp.ok) {
+        verdict.textContent =
+          'All piles are within ' +
+          PileQC.fmt(ptp.specFt) +
+          ' ft of their nearest neighbor (' +
+          source.toUpperCase() +
+          ' Z).';
+        verdict.className = 'ptp-verdict is-ok';
+      } else {
+        verdict.textContent =
+          ptp.failCount +
+          ' pile(s) exceed the ' +
+          PileQC.fmt(ptp.specFt) +
+          ' ft pile-to-pile |ΔZ| spec (nearest neighbor, ' +
+          source.toUpperCase() +
+          ' Z).';
+        verdict.className = 'ptp-verdict is-fail';
+      }
+    }
+
+    PileCharts.drawPileToPileZ($('canvas-ptp-plan'), $('canvas-ptp-bars'), ptp);
+
+    var body = $('ptp-table-body');
+    if (!body) return;
+    body.innerHTML = '';
+    var sorted = ptp.points.slice().sort(function (a, b) {
+      return b.absDz - a.absDz;
+    });
+    var frag = document.createDocumentFragment();
+    var limit = Math.min(sorted.length, 200);
+    for (var i = 0; i < limit; i++) {
+      var p = sorted[i];
+      var tr = document.createElement('tr');
+      if (!p.pass) tr.className = 'ptp-row-fail';
+      tr.innerHTML =
+        '<td class="id">' +
+        p.id +
+        '</td><td>' +
+        p.neighborId +
+        '</td><td>' +
+        PileQC.fmt(p.horiz) +
+        '</td><td>' +
+        PileQC.fmt(p.dz) +
+        '</td><td>' +
+        PileQC.fmt(p.absDz) +
+        '</td><td>' +
+        (p.pass ? 'Pass' : 'Fail') +
+        '</td>';
+      frag.appendChild(tr);
+    }
+    body.appendChild(frag);
   }
 
   function buildTableHead(report) {
@@ -691,21 +998,29 @@
   }
 
   function metaFromState() {
+    var mode = state.roverMode;
+    var gnssNames =
+      mode === 'uts'
+        ? []
+        : state.gnssFiles.map(function (f) {
+            return f.name;
+          });
+    var utsNames =
+      mode === 'gnss'
+        ? []
+        : state.utsFiles.map(function (f) {
+            return f.name;
+          });
     return {
       jobName: ($('job-name') && $('job-name').value.trim()) || '',
       notes: ($('job-notes') && $('job-notes').value.trim()) || '',
+      roverMode: mode,
       designFiles: state.designFiles.map(function (f) {
         return f.name;
       }),
-      gnssFiles: state.gnssFiles.map(function (f) {
-        return f.name;
-      }),
-      utsFiles: state.utsFiles.map(function (f) {
-        return f.name;
-      }),
-      measuredFiles: state.gnssFiles.map(function (f) {
-        return f.name;
-      }),
+      gnssFiles: gnssNames,
+      utsFiles: utsNames,
+      measuredFiles: gnssNames.length ? gnssNames : utsNames,
       machineFiles: state.machineFiles.map(function (f) {
         return f.name;
       }),
@@ -716,6 +1031,64 @@
     wireDropzone('dz-design', 'file-design', 'design');
     wireDropzone('dz-stakeout', 'file-stakeout', 'stakeout');
     wireDropzone('dz-machine', 'file-machine', 'machine');
+
+    var gnssInput = $('file-stakeout-gnss');
+    var utsInput = $('file-stakeout-uts');
+    if (gnssInput) {
+      gnssInput.addEventListener('change', function () {
+        if (gnssInput.files && gnssInput.files.length) {
+          ingestStakeoutFiles(gnssInput.files, 'gnss');
+          gnssInput.value = '';
+        }
+      });
+    }
+    if (utsInput) {
+      utsInput.addEventListener('change', function () {
+        if (utsInput.files && utsInput.files.length) {
+          ingestStakeoutFiles(utsInput.files, 'uts');
+          utsInput.value = '';
+        }
+      });
+    }
+    var btnGnss = $('btn-add-gnss');
+    var btnUts = $('btn-add-uts');
+    if (btnGnss && gnssInput) {
+      btnGnss.addEventListener('click', function (e) {
+        e.stopPropagation();
+        gnssInput.click();
+      });
+    }
+    if (btnUts && utsInput) {
+      btnUts.addEventListener('click', function (e) {
+        e.stopPropagation();
+        utsInput.click();
+      });
+    }
+
+    document.querySelectorAll('input[name="stakeout-kind"]').forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        syncRoverModeFromUi();
+        consolidateStakeoutListsForMode();
+        refreshLists();
+        scheduleRebuild();
+      });
+    });
+    syncRoverModeFromUi();
+    consolidateStakeoutListsForMode();
+    refreshLists();
+
+    var ptpSpec = $('ptp-spec');
+    var ptpSource = $('ptp-source');
+    if (ptpSpec) {
+      ptpSpec.addEventListener('change', renderPileToPile);
+      ptpSpec.addEventListener('input', function () {
+        clearTimeout(ptpSpec._t);
+        ptpSpec._t = setTimeout(renderPileToPile, 200);
+      });
+    }
+    if (ptpSource) {
+      ptpSource.addEventListener('change', renderPileToPile);
+    }
 
     $('btn-pdf').addEventListener('click', function () {
       if (!state.report) return;

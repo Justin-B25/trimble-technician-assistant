@@ -686,6 +686,182 @@ var PileCharts = (function () {
     }
   }
 
+  /**
+   * Plan view (E vs N) colored by nearest-neighbor |ΔZ| vs spec,
+   * plus sorted |ΔZ| bars with a horizontal spec line.
+   */
+  function drawPileToPileZ(planCanvas, barCanvas, ptp) {
+    drawPileToPilePlan(planCanvas, ptp);
+    drawPileToPileBars(barCanvas, ptp);
+  }
+
+  function drawPileToPilePlan(canvas, ptp) {
+    if (!canvas) return;
+    var ctx = clear(canvas);
+    var w = canvas.width;
+    var h = canvas.height;
+    var pad = 44;
+    ctx.fillStyle = '#f7f8fa';
+    ctx.fillRect(0, 0, w, h);
+
+    if (!ptp || !ptp.points || ptp.points.length < 2) {
+      ctx.fillStyle = '#6a6e79';
+      ctx.font = '13px "Open Sans", Arial, sans-serif';
+      ctx.fillText('Need at least 2 piles with Z for pile-to-pile check.', 24, h / 2);
+      return;
+    }
+
+    var pts = ptp.points;
+    var minN = Infinity;
+    var maxN = -Infinity;
+    var minE = Infinity;
+    var maxE = -Infinity;
+    for (var i = 0; i < pts.length; i++) {
+      minN = Math.min(minN, pts[i].n);
+      maxN = Math.max(maxN, pts[i].n);
+      minE = Math.min(minE, pts[i].e);
+      maxE = Math.max(maxE, pts[i].e);
+    }
+    var spanN = Math.max(maxN - minN, 1e-6);
+    var spanE = Math.max(maxE - minE, 1e-6);
+    var plotW = w - pad * 2;
+    var plotH = h - pad * 2 - 18;
+    var scale = Math.min(plotW / spanE, plotH / spanN) * 0.92;
+    var cx = pad + plotW / 2;
+    var cy = pad + plotH / 2;
+    var midE = (minE + maxE) / 2;
+    var midN = (minN + maxN) / 2;
+
+    function toXY(p) {
+      return {
+        x: cx + (p.e - midE) * scale,
+        y: cy - (p.n - midN) * scale,
+      };
+    }
+
+    ctx.strokeStyle = '#e0e1e9';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pad, pad, plotW, plotH);
+
+    // Fail neighbor links
+    ctx.lineWidth = 1.5;
+    for (i = 0; i < pts.length; i++) {
+      var p = pts[i];
+      if (p.pass || p.neighborIndex == null) continue;
+      var q = pts[p.neighborIndex];
+      var a = toXY(p);
+      var b = toXY(q);
+      ctx.strokeStyle = 'rgba(218, 33, 44, 0.45)';
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+
+    for (i = 0; i < pts.length; i++) {
+      p = pts[i];
+      var xy = toXY(p);
+      ctx.beginPath();
+      ctx.fillStyle = p.pass ? '#006638' : '#da212c';
+      ctx.arc(xy.x, xy.y, p.pass ? 4 : 5.5, 0, Math.PI * 2);
+      ctx.fill();
+      if (!p.pass) {
+        ctx.strokeStyle = '#8a1018';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    ctx.fillStyle = '#6a6e79';
+    ctx.font = '11px "Open Sans", Arial, sans-serif';
+    ctx.fillText('E →', w - pad - 28, h - 10);
+    ctx.save();
+    ctx.translate(12, h / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('N →', 0, 0);
+    ctx.restore();
+
+    ctx.fillStyle = '#006638';
+    ctx.beginPath();
+    ctx.arc(pad + 8, h - 12, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#252a2e';
+    ctx.fillText('Within spec', pad + 16, h - 8);
+    ctx.fillStyle = '#da212c';
+    ctx.beginPath();
+    ctx.arc(pad + 110, h - 12, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#252a2e';
+    ctx.fillText('Over spec (link = nearest neighbor)', pad + 118, h - 8);
+  }
+
+  function drawPileToPileBars(canvas, ptp) {
+    if (!canvas) return;
+    var ctx = clear(canvas);
+    var w = canvas.width;
+    var h = canvas.height;
+    var padL = 48;
+    var padR = 16;
+    var padT = 28;
+    var padB = 36;
+    ctx.fillStyle = '#f7f8fa';
+    ctx.fillRect(0, 0, w, h);
+
+    if (!ptp || !ptp.points || ptp.points.length < 2) {
+      ctx.fillStyle = '#6a6e79';
+      ctx.font = '13px "Open Sans", Arial, sans-serif';
+      ctx.fillText('No pile-to-pile |ΔZ| data.', 24, h / 2);
+      return;
+    }
+
+    var sorted = ptp.points.slice().sort(function (a, b) {
+      return b.absDz - a.absDz;
+    });
+    var spec = ptp.specFt != null ? ptp.specFt : 0.02;
+    var maxY = Math.max(spec * 1.5, sorted[0].absDz * 1.15, 0.03);
+    var plotW = w - padL - padR;
+    var plotH = h - padT - padB;
+    var n = sorted.length;
+    var gap = n > 80 ? 0 : 1;
+    var barW = Math.max(1, (plotW - gap * (n - 1)) / n);
+
+    ctx.strokeStyle = '#cbcdd6';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, padT + plotH);
+    ctx.lineTo(padL + plotW, padT + plotH);
+    ctx.stroke();
+
+    // Spec line
+    var specY = padT + plotH - (spec / maxY) * plotH;
+    ctx.strokeStyle = '#e36c0a';
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padL, specY);
+    ctx.lineTo(padL + plotW, specY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#e36c0a';
+    ctx.font = '11px "Open Sans", Arial, sans-serif';
+    ctx.fillText('Spec ' + spec.toFixed(3) + ' ft', padL + 4, Math.max(padT + 12, specY - 4));
+
+    for (var i = 0; i < n; i++) {
+      var p = sorted[i];
+      var bh = (p.absDz / maxY) * plotH;
+      var x = padL + i * (barW + gap);
+      var y = padT + plotH - bh;
+      ctx.fillStyle = p.pass ? '#006638' : '#da212c';
+      ctx.fillRect(x, y, Math.max(barW, 1), Math.max(bh, 1));
+    }
+
+    ctx.fillStyle = '#6a6e79';
+    ctx.font = '11px "Open Sans", Arial, sans-serif';
+    ctx.fillText('0', padL - 28, padT + plotH + 4);
+    ctx.fillText(maxY.toFixed(3), padL - 40, padT + 10);
+    ctx.fillText('|ΔZ| to nearest neighbor (ft) — largest first', padL, h - 10);
+  }
+
   return {
     drawBullseye: drawBullseye,
     drawZ: drawZ,
@@ -694,6 +870,7 @@ var PileCharts = (function () {
     buildZPageImages: buildZPageImages,
     drawPileLanding: drawPileLanding,
     buildPilePageImages: buildPilePageImages,
+    drawPileToPileZ: drawPileToPileZ,
     toDataUrl: toDataUrl,
     computeMaxAbsZ: computeMaxAbsZ,
     seriesList: seriesList,
