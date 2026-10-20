@@ -687,7 +687,7 @@ var PileCharts = (function () {
   }
 
   /**
-   * Plan view (E vs N) colored by nearest-neighbor |ΔZ| vs spec,
+   * Plan view (E vs N) colored by N–S row |ΔZ| vs spec,
    * plus sorted |ΔZ| bars with a horizontal spec line.
    */
   function drawPileToPileZ(planCanvas, barCanvas, ptp) {
@@ -712,11 +712,13 @@ var PileCharts = (function () {
     }
 
     var pts = ptp.points;
+    var byIndex = Object.create(null);
     var minN = Infinity;
     var maxN = -Infinity;
     var minE = Infinity;
     var maxE = -Infinity;
     for (var i = 0; i < pts.length; i++) {
+      byIndex[pts[i].index] = pts[i];
       minN = Math.min(minN, pts[i].n);
       maxN = Math.max(maxN, pts[i].n);
       minE = Math.min(minE, pts[i].e);
@@ -743,15 +745,17 @@ var PileCharts = (function () {
     ctx.lineWidth = 1;
     ctx.strokeRect(pad, pad, plotW, plotH);
 
-    // Fail neighbor links
+    // Draw N–S row edges: green within spec, red over
+    var edges = ptp.edges || [];
     ctx.lineWidth = 1.5;
-    for (i = 0; i < pts.length; i++) {
-      var p = pts[i];
-      if (p.pass || p.neighborIndex == null) continue;
-      var q = pts[p.neighborIndex];
-      var a = toXY(p);
-      var b = toXY(q);
-      ctx.strokeStyle = 'rgba(218, 33, 44, 0.45)';
+    for (i = 0; i < edges.length; i++) {
+      var edge = edges[i];
+      var pa = byIndex[edge.indexA];
+      var pb = byIndex[edge.indexB];
+      if (!pa || !pb) continue;
+      var a = toXY(pa);
+      var b = toXY(pb);
+      ctx.strokeStyle = edge.pass ? 'rgba(0, 102, 56, 0.35)' : 'rgba(218, 33, 44, 0.7)';
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
@@ -759,7 +763,7 @@ var PileCharts = (function () {
     }
 
     for (i = 0; i < pts.length; i++) {
-      p = pts[i];
+      var p = pts[i];
       var xy = toXY(p);
       ctx.beginPath();
       ctx.fillStyle = p.pass ? '#006638' : '#da212c';
@@ -792,7 +796,7 @@ var PileCharts = (function () {
     ctx.arc(pad + 110, h - 12, 4, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#252a2e';
-    ctx.fillText('Over spec (link = nearest neighbor)', pad + 118, h - 8);
+    ctx.fillText('Over spec (links = N–S in row)', pad + 118, h - 8);
   }
 
   function drawPileToPileBars(canvas, ptp) {
@@ -814,11 +818,17 @@ var PileCharts = (function () {
       return;
     }
 
-    var sorted = ptp.points.slice().sort(function (a, b) {
-      return b.absDz - a.absDz;
-    });
+    var sorted = (ptp.edges && ptp.edges.length ? ptp.edges : ptp.points)
+      .slice()
+      .sort(function (a, b) {
+        return b.absDz - a.absDz;
+      });
     var spec = ptp.specFt != null ? ptp.specFt : 0.02;
-    var maxY = Math.max(spec * 1.5, sorted[0].absDz * 1.15, 0.03);
+    var maxY = Math.max(
+      spec * 1.5,
+      ((sorted[0] && sorted[0].absDz) || 0) * 1.15,
+      0.03
+    );
     var plotW = w - padL - padR;
     var plotH = h - padT - padB;
     var n = sorted.length;
@@ -848,7 +858,7 @@ var PileCharts = (function () {
 
     for (var i = 0; i < n; i++) {
       var p = sorted[i];
-      var bh = (p.absDz / maxY) * plotH;
+      var bh = ((p.absDz || 0) / maxY) * plotH;
       var x = padL + i * (barW + gap);
       var y = padT + plotH - bh;
       ctx.fillStyle = p.pass ? '#006638' : '#da212c';
@@ -859,7 +869,7 @@ var PileCharts = (function () {
     ctx.font = '11px "Open Sans", Arial, sans-serif';
     ctx.fillText('0', padL - 28, padT + plotH + 4);
     ctx.fillText(maxY.toFixed(3), padL - 40, padT + 10);
-    ctx.fillText('|ΔZ| to nearest neighbor (ft) — largest first', padL, h - 10);
+    ctx.fillText('|ΔZ| along N–S row pairs (ft) — largest first', padL, h - 10);
   }
 
   return {

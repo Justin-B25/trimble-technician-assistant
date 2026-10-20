@@ -666,9 +666,9 @@
     setText(
       'ptp-fail-note',
       ptp.pairFailCount
-        ? ptp.pairFailCount + ' unique neighbor pair(s) over spec'
+        ? ptp.pairFailCount + ' N–S pair(s) over spec · ' + (ptp.rowCount || 0) + ' row(s)'
         : ptp.count
-          ? 'All nearest-neighbor pairs within spec'
+          ? 'All N–S pairs within spec · ' + (ptp.rowCount || 0) + ' row(s)'
           : ''
     );
     setText('ptp-max', ptp.maxAbsDz != null ? PileQC.fmt(ptp.maxAbsDz) : '—');
@@ -680,7 +680,13 @@
     );
     setText(
       'ptp-median-note',
-      'Spec ±' + PileQC.fmt(ptp.specFt) + ' ft · source: ' + source.toUpperCase()
+      'Spec ±' +
+        PileQC.fmt(ptp.specFt) +
+        ' ft · ' +
+        source.toUpperCase() +
+        ' · rows by Easting (±' +
+        PileQC.fmt(ptp.rowTolFt != null ? ptp.rowTolFt : 3, 1) +
+        ' ft)'
     );
 
     var verdict = $('ptp-verdict');
@@ -690,18 +696,22 @@
         verdict.className = 'ptp-verdict';
       } else if (ptp.ok) {
         verdict.textContent =
-          'All piles are within ' +
+          'All N–S row neighbors are within ' +
           PileQC.fmt(ptp.specFt) +
-          ' ft of their nearest neighbor (' +
+          ' ft (' +
           source.toUpperCase() +
-          ' Z).';
+          ' Z, ' +
+          (ptp.rowCount || 0) +
+          ' row(s)).';
         verdict.className = 'ptp-verdict is-ok';
       } else {
         verdict.textContent =
           ptp.failCount +
-          ' pile(s) exceed the ' +
+          ' pile(s) / ' +
+          ptp.pairFailCount +
+          ' N–S pair(s) exceed the ' +
           PileQC.fmt(ptp.specFt) +
-          ' ft pile-to-pile |ΔZ| spec (nearest neighbor, ' +
+          ' ft pile-to-pile |ΔZ| spec (' +
           source.toUpperCase() +
           ' Z).';
         verdict.className = 'ptp-verdict is-fail';
@@ -714,7 +724,7 @@
     if (!body) return;
     body.innerHTML = '';
     var sorted = ptp.points.slice().sort(function (a, b) {
-      return b.absDz - a.absDz;
+      return (b.absDz || 0) - (a.absDz || 0);
     });
     var frag = document.createDocumentFragment();
     var limit = Math.min(sorted.length, 200);
@@ -726,13 +736,15 @@
         '<td class="id">' +
         p.id +
         '</td><td>' +
-        p.neighborId +
+        (p.southId != null ? p.southId : '—') +
         '</td><td>' +
-        PileQC.fmt(p.horiz) +
+        (p.northId != null ? p.northId : '—') +
         '</td><td>' +
-        PileQC.fmt(p.dz) +
+        (p.southDz != null ? PileQC.fmt(Math.abs(p.southDz)) : '—') +
         '</td><td>' +
-        PileQC.fmt(p.absDz) +
+        (p.northDz != null ? PileQC.fmt(Math.abs(p.northDz)) : '—') +
+        '</td><td>' +
+        (p.absDz != null ? PileQC.fmt(p.absDz) : '—') +
         '</td><td>' +
         (p.pass ? 'Pass' : 'Fail') +
         '</td>';

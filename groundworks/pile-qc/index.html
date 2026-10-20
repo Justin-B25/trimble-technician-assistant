@@ -244,9 +244,10 @@
       <section class="card" id="ptp-section">
         <h2>Pile-to-pile Z consistency</h2>
         <p class="muted" style="margin-top: -4px; margin-bottom: 12px">
-          Separate from design ΔZ. Each pile’s elevation is compared to its
-          <strong>nearest neighbor</strong> in plan. Consistent tops (within spec) can still be
-          acceptable even when slightly off design Z.
+          Separate from design ΔZ. Rows run <strong>north–south</strong> (same Easting).
+          Each pile is checked only against the pile <strong>north</strong> and
+          <strong>south</strong> in its row — both must be within the |ΔZ| spec to pass.
+          East–west neighbors are ignored.
         </p>
         <div class="ptp-controls">
           <div>
@@ -276,7 +277,7 @@
           <article class="ptp-stat">
             <div class="label">Max |ΔZ| (ft)</div>
             <div class="value" id="ptp-max">—</div>
-            <div class="note">Nearest neighbor</div>
+            <div class="note">Along N–S row</div>
           </article>
           <article class="ptp-stat">
             <div class="label">Mean / median |ΔZ| (ft)</div>
@@ -287,11 +288,11 @@
         <p class="ptp-verdict" id="ptp-verdict"></p>
         <div class="ptp-viz">
           <div class="viz-panel">
-            <h3>Plan — nearest-neighbor |ΔZ|</h3>
+            <h3>Plan — N–S row |ΔZ|</h3>
             <canvas id="canvas-ptp-plan" width="560" height="400"></canvas>
           </div>
           <div class="viz-panel">
-            <h3>|ΔZ| to nearest neighbor</h3>
+            <h3>|ΔZ| along N–S pairs</h3>
             <canvas id="canvas-ptp-bars" width="560" height="400"></canvas>
           </div>
         </div>
@@ -300,10 +301,11 @@
             <thead>
               <tr>
                 <th class="id">ID</th>
-                <th>Neighbor</th>
-                <th>Horiz (ft)</th>
-                <th>ΔZ (ft)</th>
-                <th>|ΔZ| (ft)</th>
+                <th>South</th>
+                <th>North</th>
+                <th>|ΔZ| S (ft)</th>
+                <th>|ΔZ| N (ft)</th>
+                <th>Worst |ΔZ|</th>
                 <th>Result</th>
               </tr>
             </thead>
@@ -363,9 +365,9 @@
   <script src="../../assets/feedback.js?v=4"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="js/parsers.js?v=3"></script>
-  <script src="js/qc.js?v=4"></script>
-  <script src="js/charts.js?v=3"></script>
+  <script src="js/qc.js?v=5"></script>
+  <script src="js/charts.js?v=4"></script>
   <script src="js/pdf.js?v=4"></script>
-  <script src="js/app.js?v=9"></script>
+  <script src="js/app.js?v=10"></script>
 </body>
 </html>

@@ -235,16 +235,59 @@ var PileQC = (function () {
   }
 
   /**
-   * Pile-to-pile Z consistency (separate from design deltas).
-   * For each pile with Z from `source`, find the nearest neighbor in plan
-   * (design N/E when available, else source N/E) and compare elevations.
-   * options: { source: 'machine'|'gnss'|'uts', specFt: number }
+   * Cluster piles into N–S rows by similar Easting.
+   * Rows run north–south (same E, varying N). rowTolFt caps how far E may differ.
+   */
+  function clusterNorthSouthRows(points, rowTolFt) {
+    var tol =
+      rowTolFt != null && Number.isFinite(rowTolFt) && rowTolFt > 0 ? rowTolFt : 3;
+    var byE = points.slice().sort(function (a, b) {
+      return a.e - b.e || a.n - b.n;
+    });
+    var clusters = [];
+    for (var i = 0; i < byE.length; i++) {
+      var p = byE[i];
+      var placed = false;
+      for (var c = 0; c < clusters.length; c++) {
+        var cl = clusters[c];
+        if (Math.abs(p.e - cl.meanE) <= tol) {
+          cl.items.push(p);
+          cl.sumE += p.e;
+          cl.meanE = cl.sumE / cl.items.length;
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        clusters.push({ items: [p], sumE: p.e, meanE: p.e });
+      }
+    }
+    clusters.forEach(function (cl) {
+      cl.items.sort(function (a, b) {
+        return a.n - b.n;
+      });
+    });
+    clusters.sort(function (a, b) {
+      return a.meanE - b.meanE;
+    });
+    return clusters;
+  }
+
+  /**
+   * Pile-to-pile Z consistency along N–S rows only (separate from design deltas).
+   * Each pile is compared to the pile immediately north and south in the same row
+   * (same Easting band). East–west neighbors are ignored.
+   * options: { source, specFt, rowTolFt }
    */
   function buildPileToPileZ(report, options) {
     options = options || {};
     var source = options.source || 'machine';
     var spec =
       options.specFt != null && Number.isFinite(options.specFt) ? Math.abs(options.specFt) : 0.02;
+    var rowTol =
+      options.rowTolFt != null && Number.isFinite(options.rowTolFt)
+        ? Math.abs(options.rowTolFt)
+        : 3;
     var rows = (report && report.rows) || [];
     var points = [];
 
@@ -261,12 +304,27 @@ var PileQC = (function () {
         e: e,
         z: src.z,
         index: points.length,
+        northId: null,
+        southId: null,
+        northIndex: null,
+        southIndex: null,
+        northDz: null,
+        southDz: null,
+        absDz: null,
+        dz: null,
+        horiz: null,
+        neighborId: null,
+        neighborIndex: null,
+        pass: true,
+        rowIndex: -1,
       });
     }
 
     var empty = {
       source: source,
       specFt: spec,
+      rowTolFt: rowTol,
+      rowCount: 0,
       count: 0,
       passCount: 0,
       failCount: 0,
@@ -280,63 +338,111 @@ var PileQC = (function () {
     };
     if (points.length < 2) return empty;
 
-    var absList = [];
-    var edgeKey = Object.create(null);
+    var clusters = clusterNorthSouthRows(points, rowTol);
     var edges = [];
+    var absList = [];
     var failCount = 0;
     var pairFailCount = 0;
     var maxAbs = 0;
     var sumAbs = 0;
+    var edgeCount = 0;
 
-    for (var a = 0; a < points.length; a++) {
-      var pa = points[a];
-      var bestJ = -1;
-      var bestD2 = Infinity;
-      for (var b = 0; b < points.length; b++) {
-        if (a === b) continue;
-        var pb = points[b];
-        var dn = pa.n - pb.n;
-        var de = pa.e - pb.e;
-        var d2 = dn * dn + de * de;
-        if (d2 < bestD2) {
-          bestD2 = d2;
-          bestJ = b;
+    for (var c = 0; c < clusters.length; c++) {
+      var items = clusters[c].items;
+      for (var k = 0; k < items.length; k++) {
+        items[k].rowIndex = c;
+      }
+      for (k = 0; k < items.length; k++) {
+        var pa = items[k];
+        var south = k > 0 ? items[k - 1] : null;
+        var north = k < items.length - 1 ? items[k + 1] : null;
+        var worstAbs = 0;
+        var worstDz = null;
+        var worstHoriz = null;
+        var worstId = null;
+        var worstIndex = null;
+        var pass = true;
+
+        if (south) {
+          pa.southId = south.id;
+          pa.southIndex = south.index;
+          pa.southDz = pa.z - south.z;
+          var absS = Math.abs(pa.southDz);
+          var horizS = Math.abs(pa.n - south.n);
+          if (absS > worstAbs) {
+            worstAbs = absS;
+            worstDz = pa.southDz;
+            worstHoriz = horizS;
+            worstId = south.id;
+            worstIndex = south.index;
+          }
+          if (absS > spec + 1e-12) pass = false;
+        }
+        if (north) {
+          pa.northId = north.id;
+          pa.northIndex = north.index;
+          pa.northDz = pa.z - north.z;
+          var absN = Math.abs(pa.northDz);
+          var horizN = Math.abs(pa.n - north.n);
+          if (absN > worstAbs) {
+            worstAbs = absN;
+            worstDz = pa.northDz;
+            worstHoriz = horizN;
+            worstId = north.id;
+            worstIndex = north.index;
+          }
+          if (absN > spec + 1e-12) pass = false;
+        }
+
+        // End-of-row piles with no N/S neighbor: no pair to check → pass
+        if (!south && !north) {
+          pa.absDz = 0;
+          pa.dz = 0;
+          pa.horiz = 0;
+          pa.pass = true;
+          continue;
+        }
+
+        pa.absDz = worstAbs;
+        pa.dz = worstDz;
+        pa.horiz = worstHoriz;
+        pa.neighborId = worstId;
+        pa.neighborIndex = worstIndex;
+        pa.pass = pass;
+        if (!pass) failCount++;
+
+        // One undirected edge per consecutive N–S pair (use south link only)
+        if (south) {
+          var absEdge = Math.abs(pa.z - south.z);
+          var dzEdge = pa.z - south.z;
+          var horizEdge = Math.abs(pa.n - south.n);
+          var edgePass = absEdge <= spec + 1e-12;
+          edges.push({
+            idA: south.id,
+            idB: pa.id,
+            indexA: south.index,
+            indexB: pa.index,
+            absDz: absEdge,
+            dz: dzEdge,
+            horiz: horizEdge,
+            pass: edgePass,
+            direction: 'N-S',
+            rowIndex: c,
+          });
+          absList.push(absEdge);
+          sumAbs += absEdge;
+          edgeCount++;
+          if (absEdge > maxAbs) maxAbs = absEdge;
+          if (!edgePass) pairFailCount++;
         }
       }
-      var nb = points[bestJ];
-      var dz = pa.z - nb.z;
-      var absDz = Math.abs(dz);
-      var pass = absDz <= spec + 1e-12;
-      var horiz = Math.sqrt(bestD2);
-      pa.neighborId = nb.id;
-      pa.neighborIndex = bestJ;
-      pa.dz = dz;
-      pa.absDz = absDz;
-      pa.horiz = horiz;
-      pa.pass = pass;
-      absList.push(absDz);
-      sumAbs += absDz;
-      if (absDz > maxAbs) maxAbs = absDz;
-      if (!pass) failCount++;
+    }
 
-      var lo = pa.id < nb.id ? pa.id : nb.id;
-      var hi = pa.id < nb.id ? nb.id : pa.id;
-      var key = lo + '|' + hi;
-      if (!edgeKey[key]) {
-        edgeKey[key] = true;
-        var edgePass = absDz <= spec + 1e-12;
-        edges.push({
-          idA: pa.id,
-          idB: nb.id,
-          indexA: a,
-          indexB: bestJ,
-          absDz: absDz,
-          dz: dz,
-          horiz: horiz,
-          pass: edgePass,
-        });
-        if (!edgePass) pairFailCount++;
-      }
+    if (!edgeCount) {
+      empty.points = points;
+      empty.rowCount = clusters.length;
+      empty.count = points.length;
+      return empty;
     }
 
     absList.sort(function (x, y) {
@@ -349,16 +455,18 @@ var PileQC = (function () {
     return {
       source: source,
       specFt: spec,
+      rowTolFt: rowTol,
+      rowCount: clusters.length,
       count: points.length,
       passCount: points.length - failCount,
       failCount: failCount,
       pairFailCount: pairFailCount,
       maxAbsDz: maxAbs,
-      meanAbsDz: sumAbs / points.length,
+      meanAbsDz: sumAbs / edgeCount,
       medianAbsDz: medianAbs,
       points: points,
       edges: edges,
-      ok: failCount === 0,
+      ok: failCount === 0 && pairFailCount === 0,
     };
   }
 
