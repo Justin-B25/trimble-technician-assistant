@@ -457,7 +457,7 @@ var PileParsers = (function () {
     }
 
     var scale = METERS_TO_US_FT;
-    var sample = null;
+    var unitsDecided = false;
     for (var p = 0; p < pileNodes.length; p++) {
       var pileEl = pileNodes[p];
       var id = normalizeId(pileEl.getAttribute('id') || pileEl.getAttribute('name'));
@@ -477,19 +477,34 @@ var PileParsers = (function () {
         continue;
       }
 
-      // Heuristic: large XY already look like site feet — leave as-is.
-      if (!sample) {
-        sample = start;
-        if (Math.abs(start.x) > 10000 || Math.abs(start.y) > 10000) {
+      // Units: PileLength < 25 → meters (typical ~3 m); ≥ 25 → already feet (~11 ft).
+      // Fallback: |XY| > 10000 → feet; else meters (Groundworks tablet SI).
+      if (!unitsDecided) {
+        unitsDecided = true;
+        var lenAttr = toNum(splice.getAttribute('PileLength'));
+        if (lenAttr != null && lenAttr >= 25) {
+          scale = 1;
+          warnings.push(
+            sourceName +
+              ': PileLength looks like feet — no m→ft conversion (PointX=N, PointY=E; Top Z from EndPoint)'
+          );
+        } else if (lenAttr != null && lenAttr > 0 && lenAttr < 25) {
+          scale = METERS_TO_US_FT;
+          warnings.push(
+            sourceName +
+              ': PileQual XML in meters (PileLength) — converted to US survey feet (PointX=N, PointY=E; Top Z from EndPoint)'
+          );
+        } else if (Math.abs(start.x) > 10000 || Math.abs(start.y) > 10000) {
           scale = 1;
           warnings.push(
             sourceName +
               ': coordinates look like feet already — no m→ft conversion applied'
           );
         } else {
+          scale = METERS_TO_US_FT;
           warnings.push(
             sourceName +
-              ': PileQual XML in meters — converted to US survey feet (PointX=N, PointY=E; Top Z from EndPoint)'
+              ': PileQual XML treated as meters — converted to US survey feet (PointX=N, PointY=E; Top Z from EndPoint)'
           );
         }
       }

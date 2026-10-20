@@ -67,34 +67,7 @@
     }
   }
 
-  /**
-   * GNSS-only / UTS-only: put every stakeout file into the active list so the UI
-   * matches the radio. Both: leave lists as tagged.
-   */
-  function consolidateStakeoutListsForMode() {
-    var mode = state.roverMode;
-    if (mode === 'uts' && state.gnssFiles.length) {
-      state.gnssFiles.forEach(function (f) {
-        addFiles(state.utsFiles, [f]);
-      });
-      state.gnssFiles = [];
-    } else if (mode === 'gnss' && state.utsFiles.length) {
-      state.utsFiles.forEach(function (f) {
-        addFiles(state.gnssFiles, [f]);
-      });
-      state.utsFiles = [];
-    }
-  }
-
-  function stakeoutFilesForMode(mode) {
-    if (mode === 'uts') {
-      return state.utsFiles.length ? state.utsFiles : state.gnssFiles;
-    }
-    if (mode === 'gnss') {
-      return state.gnssFiles.length ? state.gnssFiles : state.utsFiles;
-    }
-    return null;
-  }
+  /** Lists stay tagged; mode only controls which lists are loaded into the report. */
 
   function guessKindFromName(name) {
     var n = String(name || '').toUpperCase();
@@ -149,7 +122,7 @@
   }
 
   function refreshLists() {
-    var allowMove = state.roverMode === 'both';
+    var allowMove = true;
     renderFileList('list-design', state.designFiles, function (i) {
       state.designFiles.splice(i, 1);
       refreshLists();
@@ -288,8 +261,6 @@
       setBusy('Reading files…');
       await yieldToUi();
       syncRoverModeFromUi();
-      consolidateStakeoutListsForMode();
-      refreshLists();
       var mode = state.roverMode;
 
       if (state.designFiles.length) {
@@ -298,27 +269,26 @@
       }
       if (token !== state.rebuildToken) return;
 
-      if (mode === 'both') {
+      if (mode === 'both' || mode === 'gnss') {
         if (state.gnssFiles.length) {
           state.gnss = await PileParsers.loadMeasuredFiles(state.gnssFiles);
           state.warnings = state.warnings.concat(state.gnss.warnings || []);
+        } else if (mode === 'gnss' && state.utsFiles.length) {
+          state.warnings.push(
+            'GNSS only mode: UTS files are listed but ignored — switch to Both or move them with → GNSS.'
+          );
         }
-        if (token !== state.rebuildToken) return;
+      }
+      if (token !== state.rebuildToken) return;
+
+      if (mode === 'both' || mode === 'uts') {
         if (state.utsFiles.length) {
           state.uts = await PileParsers.loadMeasuredFiles(state.utsFiles);
           state.warnings = state.warnings.concat(state.uts.warnings || []);
-        }
-      } else if (mode === 'uts') {
-        var utsFiles = stakeoutFilesForMode('uts');
-        if (utsFiles && utsFiles.length) {
-          state.uts = await PileParsers.loadMeasuredFiles(utsFiles);
-          state.warnings = state.warnings.concat(state.uts.warnings || []);
-        }
-      } else {
-        var gnssFiles = stakeoutFilesForMode('gnss');
-        if (gnssFiles && gnssFiles.length) {
-          state.gnss = await PileParsers.loadMeasuredFiles(gnssFiles);
-          state.warnings = state.warnings.concat(state.gnss.warnings || []);
+        } else if (mode === 'uts' && state.gnssFiles.length) {
+          state.warnings.push(
+            'UTS only mode: GNSS files are listed but ignored — switch to Both or move them with → UTS.'
+          );
         }
       }
       if (token !== state.rebuildToken) return;
@@ -573,16 +543,31 @@
         : state.roverMode === 'uts'
           ? 'UTS only'
           : 'GNSS only';
+    var joinHint =
+      report.joinMode === 'design-union'
+        ? 'design ∩ (rover ∪ machine)'
+        : report.joinMode === 'intersection'
+          ? 'intersection of loaded sources'
+          : report.joinMode || 'join';
     $('match-note').textContent =
       'Rover mode: ' +
       modeLabel +
       '. Showing ' +
       report.counts.common +
-      ' common ID(s) across: ' +
+      ' ID(s) via ' +
+      joinHint +
+      ' [' +
       report.sourcesUsed.join(', ') +
+      ']' +
+      (report.counts.gnssVsDesign != null
+        ? ' · GNSS∩des ' +
+          report.counts.gnssVsDesign +
+          ' · UTS∩des ' +
+          report.counts.utsVsDesign
+        : '') +
       '.';
 
-    syncPileToPileSourceOptions(report);
+    syncPileToPileSourceOptions();
     renderPileToPile();
   }
 
@@ -593,19 +578,18 @@
     return v;
   }
 
-  function syncPileToPileSourceOptions(report) {
+  function syncPileToPileSourceOptions() {
     var sel = $('ptp-source');
-    if (!sel || !report) return;
+    if (!sel) return;
     var prev = sel.value;
     var opts = [];
-    if (report.hasMachine) opts.push({ value: 'machine', label: 'Machine' });
-    if (report.hasGnss) opts.push({ value: 'gnss', label: 'GNSS' });
-    if (report.hasUts) opts.push({ value: 'uts', label: 'UTS' });
+    if (state.gnss && state.gnss.count) opts.push({ value: 'gnss', label: 'GNSS as-built' });
+    if (state.uts && state.uts.count) opts.push({ value: 'uts', label: 'UTS as-built' });
     sel.innerHTML = '';
     if (!opts.length) {
       var empty = document.createElement('option');
       empty.value = '';
-      empty.textContent = 'No Z source';
+      empty.textContent = 'Load GNSS or UTS stakeout';
       sel.appendChild(empty);
       sel.disabled = true;
       return;
@@ -627,11 +611,18 @@
   }
 
   function renderPileToPile() {
-    var section = $('ptp-section');
-    if (!section || !state.report) return;
+    if (!$('ptp-section')) return;
     var sourceEl = $('ptp-source');
     var source = sourceEl && sourceEl.value ? sourceEl.value : '';
-    if (!source) {
+    var designMap = state.design && state.design.map;
+    var asBuiltMap =
+      source === 'uts'
+        ? state.uts && state.uts.map
+        : source === 'gnss'
+          ? state.gnss && state.gnss.map
+          : null;
+
+    if (!source || !designMap || !asBuiltMap) {
       setText('ptp-pass', '—');
       setText('ptp-fail', '—');
       setText('ptp-max', '—');
@@ -641,7 +632,8 @@
       setText('ptp-median-note', '');
       var verdictEmpty = $('ptp-verdict');
       if (verdictEmpty) {
-        verdictEmpty.textContent = 'Load machine, GNSS, or UTS Z to run pile-to-pile consistency.';
+        verdictEmpty.textContent =
+          'PTP uses design Z vs GNSS or UTS as-built only (no machine). Load design + a stakeout.';
         verdictEmpty.className = 'ptp-verdict';
       }
       state.pileToPile = null;
@@ -651,8 +643,10 @@
       return;
     }
 
-    var ptp = PileQC.buildPileToPileZ(state.report, {
-      source: source,
+    var ptp = PileQC.buildPileToPileZ({
+      designMap: designMap,
+      asBuiltMap: asBuiltMap,
+      asBuiltSource: source,
       specFt: readPileToPileSpec(),
     });
     state.pileToPile = ptp;
@@ -665,11 +659,13 @@
     );
     setText(
       'ptp-fail-note',
-      ptp.pairFailCount
-        ? ptp.pairFailCount + ' N–S pair(s) over spec · ' + (ptp.rowCount || 0) + ' row(s)'
-        : ptp.count
-          ? 'All N–S pairs within spec · ' + (ptp.rowCount || 0) + ' row(s)'
-          : ''
+      (ptp.pairFailCount
+        ? ptp.pairFailCount + ' N–S pair(s) over spec'
+        : ptp.count && !ptp.error
+          ? 'All N–S pairs within spec'
+          : '') +
+        (ptp.rowCount ? ' · ' + ptp.rowCount + ' row(s)' : '') +
+        (ptp.skippedGapPairs ? ' · ' + ptp.skippedGapPairs + ' gap skip(s)' : '')
     );
     setText('ptp-max', ptp.maxAbsDz != null ? PileQC.fmt(ptp.maxAbsDz) : '—');
     setText(
@@ -680,40 +676,36 @@
     );
     setText(
       'ptp-median-note',
-      'Spec ±' +
-        PileQC.fmt(ptp.specFt) +
-        ' ft · ' +
+      'Metric |(Z_ab−Z_des)_i − (Z_ab−Z_des)_j| · ' +
         source.toUpperCase() +
-        ' · rows by Easting (±' +
-        PileQC.fmt(ptp.rowTolFt != null ? ptp.rowTolFt : 3, 1) +
-        ' ft)'
+        ' · spec ' +
+        PileQC.fmt(ptp.specFt) +
+        ' ft'
     );
 
     var verdict = $('ptp-verdict');
     if (verdict) {
-      if (ptp.count < 2) {
-        verdict.textContent = 'Need at least two piles with Z for this check.';
+      if (ptp.error) {
+        verdict.textContent = ptp.error;
         verdict.className = 'ptp-verdict';
       } else if (ptp.ok) {
         verdict.textContent =
-          'All N–S row neighbors are within ' +
-          PileQC.fmt(ptp.specFt) +
-          ' ft (' +
+          'N–S row residuals (design Z vs ' +
           source.toUpperCase() +
-          ' Z, ' +
-          (ptp.rowCount || 0) +
-          ' row(s)).';
+          ' as-built) are within ' +
+          PileQC.fmt(ptp.specFt) +
+          ' ft of each other.';
         verdict.className = 'ptp-verdict is-ok';
       } else {
         verdict.textContent =
           ptp.failCount +
           ' pile(s) / ' +
           ptp.pairFailCount +
-          ' N–S pair(s) exceed the ' +
+          ' N–S pair(s) exceed ' +
           PileQC.fmt(ptp.specFt) +
-          ' ft pile-to-pile |ΔZ| spec (' +
+          ' ft residual consistency (design vs ' +
           source.toUpperCase() +
-          ' Z).';
+          '; machine not used).';
         verdict.className = 'ptp-verdict is-fail';
       }
     }
@@ -735,6 +727,12 @@
       tr.innerHTML =
         '<td class="id">' +
         p.id +
+        '</td><td>' +
+        PileQC.fmt(p.zDesign) +
+        '</td><td>' +
+        PileQC.fmt(p.zAsBuilt) +
+        '</td><td>' +
+        PileQC.fmt(p.dzVsDesign) +
         '</td><td>' +
         (p.southId != null ? p.southId : '—') +
         '</td><td>' +
@@ -1080,13 +1078,11 @@
     document.querySelectorAll('input[name="stakeout-kind"]').forEach(function (radio) {
       radio.addEventListener('change', function () {
         syncRoverModeFromUi();
-        consolidateStakeoutListsForMode();
         refreshLists();
         scheduleRebuild();
       });
     });
     syncRoverModeFromUi();
-    consolidateStakeoutListsForMode();
     refreshLists();
 
     var ptpSpec = $('ptp-spec');
@@ -1114,6 +1110,9 @@
           zMeta: zPack,
           pilePages: pilePack.pages,
           pileMeta: pilePack,
+          ptp: state.pileToPile,
+          ptpPlan: PileCharts.toDataUrl($('canvas-ptp-plan')),
+          ptpBars: PileCharts.toDataUrl($('canvas-ptp-bars')),
         });
         var alertEl = $('alert');
         if (alertEl) alertEl.classList.add('hidden');

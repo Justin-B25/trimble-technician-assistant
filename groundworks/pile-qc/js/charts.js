@@ -869,7 +869,11 @@ var PileCharts = (function () {
     ctx.font = '11px "Open Sans", Arial, sans-serif';
     ctx.fillText('0', padL - 28, padT + plotH + 4);
     ctx.fillText(maxY.toFixed(3), padL - 40, padT + 10);
-    ctx.fillText('|ΔZ| along N–S row pairs (ft) — largest first', padL, h - 10);
+    ctx.fillText(
+      '|(ΔZ_ab−des)_i − (ΔZ_ab−des)_j| along N–S pairs (ft) — largest first',
+      padL,
+      h - 10
+    );
   }
 
   return {

@@ -155,12 +155,58 @@ var PilePdf = (function () {
     );
   }
 
+  function buildPtpBlock(ptp, images) {
+    if (!ptp || ptp.error) {
+      return (
+        '<h2>Pile-to-pile Z (design vs as-built)</h2>' +
+        '<p class="muted">' +
+        escapeHtml((ptp && ptp.error) || 'Not computed') +
+        '</p>'
+      );
+    }
+    var src = (ptp.asBuiltSource || ptp.source || '').toUpperCase();
+    return (
+      '<h2>Pile-to-pile Z — design vs ' +
+      escapeHtml(src) +
+      ' as-built (no machine)</h2>' +
+      '<p class="muted">N–S rows on design Easting. Metric |(Z_ab−Z_des)_i − (Z_ab−Z_des)_j| ≤ ' +
+      escapeHtml(fmt(ptp.specFt)) +
+      ' ft. Rows: ' +
+      ptp.rowCount +
+      ' · piles: ' +
+      ptp.count +
+      ' · pass: ' +
+      ptp.passCount +
+      ' · fail: ' +
+      ptp.failCount +
+      ' · pair fails: ' +
+      ptp.pairFailCount +
+      ' · max |ΔΔZ|: ' +
+      escapeHtml(fmt(ptp.maxAbsDz)) +
+      ' · mean: ' +
+      escapeHtml(fmt(ptp.meanAbsDz)) +
+      '</p>' +
+      (images && images.ptpPlan
+        ? '<div class="viz"><img src="' + images.ptpPlan + '" alt="PTP plan" /></div>'
+        : '') +
+      (images && images.ptpBars
+        ? '<div class="viz"><img src="' + images.ptpBars + '" alt="PTP bars" /></div>'
+        : '')
+    );
+  }
+
   function buildSummary(report) {
     var med = report.medianZ || {};
+    var join =
+      report.joinMode === 'design-union'
+        ? 'design ∩ (rover ∪ machine)'
+        : report.joinMode || 'join';
     var html =
       '<p class="match">Showing ' +
       report.counts.common +
-      ' common ID(s) across: ' +
+      ' ID(s) via ' +
+      escapeHtml(join) +
+      ': ' +
       escapeHtml((report.sourcesUsed || []).join(', ')) +
       ' · counts D' +
       report.counts.design +
@@ -350,10 +396,16 @@ var PilePdf = (function () {
           '" alt="Bullseye" /></div>'
         : '') +
       '</div></div>' +
-      '<div class="footer">Positive ΔN = north of design · Positive ΔE = east of design · Positive ΔZ = above design. Only pile IDs common to all loaded source types are shown. Landscape report: Z charts and per-pile pages follow.</div>' +
+      '<div class="footer">Positive ΔN = north of design · Positive ΔE = east of design · Positive ΔZ = above design. With design: IDs = design ∩ (GNSS ∪ UTS ∪ machine). Landscape report: PTP, Z charts, and per-pile pages follow.</div>' +
       '</div>';
 
-    // Page 2 — table
+    // Page 2 — pile-to-pile Z
+    html +=
+      '<div class="page">' +
+      buildPtpBlock(images.ptp || null, images) +
+      '</div>';
+
+    // Page 3 — table
     html +=
       '<div class="page">' +
       '<h2>Per-pile QC table</h2>' +

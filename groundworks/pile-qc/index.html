@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=8" />
+  <link rel="stylesheet" href="styles.css?v=9" />
 </head>
 <body data-gw-page="pile-qc" class="pile-qc">
   <header class="tc-app-header">
@@ -52,8 +52,8 @@
     <section class="card">
       <h2>Load files (multiple allowed)</h2>
       <p class="muted" style="margin-top: -4px; margin-bottom: 12px">
-        Report includes only point IDs present in <strong>every</strong> loaded source type (intersection).
-        Example: design + GNSS + machine → piles common to all three. Design + UTS alone also works.
+        With design loaded: report IDs = design ∩ (GNSS ∪ UTS ∪ machine). GNSS and UTS averages
+        each use their own overlap with design (Both does not require GNSS∩UTS).
       </p>
       <div class="upload-grid upload-grid--4">
         <div class="dropzone" id="dz-design">
@@ -244,22 +244,22 @@
       <section class="card" id="ptp-section">
         <h2>Pile-to-pile Z consistency</h2>
         <p class="muted" style="margin-top: -4px; margin-bottom: 12px">
-          Separate from design ΔZ. Rows run <strong>north–south</strong> (same Easting).
-          Each pile is checked only against the pile <strong>north</strong> and
-          <strong>south</strong> in its row — both must be within the |ΔZ| spec to pass.
-          East–west neighbors are ignored.
+          Design Z vs as-built Z only (GNSS or UTS — <strong>no machine</strong>).
+          Rows run <strong>north–south</strong> on design Easting. For each N/S neighbor pair,
+          compare residuals <code>ΔZ = Z<sub>as-built</sub> − Z<sub>design</sub></code>;
+          pass when <code>|(ΔZ)<sub>i</sub> − (ΔZ)<sub>j</sub>|</code> ≤ spec.
+          Large gaps in a row are skipped.
         </p>
         <div class="ptp-controls">
           <div>
-            <label class="muted" for="ptp-source">Z source</label>
+            <label class="muted" for="ptp-source">As-built Z (rover)</label>
             <select id="ptp-source">
-              <option value="machine">Machine</option>
-              <option value="gnss">GNSS</option>
-              <option value="uts">UTS</option>
+              <option value="gnss">GNSS as-built</option>
+              <option value="uts">UTS as-built</option>
             </select>
           </div>
           <div>
-            <label class="muted" for="ptp-spec">Pile-to-pile |ΔZ| spec (ft)</label>
+            <label class="muted" for="ptp-spec">Pile-to-pile residual |ΔΔZ| spec (ft)</label>
             <input id="ptp-spec" type="number" min="0" step="0.001" value="0.02" />
           </div>
         </div>
@@ -277,10 +277,10 @@
           <article class="ptp-stat">
             <div class="label">Max |ΔZ| (ft)</div>
             <div class="value" id="ptp-max">—</div>
-            <div class="note">Along N–S row</div>
+            <div class="note">|(ΔZ)<sub>i</sub>−(ΔZ)<sub>j</sub>|</div>
           </article>
           <article class="ptp-stat">
-            <div class="label">Mean / median |ΔZ| (ft)</div>
+            <div class="label">Mean / median |ΔΔZ| (ft)</div>
             <div class="value" id="ptp-mean">—</div>
             <div class="note" id="ptp-median-note"></div>
           </article>
@@ -288,11 +288,11 @@
         <p class="ptp-verdict" id="ptp-verdict"></p>
         <div class="ptp-viz">
           <div class="viz-panel">
-            <h3>Plan — N–S row |ΔZ|</h3>
+            <h3>Plan — N–S residual consistency</h3>
             <canvas id="canvas-ptp-plan" width="560" height="400"></canvas>
           </div>
           <div class="viz-panel">
-            <h3>|ΔZ| along N–S pairs</h3>
+            <h3>|ΔΔZ| along N–S pairs</h3>
             <canvas id="canvas-ptp-bars" width="560" height="400"></canvas>
           </div>
         </div>
@@ -301,11 +301,14 @@
             <thead>
               <tr>
                 <th class="id">ID</th>
+                <th>Des Z</th>
+                <th>As-built Z</th>
+                <th>ΔZ (ab−des)</th>
                 <th>South</th>
                 <th>North</th>
-                <th>|ΔZ| S (ft)</th>
-                <th>|ΔZ| N (ft)</th>
-                <th>Worst |ΔZ|</th>
+                <th>|ΔΔZ| S</th>
+                <th>|ΔΔZ| N</th>
+                <th>Worst |ΔΔZ|</th>
                 <th>Result</th>
               </tr>
             </thead>
@@ -364,10 +367,10 @@
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="js/parsers.js?v=3"></script>
-  <script src="js/qc.js?v=5"></script>
-  <script src="js/charts.js?v=4"></script>
-  <script src="js/pdf.js?v=4"></script>
-  <script src="js/app.js?v=10"></script>
+  <script src="js/parsers.js?v=4"></script>
+  <script src="js/qc.js?v=6"></script>
+  <script src="js/charts.js?v=5"></script>
+  <script src="js/pdf.js?v=5"></script>
+  <script src="js/app.js?v=11"></script>
 </body>
 </html>

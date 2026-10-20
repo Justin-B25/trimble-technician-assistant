@@ -1,7 +1,9 @@
 /**
- * Join loaded sources on common pile IDs and compute QC deltas / averages.
+ * Join loaded sources and compute QC deltas / averages.
  * Sources: design, gnss (rover), uts (rover), machine.
- * Only IDs present in every loaded source type are reported.
+ * With design: report IDs = design ∩ (gnss ∪ uts ∪ machine). Series averages
+ * use only piles that have both sides of that comparison (Both mode does not
+ * require GNSS∩UTS∩machine).
  */
 var PileQC = (function () {
   var COLORS = {
@@ -69,24 +71,48 @@ var PileQC = (function () {
     return !!(map && mapKeys(map).length);
   }
 
+  function sortIds(ids) {
+    ids.sort(function (a, b) {
+      var na = Number(a);
+      var nb = Number(b);
+      if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+      return String(a).localeCompare(String(b));
+    });
+    return ids;
+  }
+
   /**
-   * Intersection of keys across provided maps (only maps that exist / have data).
-   * sourceMaps: { design?, gnss?, uts?, machine? }
-   * Also accepts legacy `measured` as alias for gnss.
+   * Report ID set:
+   * - With design + any other source(s): design ∩ (union of loaded gnss/uts/machine)
+   * - Without design: intersection of every loaded non-design source
    */
   function commonIds(sourceMaps) {
     var maps = normalizeSourceMaps(sourceMaps);
-    var sets = [];
-    var labels = [];
-    ['design', 'gnss', 'uts', 'machine'].forEach(function (key) {
-      var m = maps[key];
-      if (isLoaded(m)) {
-        sets.push(m);
-        labels.push(key);
+    var sourcesUsed = [];
+    var otherKeys = [];
+    ['gnss', 'uts', 'machine'].forEach(function (key) {
+      if (isLoaded(maps[key])) {
+        otherKeys.push(key);
+        sourcesUsed.push(key);
       }
     });
-    if (!sets.length) return { ids: [], sourcesUsed: [] };
 
+    if (isLoaded(maps.design)) {
+      sourcesUsed = ['design'].concat(sourcesUsed);
+      if (!otherKeys.length) return { ids: [], sourcesUsed: sourcesUsed, join: 'design-only' };
+      var ids = mapKeys(maps.design).filter(function (id) {
+        for (var i = 0; i < otherKeys.length; i++) {
+          if (maps[otherKeys[i]][id]) return true;
+        }
+        return false;
+      });
+      return { ids: sortIds(ids), sourcesUsed: sourcesUsed, join: 'design-union' };
+    }
+
+    if (!otherKeys.length) return { ids: [], sourcesUsed: [], join: 'empty' };
+    var sets = otherKeys.map(function (k) {
+      return maps[k];
+    });
     var order = sets
       .map(function (m, i) {
         return { m: m, i: i, n: mapKeys(m).length };
@@ -94,20 +120,13 @@ var PileQC = (function () {
       .sort(function (a, b) {
         return a.n - b.n;
       });
-
-    var ids = mapKeys(order[0].m).filter(function (id) {
+    var inter = mapKeys(order[0].m).filter(function (id) {
       for (var i = 1; i < order.length; i++) {
         if (!order[i].m[id]) return false;
       }
       return true;
     });
-    ids.sort(function (a, b) {
-      var na = Number(a);
-      var nb = Number(b);
-      if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
-      return String(a).localeCompare(String(b));
-    });
-    return { ids: ids, sourcesUsed: labels };
+    return { ids: sortIds(inter), sourcesUsed: sourcesUsed, join: 'intersection' };
   }
 
   function normalizeSourceMaps(sourceMaps) {
@@ -194,6 +213,7 @@ var PileQC = (function () {
     return {
       rows: rows,
       sourcesUsed: common.sourcesUsed,
+      joinMode: common.join || 'design-union',
       hasGnss: isLoaded(gnss),
       hasUts: isLoaded(uts),
       hasMachine: isLoaded(machine),
@@ -205,6 +225,9 @@ var PileQC = (function () {
         measured: mapKeys(gnss).length,
         machine: mapKeys(machine).length,
         common: rows.length,
+        gnssVsDesign: gdList.length,
+        utsVsDesign: udList.length,
+        machineVsDesign: kdList.length,
       },
       avg: {
         gnssVsDesign: packAvg(gdList),
@@ -273,36 +296,95 @@ var PileQC = (function () {
     return clusters;
   }
 
+  function medianNumber(vals) {
+    if (!vals || !vals.length) return null;
+    var a = vals.slice().sort(function (x, y) {
+      return x - y;
+    });
+    var mid = Math.floor(a.length / 2);
+    if (a.length % 2 === 0) return (a[mid - 1] + a[mid]) / 2;
+    return a[mid];
+  }
+
   /**
-   * Pile-to-pile Z consistency along N–S rows only (separate from design deltas).
-   * Each pile is compared to the pile immediately north and south in the same row
-   * (same Easting band). East–west neighbors are ignored.
-   * options: { source, specFt, rowTolFt }
+   * Pile-to-pile Z consistency along N–S design rows — design Z vs as-built Z only.
+   * Machine is never used. As-built is GNSS or UTS (options.asBuiltSource).
+   *
+   * For each N–S neighbor pair, compare residuals:
+   *   ΔZ = Z_asBuilt − Z_design
+   *   pair metric = |ΔZ_i − ΔZ_j|
+   * Spec applies to that pair metric (default 0.02 ft).
+   *
+   * options: {
+   *   designMap, asBuiltMap, asBuiltSource: 'gnss'|'uts',
+   *   specFt, rowTolFt, maxGapFactor
+   * }
    */
-  function buildPileToPileZ(report, options) {
+  function buildPileToPileZ(options) {
     options = options || {};
-    var source = options.source || 'machine';
+    var asBuiltSource = options.asBuiltSource === 'uts' ? 'uts' : 'gnss';
+    var designMap = options.designMap || Object.create(null);
+    var asBuiltMap = options.asBuiltMap || Object.create(null);
     var spec =
       options.specFt != null && Number.isFinite(options.specFt) ? Math.abs(options.specFt) : 0.02;
     var rowTol =
       options.rowTolFt != null && Number.isFinite(options.rowTolFt)
         ? Math.abs(options.rowTolFt)
         : 3;
-    var rows = (report && report.rows) || [];
-    var points = [];
+    var maxGapFactor =
+      options.maxGapFactor != null && Number.isFinite(options.maxGapFactor)
+        ? options.maxGapFactor
+        : 2.5;
 
-    for (var i = 0; i < rows.length; i++) {
-      var r = rows[i];
-      var src = r[source];
-      if (!src || src.z == null || !Number.isFinite(src.z)) continue;
-      var n = r.design && r.design.n != null ? r.design.n : src.n;
-      var e = r.design && r.design.e != null ? r.design.e : src.e;
-      if (n == null || e == null || !Number.isFinite(n) || !Number.isFinite(e)) continue;
+    var empty = {
+      source: asBuiltSource,
+      asBuiltSource: asBuiltSource,
+      metric: 'design-vs-asbuilt-residual',
+      specFt: spec,
+      rowTolFt: rowTol,
+      rowCount: 0,
+      count: 0,
+      passCount: 0,
+      failCount: 0,
+      pairFailCount: 0,
+      skippedGapPairs: 0,
+      maxAbsDz: null,
+      meanAbsDz: null,
+      medianAbsDz: null,
+      points: [],
+      edges: [],
+      ok: true,
+      error: null,
+    };
+
+    if (!isLoaded(designMap)) {
+      empty.error = 'Design required for pile-to-pile Z (rows + design Z).';
+      return empty;
+    }
+    if (!isLoaded(asBuiltMap)) {
+      empty.error =
+        'As-built ' + asBuiltSource.toUpperCase() + ' stakeout required (machine is not used).';
+      return empty;
+    }
+
+    var points = [];
+    var ids = mapKeys(designMap);
+    for (var i = 0; i < ids.length; i++) {
+      var id = ids[i];
+      var d = designMap[id];
+      var ab = asBuiltMap[id];
+      if (!d || !ab) continue;
+      if (d.z == null || ab.z == null || !Number.isFinite(d.z) || !Number.isFinite(ab.z)) continue;
+      if (d.n == null || d.e == null || !Number.isFinite(d.n) || !Number.isFinite(d.e)) continue;
+      var dzVsDesign = ab.z - d.z;
       points.push({
-        id: r.id,
-        n: n,
-        e: e,
-        z: src.z,
+        id: id,
+        n: d.n,
+        e: d.e,
+        zDesign: d.z,
+        zAsBuilt: ab.z,
+        dzVsDesign: dzVsDesign,
+        z: dzVsDesign, // chart bars use .absDz on residual diffs; keep residual on z for legacy
         index: points.length,
         northId: null,
         southId: null,
@@ -317,56 +399,67 @@ var PileQC = (function () {
         neighborIndex: null,
         pass: true,
         rowIndex: -1,
+        gapSkippedSouth: false,
+        gapSkippedNorth: false,
       });
     }
 
-    var empty = {
-      source: source,
-      specFt: spec,
-      rowTolFt: rowTol,
-      rowCount: 0,
-      count: 0,
-      passCount: 0,
-      failCount: 0,
-      pairFailCount: 0,
-      maxAbsDz: null,
-      meanAbsDz: null,
-      medianAbsDz: null,
-      points: [],
-      edges: [],
-      ok: true,
-    };
-    if (points.length < 2) return empty;
+    empty.count = points.length;
+    if (points.length < 2) {
+      empty.error = 'Need at least two piles with design + ' + asBuiltSource.toUpperCase() + ' Z.';
+      empty.points = points;
+      return empty;
+    }
 
     var clusters = clusterNorthSouthRows(points, rowTol);
     var edges = [];
     var absList = [];
     var failCount = 0;
     var pairFailCount = 0;
+    var skippedGapPairs = 0;
     var maxAbs = 0;
     var sumAbs = 0;
     var edgeCount = 0;
 
     for (var c = 0; c < clusters.length; c++) {
       var items = clusters[c].items;
-      for (var k = 0; k < items.length; k++) {
-        items[k].rowIndex = c;
+      for (var k = 0; k < items.length; k++) items[k].rowIndex = c;
+
+      var spacings = [];
+      for (k = 1; k < items.length; k++) {
+        spacings.push(Math.abs(items[k].n - items[k - 1].n));
       }
+      var medSpace = medianNumber(spacings);
+      var maxGap =
+        medSpace != null && medSpace > 0
+          ? Math.max(medSpace * maxGapFactor, medSpace + 0.5)
+          : Infinity;
+
       for (k = 0; k < items.length; k++) {
         var pa = items[k];
-        var south = k > 0 ? items[k - 1] : null;
-        var north = k < items.length - 1 ? items[k + 1] : null;
+        var southCand = k > 0 ? items[k - 1] : null;
+        var northCand = k < items.length - 1 ? items[k + 1] : null;
+        var south =
+          southCand && Math.abs(pa.n - southCand.n) <= maxGap + 1e-9 ? southCand : null;
+        var north =
+          northCand && Math.abs(pa.n - northCand.n) <= maxGap + 1e-9 ? northCand : null;
+        if (southCand && !south) pa.gapSkippedSouth = true;
+        if (northCand && !north) pa.gapSkippedNorth = true;
+
         var worstAbs = 0;
         var worstDz = null;
         var worstHoriz = null;
         var worstId = null;
         var worstIndex = null;
         var pass = true;
+        var hasNeighbor = false;
 
         if (south) {
+          hasNeighbor = true;
           pa.southId = south.id;
           pa.southIndex = south.index;
-          pa.southDz = pa.z - south.z;
+          // Residual difference: (ab−des)_i − (ab−des)_j
+          pa.southDz = pa.dzVsDesign - south.dzVsDesign;
           var absS = Math.abs(pa.southDz);
           var horizS = Math.abs(pa.n - south.n);
           if (absS > worstAbs) {
@@ -379,9 +472,10 @@ var PileQC = (function () {
           if (absS > spec + 1e-12) pass = false;
         }
         if (north) {
+          hasNeighbor = true;
           pa.northId = north.id;
           pa.northIndex = north.index;
-          pa.northDz = pa.z - north.z;
+          pa.northDz = pa.dzVsDesign - north.dzVsDesign;
           var absN = Math.abs(pa.northDz);
           var horizN = Math.abs(pa.n - north.n);
           if (absN > worstAbs) {
@@ -394,27 +488,24 @@ var PileQC = (function () {
           if (absN > spec + 1e-12) pass = false;
         }
 
-        // End-of-row piles with no N/S neighbor: no pair to check → pass
-        if (!south && !north) {
+        if (!hasNeighbor) {
           pa.absDz = 0;
           pa.dz = 0;
           pa.horiz = 0;
           pa.pass = true;
-          continue;
+        } else {
+          pa.absDz = worstAbs;
+          pa.dz = worstDz;
+          pa.horiz = worstHoriz;
+          pa.neighborId = worstId;
+          pa.neighborIndex = worstIndex;
+          pa.pass = pass;
+          if (!pass) failCount++;
         }
 
-        pa.absDz = worstAbs;
-        pa.dz = worstDz;
-        pa.horiz = worstHoriz;
-        pa.neighborId = worstId;
-        pa.neighborIndex = worstIndex;
-        pa.pass = pass;
-        if (!pass) failCount++;
-
-        // One undirected edge per consecutive N–S pair (use south link only)
-        if (south) {
-          var absEdge = Math.abs(pa.z - south.z);
-          var dzEdge = pa.z - south.z;
+        if (south && k > 0) {
+          var absEdge = Math.abs(pa.dzVsDesign - south.dzVsDesign);
+          var dzEdge = pa.dzVsDesign - south.dzVsDesign;
           var horizEdge = Math.abs(pa.n - south.n);
           var edgePass = absEdge <= spec + 1e-12;
           edges.push({
@@ -428,32 +519,36 @@ var PileQC = (function () {
             pass: edgePass,
             direction: 'N-S',
             rowIndex: c,
+            dzDesignA: south.dzVsDesign,
+            dzDesignB: pa.dzVsDesign,
           });
           absList.push(absEdge);
           sumAbs += absEdge;
           edgeCount++;
           if (absEdge > maxAbs) maxAbs = absEdge;
           if (!edgePass) pairFailCount++;
+        } else if (southCand && !south) {
+          skippedGapPairs++;
         }
       }
     }
 
+    empty.points = points;
+    empty.rowCount = clusters.length;
+    empty.skippedGapPairs = skippedGapPairs;
     if (!edgeCount) {
-      empty.points = points;
-      empty.rowCount = clusters.length;
-      empty.count = points.length;
+      empty.error =
+        skippedGapPairs > 0
+          ? 'No N–S pairs within row spacing (gaps too large).'
+          : 'No N–S neighbor pairs found in design rows.';
       return empty;
     }
 
-    absList.sort(function (x, y) {
-      return x - y;
-    });
-    var mid = Math.floor(absList.length / 2);
-    var medianAbs =
-      absList.length % 2 === 0 ? (absList[mid - 1] + absList[mid]) / 2 : absList[mid];
-
+    var medianAbs = medianNumber(absList);
     return {
-      source: source,
+      source: asBuiltSource,
+      asBuiltSource: asBuiltSource,
+      metric: 'design-vs-asbuilt-residual',
       specFt: spec,
       rowTolFt: rowTol,
       rowCount: clusters.length,
@@ -461,12 +556,14 @@ var PileQC = (function () {
       passCount: points.length - failCount,
       failCount: failCount,
       pairFailCount: pairFailCount,
+      skippedGapPairs: skippedGapPairs,
       maxAbsDz: maxAbs,
       meanAbsDz: sumAbs / edgeCount,
       medianAbsDz: medianAbs,
       points: points,
       edges: edges,
       ok: failCount === 0 && pairFailCount === 0,
+      error: null,
     };
   }
 
