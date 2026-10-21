@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="../../assets/theme-init.js"></script>
-  <title>Groundworks CSV Formatter (BETA) — Trimble Technician Assistant</title>
+  <title>Groundworks CSV Formatter (BETA) â€” Trimble Technician Assistant</title>
   <meta name="theme-color" content="#005f9e" />
   <link rel="icon" type="image/png" sizes="32x32" href="../../favicon-32.png" />
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
@@ -51,7 +51,7 @@
           </select>
           <p class="gw-hint">Match the coordinate and length units in your uploaded file before mapping and preview. Choose <strong>US FT</strong> (US survey foot), <strong>International FT</strong>, or <strong>METRIC</strong> to match your Groundworks project.</p>
           <div class="gw-angle-note gw-units-note" role="note">
-            <strong>No unit conversion.</strong> This formatter does not convert between metric, US survey feet, or international feet — it treats values as already in the units you select above, which matches how pile coordinates are usually exported from TBC or Siteworks.
+            <strong>No unit conversion.</strong> This formatter does not convert between metric, US survey feet, or international feet â€” it treats values as already in the units you select above, which matches how pile coordinates are usually exported from TBC or Siteworks.
           </div>
         </div>
 
@@ -64,7 +64,7 @@
         <div class="gw-field gw-field--full">
           <label class="gw-check">
             <input type="checkbox" id="gwHasHeader" checked />
-            First row is a header (row 1 is never exported — used for column labels only)
+            First row is a header (row 1 is never exported â€” used for column labels only)
           </label>
         </div>
 
@@ -91,7 +91,7 @@
         </ol>
       </div>
       <p class="gw-hint gw-mapping-lead">
-        Map every field yourself — nothing is pre-selected. Required: <strong>ID</strong>, <strong>X</strong>, <strong>Y</strong>, and <strong>Z</strong> (column or fixed value).
+        Map every field yourself â€” nothing is pre-selected. Required: <strong>ID</strong>, <strong>X</strong>, <strong>Y</strong>, and <strong>Z</strong> (column or fixed value).
         <strong>Length</strong> is optional and defaults to <code>0</code> unless you map a column or enter a fixed value.
       </p>
       <div class="gw-angle-note" role="note">
@@ -145,18 +145,18 @@
 
       <div class="gw-actions gw-actions--wrap">
         <button type="button" class="gw-btn gw-btn--primary" id="gwDownloadBtn">Download CSV</button>
-        <button type="button" class="gw-btn gw-btn--secondary" id="gwSaveAsBtn">Save to folder or USB…</button>
+        <button type="button" class="gw-btn gw-btn--secondary" id="gwSaveAsBtn">Save to folder or USBâ€¦</button>
       </div>
       <p class="gw-hint" id="gwExportHint"></p>
     </section>
   </main>
 
-  <footer class="tc-footer">Groundworks CSV Formatter (BETA) · Trimble Technician Assistant</footer>
+  <footer class="tc-footer">Groundworks CSV Formatter (BETA) Â· Trimble Technician Assistant</footer>
 
   <div class="gw-busy-overlay hidden" id="gwBusyOverlay" aria-live="polite" aria-busy="true">
     <div class="gw-busy-overlay__panel" role="status">
       <div class="gw-busy-overlay__spinner" aria-hidden="true"></div>
-      <p class="gw-busy-overlay__text" id="gwBusyText">Working…</p>
+      <p class="gw-busy-overlay__text" id="gwBusyText">Workingâ€¦</p>
     </div>
   </div>
 
@@ -169,6 +169,6 @@
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
   <script src="formatter.js?v=12"></script>
-  <script src="app.js?v=18"></script>
+  <script src="app.js?v=19"></script>
 </body>
 </html>

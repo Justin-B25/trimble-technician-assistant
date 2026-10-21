@@ -802,7 +802,6 @@
         // (or click Apply). Do not call processCurrent while busy: it returns
         // early and would leave the busy overlay stuck.
         invalidatePreview();
-        clearBusy();
       } catch (err) {
         if (gen !== loadGeneration) return;
         state.result = null;
@@ -812,7 +811,9 @@
         els.issuesList.hidden = true;
         els.outputCard.classList.add('hidden');
         els.exportCard.classList.add('hidden');
-        clearBusy();
+      } finally {
+        // Always clear the overlay for this load — never leave "Reading CSV…" stuck.
+        if (gen === loadGeneration) clearBusy();
       }
     }, 0);
   }
