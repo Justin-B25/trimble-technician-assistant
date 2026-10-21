@@ -116,17 +116,17 @@
     if (!hint) return;
     if (state.roverMode === 'gnss') {
       hint.textContent =
-        'GNSS rover — imports tag as GNSS. Summary compares GNSS to design and machine.';
+        'GNSS rover — new imports tag as GNSS. Dashboard means use GNSS; pile-to-pile / drive truth can still pick UTS if a UTS CSV is loaded.';
     } else if (state.roverMode === 'uts') {
       hint.textContent =
-        'UTS — imports tag as UTS. Summary compares UTS to design and machine.';
+        'UTS — new imports tag as UTS. Dashboard means use UTS; pile-to-pile / drive truth can still pick GNSS if a GNSS CSV is loaded.';
     } else {
       hint.textContent =
-        'Both — load a GNSS CSV and a UTS CSV. Summary shows each vs design and vs machine (Add GNSS / Add UTS, or Choose Files with …UTS… in the name).';
+        'Both — load GNSS and UTS CSVs. Dashboard shows each vs design and vs machine (Add GNSS / Add UTS, or Choose Files with …UTS… in the name).';
     }
   }
 
-  /** Lists stay tagged; mode only controls which lists are loaded into the report. */
+  /** Lists stay tagged; rover mode filters dashboard series only — stakeout files still load for PTP / drive truth. */
 
   function guessKindFromName(name) {
     var n = String(name || '').toUpperCase();
@@ -328,29 +328,28 @@
       }
       if (token !== state.rebuildToken) return;
 
-      if (mode === 'both' || mode === 'gnss') {
-        if (state.gnssFiles.length) {
-          state.gnss = await PileParsers.loadMeasuredFiles(state.gnssFiles);
-          state.warnings = state.warnings.concat(state.gnss.warnings || []);
-        } else if (mode === 'gnss' && state.utsFiles.length) {
-          state.warnings.push(
-            'GNSS only mode: UTS files are listed but ignored — switch to Both or move them with → GNSS.'
-          );
-        }
+      // Always parse queued stakeout lists so PTP / drive-truth can use either source.
+      if (state.gnssFiles.length) {
+        state.gnss = await PileParsers.loadMeasuredFiles(state.gnssFiles);
+        state.warnings = state.warnings.concat(state.gnss.warnings || []);
       }
       if (token !== state.rebuildToken) return;
 
-      if (mode === 'both' || mode === 'uts') {
-        if (state.utsFiles.length) {
-          state.uts = await PileParsers.loadMeasuredFiles(state.utsFiles);
-          state.warnings = state.warnings.concat(state.uts.warnings || []);
-        } else if (mode === 'uts' && state.gnssFiles.length) {
-          state.warnings.push(
-            'UTS only mode: GNSS files are listed but ignored — switch to Both or move them with → UTS.'
-          );
-        }
+      if (state.utsFiles.length) {
+        state.uts = await PileParsers.loadMeasuredFiles(state.utsFiles);
+        state.warnings = state.warnings.concat(state.uts.warnings || []);
       }
       if (token !== state.rebuildToken) return;
+
+      if (mode === 'gnss' && state.utsFiles.length && !state.gnssFiles.length) {
+        state.warnings.push(
+          'GNSS-only dashboard: no GNSS CSV loaded — add GNSS or switch mode to UTS/Both.'
+        );
+      } else if (mode === 'uts' && state.gnssFiles.length && !state.utsFiles.length) {
+        state.warnings.push(
+          'UTS-only dashboard: no UTS CSV loaded — add UTS or switch mode to GNSS/Both.'
+        );
+      }
 
       if (state.machineFiles.length) {
         setBusy('Parsing machine quality reports (' + state.machineFiles.length + ')…');
@@ -401,13 +400,29 @@
     setBusy('Joining common pile IDs…');
     await yieldToUi();
 
+    // Rover mode filters which stakeout series feed the dashboard report.
+    // state.gnss / state.uts stay fully loaded for pile-to-pile and drive compare.
+    var modeForReport = state.roverMode;
+    var reportGnss =
+      modeForReport === 'both' || modeForReport === 'gnss'
+        ? state.gnss
+          ? state.gnss.map
+          : null
+        : null;
+    var reportUts =
+      modeForReport === 'both' || modeForReport === 'uts'
+        ? state.uts
+          ? state.uts.map
+          : null
+        : null;
+
     var report;
     try {
       report = PileQC.buildReport(
         {
           design: state.design ? state.design.map : null,
-          gnss: state.gnss ? state.gnss.map : null,
-          uts: state.uts ? state.uts.map : null,
+          gnss: reportGnss,
+          uts: reportUts,
           machine: state.machine ? state.machine.map : null,
         },
         { excludeIds: excludedIdList() }
@@ -878,31 +893,33 @@
     var sel = $('ptp-source');
     if (!sel) return;
     var prev = sel.value;
-    var opts = [];
-    if (state.gnss && state.gnss.count) opts.push({ value: 'gnss', label: 'GNSS as-built' });
-    if (state.uts && state.uts.count) opts.push({ value: 'uts', label: 'UTS as-built' });
+    var hasGnss = !!(state.gnss && state.gnss.count);
+    var hasUts = !!(state.uts && state.uts.count);
     sel.innerHTML = '';
-    if (!opts.length) {
-      var empty = document.createElement('option');
-      empty.value = '';
-      empty.textContent = 'Load GNSS or UTS stakeout';
-      sel.appendChild(empty);
+    [
+      { value: 'gnss', label: 'GNSS as-built', ok: hasGnss },
+      { value: 'uts', label: 'UTS as-built', ok: hasUts },
+    ].forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.value;
+      opt.textContent = o.ok ? o.label : o.label + ' (load CSV)';
+      opt.disabled = !o.ok;
+      sel.appendChild(opt);
+    });
+    if (!hasGnss && !hasUts) {
       sel.disabled = true;
+      sel.value = 'gnss';
       return;
     }
     sel.disabled = false;
-    opts.forEach(function (o) {
-      var opt = document.createElement('option');
-      opt.value = o.value;
-      opt.textContent = o.label;
-      sel.appendChild(opt);
-    });
     var prefer =
-      opts.some(function (o) {
-        return o.value === prev;
-      })
-        ? prev
-        : opts[0].value;
+      prev === 'uts' && hasUts
+        ? 'uts'
+        : prev === 'gnss' && hasGnss
+          ? 'gnss'
+          : hasGnss
+            ? 'gnss'
+            : 'uts';
     sel.value = prefer;
   }
 
@@ -933,7 +950,7 @@
         verdictEmpty.className = 'ptp-verdict';
       }
       state.pileToPile = null;
-      PileCharts.drawPileToPileZ($('canvas-ptp-plan'), $('canvas-ptp-bars'), null);
+      PileCharts.drawPileToPileZ($('canvas-ptp-plan'), null, null);
       var tb = $('ptp-table-body');
       if (tb) tb.innerHTML = '';
       return;
@@ -1007,7 +1024,7 @@
       }
     }
 
-    PileCharts.drawPileToPileZ($('canvas-ptp-plan'), $('canvas-ptp-bars'), ptp);
+    PileCharts.drawPileToPileZ($('canvas-ptp-plan'), null, ptp);
 
     var body = $('ptp-table-body');
     if (!body) return;
@@ -1052,31 +1069,33 @@
     var sel = $('drive-truth-source');
     if (!sel) return;
     var prev = sel.value;
-    var opts = [];
-    if (state.uts && state.uts.count) opts.push({ value: 'uts', label: 'UTS as-built' });
-    if (state.gnss && state.gnss.count) opts.push({ value: 'gnss', label: 'GNSS as-built' });
+    var hasGnss = !!(state.gnss && state.gnss.count);
+    var hasUts = !!(state.uts && state.uts.count);
     sel.innerHTML = '';
-    if (!opts.length) {
-      var empty = document.createElement('option');
-      empty.value = '';
-      empty.textContent = 'Load GNSS or UTS stakeout';
-      sel.appendChild(empty);
+    [
+      { value: 'uts', label: 'UTS as-built', ok: hasUts },
+      { value: 'gnss', label: 'GNSS as-built', ok: hasGnss },
+    ].forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.value;
+      opt.textContent = o.ok ? o.label : o.label + ' (load CSV)';
+      opt.disabled = !o.ok;
+      sel.appendChild(opt);
+    });
+    if (!hasGnss && !hasUts) {
       sel.disabled = true;
+      sel.value = 'uts';
       return;
     }
     sel.disabled = false;
-    opts.forEach(function (o) {
-      var opt = document.createElement('option');
-      opt.value = o.value;
-      opt.textContent = o.label;
-      sel.appendChild(opt);
-    });
     var prefer =
-      opts.some(function (o) {
-        return o.value === prev;
-      })
-        ? prev
-        : opts[0].value;
+      prev === 'gnss' && hasGnss
+        ? 'gnss'
+        : prev === 'uts' && hasUts
+          ? 'uts'
+          : hasUts
+            ? 'uts'
+            : 'gnss';
     sel.value = prefer;
   }
 
@@ -1835,7 +1854,6 @@
           pileMeta: pilePack,
           ptp: state.pileToPile,
           ptpPlan: PileCharts.toDataUrl($('canvas-ptp-plan')),
-          ptpBars: PileCharts.toDataUrl($('canvas-ptp-bars')),
         });
         var alertEl = $('alert');
         if (alertEl) alertEl.classList.add('hidden');

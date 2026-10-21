@@ -188,9 +188,6 @@ var PilePdf = (function () {
       '</p>' +
       (images && images.ptpPlan
         ? '<div class="viz"><img src="' + images.ptpPlan + '" alt="PTP plan" /></div>'
-        : '') +
-      (images && images.ptpBars
-        ? '<div class="viz"><img src="' + images.ptpBars + '" alt="PTP bars" /></div>'
         : '')
     );
   }

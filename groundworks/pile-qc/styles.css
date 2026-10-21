@@ -1031,9 +1031,10 @@
 
 .pile-qc .ptp-viz {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
   gap: 12px;
   margin-bottom: 12px;
+  align-items: start;
 }
 
 @media (max-width: 900px) {
@@ -1047,6 +1048,12 @@
   border: 1px solid var(--tc-grey-300, #e0e1e9);
   border-radius: 4px;
   background: #f7f8fa;
+}
+
+.pile-qc .ptp-side-tile {
+  margin: 0;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .pile-qc .ptp-table-wrap {

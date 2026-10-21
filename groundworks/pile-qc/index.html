@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/beta-access.css?v=1" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=18" />
+  <link rel="stylesheet" href="styles.css?v=19" />
 </head>
 <body data-gw-page="pile-qc" data-beta-tool="gw-pile-qc" class="pile-qc beta-access-locked">
   <header class="tc-app-header">
@@ -274,42 +274,6 @@
             </div>
           </article>
 
-          <article class="dash-tile dash-tile--ptp" id="tile-ptp-summary">
-            <header class="dash-tile__head">
-              <h3 class="dash-tile__title">Pile-to-pile Z (N–S)</h3>
-            </header>
-            <div class="ptp-controls ptp-controls--tile">
-              <div>
-                <label class="muted" for="ptp-source">As-built Z</label>
-                <select id="ptp-source">
-                  <option value="gnss">GNSS</option>
-                  <option value="uts">UTS</option>
-                </select>
-              </div>
-              <div>
-                <label class="muted" for="ptp-spec">|ΔΔZ| spec (ft)</label>
-                <input id="ptp-spec" type="number" min="0" step="0.001" value="0.02" />
-              </div>
-            </div>
-            <div class="dash-tile__hero dash-tile__hero--split">
-              <div>
-                <div class="dash-tile__hero-val" id="ptp-pass">—</div>
-                <div class="dash-tile__hero-label">Within spec</div>
-              </div>
-              <div>
-                <div class="dash-tile__hero-val dash-tile__hero-val--warn" id="ptp-fail">—</div>
-                <div class="dash-tile__hero-label">Over spec</div>
-              </div>
-            </div>
-            <div class="dash-tile__metrics">
-              <div><span class="delta-k">Max |ΔΔZ|</span><strong id="ptp-max">—</strong></div>
-              <div><span class="delta-k">Mean / med</span><strong id="ptp-mean">—</strong></div>
-            </div>
-            <p class="dash-tile__note" id="ptp-pass-note"></p>
-            <p class="dash-tile__note" id="ptp-fail-note"></p>
-            <p class="ptp-verdict" id="ptp-verdict"></p>
-            <p class="muted" id="ptp-median-note" hidden></p>
-          </article>
         </div>
 
         <div class="tol-bar" id="tol-bar">
@@ -561,20 +525,52 @@
       </section>
 
       <section class="card" id="ptp-section">
-        <h2>Pile-to-pile Z — detail</h2>
+        <h2>Pile-to-pile Z (N–S)</h2>
         <p class="muted" style="margin-top: -4px; margin-bottom: 12px">
-          Adjust source and |ΔΔZ| spec in the dashboard tile above.
           N–S neighbors on design Easting; pass when residual difference ≤ spec. Machine not used.
+          Change as-built source or spec beside the plan — graph updates in place.
         </p>
         <div class="ptp-viz">
           <div class="viz-panel">
             <h3>Plan — N–S residual consistency</h3>
             <canvas id="canvas-ptp-plan" width="560" height="400"></canvas>
           </div>
-          <div class="viz-panel">
-            <h3>|ΔΔZ| along N–S pairs</h3>
-            <canvas id="canvas-ptp-bars" width="560" height="400"></canvas>
-          </div>
+          <article class="dash-tile dash-tile--ptp ptp-side-tile" id="tile-ptp-summary">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">N–S pair results</h3>
+            </header>
+            <div class="ptp-controls ptp-controls--tile">
+              <div>
+                <label class="muted" for="ptp-source">As-built Z</label>
+                <select id="ptp-source">
+                  <option value="gnss">GNSS</option>
+                  <option value="uts">UTS</option>
+                </select>
+              </div>
+              <div>
+                <label class="muted" for="ptp-spec">|ΔΔZ| spec (ft)</label>
+                <input id="ptp-spec" type="number" min="0" step="0.001" value="0.02" />
+              </div>
+            </div>
+            <div class="dash-tile__hero dash-tile__hero--split">
+              <div>
+                <div class="dash-tile__hero-val" id="ptp-pass">—</div>
+                <div class="dash-tile__hero-label">Within spec</div>
+              </div>
+              <div>
+                <div class="dash-tile__hero-val dash-tile__hero-val--warn" id="ptp-fail">—</div>
+                <div class="dash-tile__hero-label">Over spec</div>
+              </div>
+            </div>
+            <div class="dash-tile__metrics">
+              <div><span class="delta-k">Max |ΔΔZ|</span><strong id="ptp-max">—</strong></div>
+              <div><span class="delta-k">Mean / med</span><strong id="ptp-mean">—</strong></div>
+            </div>
+            <p class="dash-tile__note" id="ptp-pass-note"></p>
+            <p class="dash-tile__note" id="ptp-fail-note"></p>
+            <p class="ptp-verdict" id="ptp-verdict"></p>
+            <p class="muted" id="ptp-median-note" hidden></p>
+          </article>
         </div>
         <div class="table-wrap ptp-table-wrap">
           <table class="qc-table" id="ptp-table">
@@ -654,8 +650,8 @@
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="js/parsers.js?v=5"></script>
   <script src="js/qc.js?v=14"></script>
-  <script src="js/charts.js?v=6"></script>
-  <script src="js/pdf.js?v=6"></script>
-  <script src="js/app.js?v=23"></script>
+  <script src="js/charts.js?v=7"></script>
+  <script src="js/pdf.js?v=7"></script>
+  <script src="js/app.js?v=25"></script>
 </body>
 </html>

@@ -746,12 +746,12 @@ var PileCharts = (function () {
   }
 
   /**
-   * Plan view (E vs N) colored by N–S row |ΔZ| vs spec,
-   * plus sorted |ΔZ| bars with a horizontal spec line.
+   * Plan view (E vs N) colored by N–S row residual consistency vs spec.
+   * Optional barCanvas kept for callers that still pass one; bars are unused in UI.
    */
   function drawPileToPileZ(planCanvas, barCanvas, ptp) {
     drawPileToPilePlan(planCanvas, ptp);
-    drawPileToPileBars(barCanvas, ptp);
+    if (barCanvas) drawPileToPileBars(barCanvas, ptp);
   }
 
   function drawPileToPilePlan(canvas, ptp) {
