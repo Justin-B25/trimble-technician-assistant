@@ -12,8 +12,6 @@
     gnssFiles: [],
     utsFiles: [],
     machineFiles: [],
-    /** Active rover mode from radios: gnss | uts | both — filters report series. */
-    roverMode: 'gnss',
     design: null,
     gnss: null,
     uts: null,
@@ -102,31 +100,6 @@
       if (!existing[fileKey(f)]) list.push(f);
     });
   }
-
-  function selectedRoverMode() {
-    var checked = document.querySelector('input[name="stakeout-kind"]:checked');
-    var v = checked ? checked.value : 'gnss';
-    if (v === 'uts' || v === 'both' || v === 'gnss') return v;
-    return 'gnss';
-  }
-
-  function syncRoverModeFromUi() {
-    state.roverMode = selectedRoverMode();
-    var hint = $('stakeout-mode-hint');
-    if (!hint) return;
-    if (state.roverMode === 'gnss') {
-      hint.textContent =
-        'GNSS rover — new imports tag as GNSS. Dashboard means use GNSS; pile-to-pile / drive truth can still pick UTS if a UTS CSV is loaded.';
-    } else if (state.roverMode === 'uts') {
-      hint.textContent =
-        'UTS — new imports tag as UTS. Dashboard means use UTS; pile-to-pile / drive truth can still pick GNSS if a GNSS CSV is loaded.';
-    } else {
-      hint.textContent =
-        'Both — load GNSS and UTS CSVs. Dashboard shows each vs design and vs machine (Add GNSS / Add UTS, or Choose Files with …UTS… in the name).';
-    }
-  }
-
-  /** Lists stay tagged; rover mode filters dashboard series only — stakeout files still load for PTP / drive truth. */
 
   function guessKindFromName(name) {
     var n = String(name || '').toUpperCase();
@@ -221,7 +194,7 @@
 
     zone.addEventListener('click', function (e) {
       if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('label')) return;
-      if (e.target.closest('.stakeout-kind') || e.target.closest('.stakeout-add-row')) return;
+      if (e.target.closest('.stakeout-add-row') || e.target.closest('.file-list')) return;
       input.click();
     });
     zone.addEventListener('dragover', function (e) {
@@ -247,17 +220,23 @@
   }
 
   function ingestStakeoutFiles(fileList, forceKind) {
+    var skipped = [];
     Array.prototype.forEach.call(fileList, function (f) {
-      var kind = forceKind;
+      var kind = forceKind || guessKindFromName(f.name);
       if (!kind) {
-        var mode = selectedRoverMode();
-        if (mode === 'uts') kind = 'uts';
-        else if (mode === 'gnss') kind = 'gnss';
-        else kind = guessKindFromName(f.name) || 'gnss';
+        skipped.push(f.name);
+        return;
       }
       if (kind === 'uts') addFiles(state.utsFiles, [f]);
       else addFiles(state.gnssFiles, [f]);
     });
+    if (skipped.length) {
+      alert(
+        'Could not tell GNSS vs UTS for: ' +
+          skipped.join(', ') +
+          '.\nUse the GNSS or UTS button, or rename the file to include GNSS or UTS.'
+      );
+    }
     refreshLists();
     scheduleRebuild();
   }
@@ -319,8 +298,6 @@
 
       setBusy('Reading files…');
       await yieldToUi();
-      syncRoverModeFromUi();
-      var mode = state.roverMode;
 
       if (state.designFiles.length) {
         state.design = await PileParsers.loadDesignFiles(state.designFiles);
@@ -328,7 +305,6 @@
       }
       if (token !== state.rebuildToken) return;
 
-      // Always parse queued stakeout lists so PTP / drive-truth can use either source.
       if (state.gnssFiles.length) {
         state.gnss = await PileParsers.loadMeasuredFiles(state.gnssFiles);
         state.warnings = state.warnings.concat(state.gnss.warnings || []);
@@ -340,16 +316,6 @@
         state.warnings = state.warnings.concat(state.uts.warnings || []);
       }
       if (token !== state.rebuildToken) return;
-
-      if (mode === 'gnss' && state.utsFiles.length && !state.gnssFiles.length) {
-        state.warnings.push(
-          'GNSS-only dashboard: no GNSS CSV loaded — add GNSS or switch mode to UTS/Both.'
-        );
-      } else if (mode === 'uts' && state.gnssFiles.length && !state.utsFiles.length) {
-        state.warnings.push(
-          'UTS-only dashboard: no UTS CSV loaded — add UTS or switch mode to GNSS/Both.'
-        );
-      }
 
       if (state.machineFiles.length) {
         setBusy('Parsing machine quality reports (' + state.machineFiles.length + ')…');
@@ -373,14 +339,8 @@
     if (state.machine && state.machine.count) loadedTypes++;
 
     if (loadedTypes < 2) {
-      var modeHint =
-        state.roverMode === 'uts'
-          ? ' Rover mode is UTS only — add a UTS stakeout (or switch mode), plus design and/or machine.'
-          : state.roverMode === 'gnss'
-            ? ' Rover mode is GNSS only — add a GNSS stakeout (or switch mode), plus design and/or machine.'
-            : ' Add design and at least one rover (GNSS and/or UTS) or machine source.';
       alertEl.textContent =
-        'Need at least two active source types for a report.' + modeHint;
+        'Need at least two active source types for a report. Add design and at least one GNSS, UTS, or machine source.';
       alertEl.classList.toggle(
         'hidden',
         !(
@@ -400,29 +360,13 @@
     setBusy('Joining common pile IDs…');
     await yieldToUi();
 
-    // Rover mode filters which stakeout series feed the dashboard report.
-    // state.gnss / state.uts stay fully loaded for pile-to-pile and drive compare.
-    var modeForReport = state.roverMode;
-    var reportGnss =
-      modeForReport === 'both' || modeForReport === 'gnss'
-        ? state.gnss
-          ? state.gnss.map
-          : null
-        : null;
-    var reportUts =
-      modeForReport === 'both' || modeForReport === 'uts'
-        ? state.uts
-          ? state.uts.map
-          : null
-        : null;
-
     var report;
     try {
       report = PileQC.buildReport(
         {
           design: state.design ? state.design.map : null,
-          gnss: reportGnss,
-          uts: reportUts,
+          gnss: state.gnss ? state.gnss.map : null,
+          uts: state.uts ? state.uts.map : null,
           machine: state.machine ? state.machine.map : null,
         },
         { excludeIds: excludedIdList() }
@@ -800,12 +744,6 @@
     state.tableShown = 0;
     renderTablePage(true);
 
-    var modeLabel =
-      state.roverMode === 'both'
-        ? 'Both GNSS + UTS'
-        : state.roverMode === 'uts'
-          ? 'UTS only'
-          : 'GNSS only';
     var joinHint =
       report.joinMode === 'design-union'
         ? 'design ∩ (rover ∪ machine)'
@@ -815,9 +753,13 @@
     var sample = report.counts.common || 0;
     var exclNote =
       report.counts.excluded > 0 ? ' · excluded ' + report.counts.excluded : '';
+    var seriesBits = [];
+    if (report.hasGnss) seriesBits.push('GNSS');
+    if (report.hasUts) seriesBits.push('UTS');
+    if (report.hasMachine) seriesBits.push('Machine');
     $('match-note').textContent =
-      'Rover mode: ' +
-      modeLabel +
+      'Loaded: ' +
+      (seriesBits.length ? seriesBits.join(' + ') : '—') +
       '. Sample size ' +
       sample +
       ' (of ' +
@@ -1590,38 +1532,62 @@
   }
 
   function metaFromState() {
-    var mode = state.roverMode;
-    var gnssNames =
-      mode === 'uts'
-        ? []
-        : state.gnssFiles.map(function (f) {
-            return f.name;
-          });
-    var utsNames =
-      mode === 'gnss'
-        ? []
-        : state.utsFiles.map(function (f) {
-            return f.name;
-          });
+    var gnssNames = state.gnssFiles.map(function (f) {
+      return f.name;
+    });
+    var utsNames = state.utsFiles.map(function (f) {
+      return f.name;
+    });
     return {
       jobName: ($('job-name') && $('job-name').value.trim()) || '',
       notes: ($('job-notes') && $('job-notes').value.trim()) || '',
-      roverMode: mode,
       designFiles: state.designFiles.map(function (f) {
         return f.name;
       }),
       gnssFiles: gnssNames,
       utsFiles: utsNames,
-      measuredFiles: gnssNames.length ? gnssNames : utsNames,
+      measuredFiles: gnssNames.concat(utsNames),
       machineFiles: state.machineFiles.map(function (f) {
         return f.name;
       }),
     };
   }
 
+  function wireStakeoutDropzone() {
+    var zone = $('dz-stakeout');
+    if (!zone) return;
+    zone.addEventListener('click', function (e) {
+      if (
+        e.target.tagName === 'BUTTON' ||
+        e.target.tagName === 'INPUT' ||
+        e.target.closest('label') ||
+        e.target.closest('.stakeout-add-row') ||
+        e.target.closest('.file-list') ||
+        e.target.closest('.file-list-actions')
+      ) {
+        return;
+      }
+      // Prefer explicit GNSS / UTS buttons — no ambiguous generic picker.
+    });
+    zone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      zone.classList.add('is-drag');
+    });
+    zone.addEventListener('dragleave', function () {
+      zone.classList.remove('is-drag');
+    });
+    zone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      zone.classList.remove('is-drag');
+      if (e.dataTransfer && e.dataTransfer.files) {
+        ingestStakeoutFiles(e.dataTransfer.files, null);
+      }
+    });
+  }
+
   function init() {
     wireDropzone('dz-design', 'file-design', 'design');
-    wireDropzone('dz-stakeout', 'file-stakeout', 'stakeout');
+    wireStakeoutDropzone();
     wireDropzone('dz-machine', 'file-machine', 'machine');
 
     var dzDrive = $('dz-drive-log');
@@ -1688,14 +1654,6 @@
       });
     }
 
-    document.querySelectorAll('input[name="stakeout-kind"]').forEach(function (radio) {
-      radio.addEventListener('change', function () {
-        syncRoverModeFromUi();
-        refreshLists();
-        scheduleRebuild();
-      });
-    });
-    syncRoverModeFromUi();
     refreshLists();
 
     var ptpSpec = $('ptp-spec');

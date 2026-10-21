@@ -655,8 +655,29 @@
 .pile-qc .stakeout-add-row {
   display: flex;
   flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0 8px;
+}
+
+.pile-qc .stakeout-add-btn {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 7.5rem;
+  justify-content: center;
+}
+
+.pile-qc .stakeout-add-btn--gnss {
+  border-color: #005f9e;
+  background: #f0f7fc;
+}
+
+.pile-qc .stakeout-add-btn--uts {
+  border-color: #e36c0a;
+  background: #fff8f1;
 }
 
 .pile-qc .btn-sm {
@@ -684,41 +705,6 @@
 
 .pile-qc .file-list-actions button:last-child {
   color: var(--tc-error, #da212c);
-}
-
-.pile-qc .stakeout-kind {
-  margin: 0 0 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--tc-grey-300, #e0e1e9);
-  border-radius: 6px;
-  background: var(--tc-surface, #fff);
-}
-
-.pile-qc .stakeout-kind legend {
-  padding: 0 4px;
-  font-size: 11px;
-}
-
-.pile-qc .stakeout-kind__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 16px;
-}
-
-.pile-qc .stakeout-kind__opt {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-right: 0;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: "Open Sans", Arial, sans-serif;
-}
-
-.pile-qc .stakeout-kind__opt--both .legend-swatch--both {
-  font-weight: 700;
 }
 
 .pile-qc .stakeout-lists {

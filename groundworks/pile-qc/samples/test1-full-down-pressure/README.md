@@ -5,7 +5,7 @@ One complete field-test package. Drive-log values were transcribed from field no
 ## Load in Pile QC
 
 1. **Design:** `TEST 1 AND 2 DESIGNED COORDINATES.csv`
-2. **Rover mode → Both**
+2. **Stakeout** (use the GNSS / UTS buttons):
    - **GNSS:** `TEST 1 FULL DOWNPRESSURE GNSS.csv`
    - **UTS:** `TEST 1 FULL DOWNFORCE UTS.csv`
 3. **Machine** (all three color CSVs):

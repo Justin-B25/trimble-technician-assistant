@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/beta-access.css?v=1" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=19" />
+  <link rel="stylesheet" href="styles.css?v=20" />
 </head>
 <body data-gw-page="pile-qc" data-beta-tool="gw-pile-qc" class="pile-qc beta-access-locked">
   <header class="tc-app-header">
@@ -60,34 +60,24 @@
           <h3>Measured stakeout CSV</h3>
           <p>
             Trimble stakeout export. Point names like 5170_stk → 5170.
-            Pick <strong>GNSS rover</strong>, <strong>UTS</strong>, or <strong>Both</strong> for import tagging
-            and which series compare to design / machine.
+            Use <strong>GNSS</strong> or <strong>UTS</strong> below to load into the right list
+            (or drag a file onto this tile — name must include GNSS or UTS).
           </p>
-          <fieldset class="stakeout-kind" id="stakeout-kind-fieldset">
-            <legend class="muted">This import is</legend>
-            <div class="stakeout-kind__row" role="radiogroup" aria-label="Stakeout source type">
-              <label class="stakeout-kind__opt">
-                <input type="radio" name="stakeout-kind" id="kind-gnss" value="gnss" checked />
-                <span class="legend-swatch legend-swatch--gnss">GNSS rover</span>
-              </label>
-              <label class="stakeout-kind__opt">
-                <input type="radio" name="stakeout-kind" id="kind-uts" value="uts" />
-                <span class="legend-swatch legend-swatch--uts">UTS</span>
-              </label>
-              <label class="stakeout-kind__opt stakeout-kind__opt--both">
-                <input type="radio" name="stakeout-kind" id="kind-both" value="both" />
-                <span class="legend-swatch legend-swatch--both">Both</span>
-              </label>
-            </div>
-          </fieldset>
-          <p class="muted stakeout-mode-hint" id="stakeout-mode-hint"></p>
           <div class="stakeout-add-row">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-add-gnss">Add GNSS CSV</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-add-uts">Add UTS CSV</button>
+            <button type="button" class="btn btn-secondary stakeout-add-btn stakeout-add-btn--gnss" id="btn-add-gnss">
+              <span class="legend-swatch legend-swatch--gnss">GNSS</span>
+              <span>Add CSV</span>
+            </button>
+            <button type="button" class="btn btn-secondary stakeout-add-btn stakeout-add-btn--uts" id="btn-add-uts">
+              <span class="legend-swatch legend-swatch--uts">UTS</span>
+              <span>Add CSV</span>
+            </button>
           </div>
-          <input id="file-stakeout" type="file" accept=".csv,text/csv" multiple />
           <input id="file-stakeout-gnss" type="file" accept=".csv,text/csv" multiple hidden />
           <input id="file-stakeout-uts" type="file" accept=".csv,text/csv" multiple hidden />
+          <p class="muted stakeout-mode-hint" id="stakeout-mode-hint">
+            Dashboard shows every loaded series. Move a file with → GNSS / → UTS if it landed in the wrong list.
+          </p>
           <div class="stakeout-lists">
             <div>
               <h4 class="file-list-title file-list-title--gnss">GNSS files</h4>
@@ -652,6 +642,6 @@
   <script src="js/qc.js?v=14"></script>
   <script src="js/charts.js?v=7"></script>
   <script src="js/pdf.js?v=7"></script>
-  <script src="js/app.js?v=25"></script>
+  <script src="js/app.js?v=26"></script>
 </body>
 </html>
