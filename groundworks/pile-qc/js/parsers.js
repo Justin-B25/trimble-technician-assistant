@@ -1,6 +1,6 @@
 /**
- * Parsers for Design CSV, Measured stakeout CSV, and machine quality:
- * Groundworks Quality Metrics XLSX/CSV (TBC export) and on-machine PileQual XML.
+ * Parsers for Design CSV, Measured stakeout CSV, machine quality
+ * (Groundworks Quality Metrics XLSX/CSV / PileQual XML), and end-of-drive logs.
  * Supports multiple files per source type; merges into Map by normalized pile ID.
  */
 var PileParsers = (function () {
@@ -611,13 +611,114 @@ var PileParsers = (function () {
     return mergeMaps(parts);
   }
 
+  /**
+   * End-of-drive log: PileID, GW cut/fill (ft), machine remaining (raw), notes.
+   * Uses quoted-field CSV parsing. Returns { rows, unitHint } where unitHint is
+   * true=feet, false=inches, null=unknown (from header text).
+   */
+  function classifyDriveHeader(h) {
+    var s = String(h || '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!s) return null;
+    if (/pile\s*id|^id$|point/.test(s)) return 'id';
+    if (/groundworks|guidance/.test(s) && /(cut|fill|remain)/.test(s)) return 'gw';
+    if (/groundworks|guidance/.test(s)) return 'gw';
+    if (/(^mch\b|machine)/.test(s) && /remain/.test(s)) return 'mch';
+    if (/machine\s*displayed|mch\s*rem/.test(s)) return 'mch';
+    if (/^notes?$|comment/.test(s)) return 'notes';
+    if (/cut\s*\/?\s*fill/.test(s)) return 'gw';
+    return null;
+  }
+
+  function headerImpliesFeet(headers) {
+    var joined = (headers || []).join(' ').toLowerCase();
+    // Match "ft", "(FT)", "Feet", or camelCase suffixes like CutFillFt / RemainingFt
+    if (/\(ft\)|\bfeet\b|\bft\b|cutfillft|remainingft|(?:^|[^a-z])ft(?:$|[^a-z])/.test(joined)) {
+      return true;
+    }
+    if (/\(in\)|\binch|remainingin|(?:^|[^a-z])in(?:$|[^a-z])/.test(joined)) return false;
+    return null;
+  }
+
+  function parseDriveNum(raw) {
+    if (raw == null) return null;
+    var s = String(raw).trim().replace(/,/g, '');
+    if (!s || s === '?' || /^n\/?a$/i.test(s)) return null;
+    var n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function driveRowsFromMatrix(matrix) {
+    if (!matrix || !matrix.length) return { rows: [], unitHint: null };
+    var header = matrix[0].map(function (c) {
+      return String(c == null ? '' : c).trim();
+    });
+    var map = { id: 0, gw: 1, mch: 2, notes: 3 };
+    var found = false;
+    header.forEach(function (h, i) {
+      var kind = classifyDriveHeader(h);
+      if (kind) {
+        map[kind] = i;
+        found = true;
+      }
+    });
+    var start = found ? 1 : 0;
+    var unitHint = found ? headerImpliesFeet(header) : null;
+    var rows = [];
+    for (var r = start; r < matrix.length; r++) {
+      var row = matrix[r] || [];
+      var id = normalizeId(row[map.id]);
+      if (!id || id === '?') continue;
+      var gw = parseDriveNum(row[map.gw]);
+      var mch = parseDriveNum(row[map.mch]);
+      if (gw == null && mch == null) continue;
+      var notes = row[map.notes] != null ? String(row[map.notes]).trim() : '';
+      if (notes === '?') notes = '';
+      rows.push({
+        id: id,
+        gwRemainingFt: gw,
+        machineDisplayedRaw: mch,
+        notes: notes,
+      });
+    }
+    return { rows: rows, unitHint: unitHint };
+  }
+
+  function parseDriveLogCsv(text) {
+    var matrix = parseCsvText(text).filter(function (row) {
+      return row.some(function (cell) {
+        return String(cell == null ? '' : cell).trim() !== '';
+      });
+    });
+    if (!matrix.length) return { rows: [], unitHint: null };
+    return driveRowsFromMatrix(matrix);
+  }
+
+  function parseDriveLogXlsx(arrayBuffer) {
+    if (typeof XLSX === 'undefined') {
+      throw new Error('Spreadsheet library not loaded — use CSV, or refresh the page.');
+    }
+    var wb = XLSX.read(arrayBuffer, { type: 'array' });
+    var name = wb.SheetNames && wb.SheetNames[0];
+    if (!name) return { rows: [], unitHint: null };
+    var sheet = wb.Sheets[name];
+    var matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+    return driveRowsFromMatrix(matrix);
+  }
+
   return {
     normalizeId: normalizeId,
+    parseCsvText: parseCsvText,
     parseDesignCsv: parseDesignCsv,
     parseMeasuredCsv: parseMeasuredCsv,
     parseMachineXlsx: parseMachineXlsx,
     parseMachineCsv: parseMachineCsv,
     parseMachinePileQualXml: parseMachinePileQualXml,
+    parseDriveLogCsv: parseDriveLogCsv,
+    parseDriveLogXlsx: parseDriveLogXlsx,
+    driveRowsFromMatrix: driveRowsFromMatrix,
     loadDesignFiles: loadDesignFiles,
     loadMeasuredFiles: loadMeasuredFiles,
     loadMachineFiles: loadMachineFiles,

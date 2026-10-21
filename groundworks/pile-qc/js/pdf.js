@@ -201,7 +201,7 @@ var PilePdf = (function () {
       report.joinMode === 'design-union'
         ? 'design ∩ (rover ∪ machine)'
         : report.joinMode || 'join';
-    var sample = report.counts.sample != null ? report.counts.sample : report.counts.common;
+    var sample = report.counts.common || 0;
     var html =
       '<p class="match"><strong>Sample size ' +
       sample +

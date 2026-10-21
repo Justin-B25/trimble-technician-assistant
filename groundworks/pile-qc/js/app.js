@@ -28,48 +28,48 @@
     excludedIds: Object.create(null),
     /** Candidate IDs from last join (before exclude). */
     candidateIds: [],
-    /** Field drive-log rows: { id, guidanceRemainingFt, machineDisplayedRaw, notes }. */
+    /** Field drive-log rows: { id, gwRemainingFt, machineDisplayedRaw, notes }. */
     driveRows: [],
     driveCompare: null,
   };
 
   /**
-   * Test 1 Full Down Pressure — guidance rem (ft) vs machine-displayed rem (inches).
+   * Test 1 Full Down Pressure — GW cut/fill (ft) vs machine-displayed rem (inches).
    * Pair with samples/test1-full-down-pressure/*.csv. Other tests: import their own drive-log CSV.
    */
   var DRIVE_LOG_SEED = [
-    { id: '1161', guidanceRemainingFt: 0.2, machineDisplayedRaw: 0.04, notes: 'cut off elevation' },
-    { id: '1160', guidanceRemainingFt: 0.24, machineDisplayedRaw: 0.1, notes: '' },
-    { id: '1159', guidanceRemainingFt: 0.08, machineDisplayedRaw: 0.1, notes: 'Down 1000' },
-    { id: '1158', guidanceRemainingFt: 0.2, machineDisplayedRaw: 0.09, notes: 'V1.02 Trimble 2.0' },
-    { id: '1157', guidanceRemainingFt: 0.16, machineDisplayedRaw: 0.05, notes: '' },
-    { id: '1156', guidanceRemainingFt: 0.08, machineDisplayedRaw: 0.07, notes: '' },
-    { id: '1155', guidanceRemainingFt: 0.12, machineDisplayedRaw: 0.02, notes: 'Tall pile' },
-    { id: '1154', guidanceRemainingFt: 0.2, machineDisplayedRaw: 0.09, notes: '' },
-    { id: '1153', guidanceRemainingFt: 0.13, machineDisplayedRaw: 0.2, notes: 'Tall pile' },
-    { id: '1152', guidanceRemainingFt: 0.1, machineDisplayedRaw: 0.2, notes: '' },
-    { id: '1151', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.16, notes: 'Down 1800' },
-    { id: '1150', guidanceRemainingFt: 0.06, machineDisplayedRaw: 0.16, notes: 'V1.02 Trimble 2.0' },
-    { id: '1149', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.2, notes: 'Large Hammer Slowdown Zone' },
-    { id: '1148', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.16, notes: '' },
-    { id: '1147', guidanceRemainingFt: 0.08, machineDisplayedRaw: 0.2, notes: '' },
-    { id: '1146', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.24, notes: '' },
-    { id: '1141', guidanceRemainingFt: 0.05, machineDisplayedRaw: 0.2, notes: '' },
-    { id: '1140', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.08, notes: '' },
-    { id: '1139', guidanceRemainingFt: 0.06, machineDisplayedRaw: 0.16, notes: '' },
-    { id: '1138', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.16, notes: '' },
-    { id: '1137', guidanceRemainingFt: 0.08, machineDisplayedRaw: 0.24, notes: '' },
-    { id: '1136', guidanceRemainingFt: 0.04, machineDisplayedRaw: 0.04, notes: 'Restarted hammer momentarily' },
-    { id: '1135', guidanceRemainingFt: 0.1, machineDisplayedRaw: 0.2, notes: '' },
-    { id: '1134', guidanceRemainingFt: 0.06, machineDisplayedRaw: 0.2, notes: '' },
-    { id: '1133', guidanceRemainingFt: 0.08, machineDisplayedRaw: 0.2, notes: 'Slowed hammer' },
-    { id: '1132', guidanceRemainingFt: 0.08, machineDisplayedRaw: 0.24, notes: '' },
-    { id: '1131', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.04, notes: 'Hammer restarted' },
-    { id: '1130', guidanceRemainingFt: 0.07, machineDisplayedRaw: null, notes: 'No machine-displayed reading' },
-    { id: '1129', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.09, notes: 'Hammer restarted' },
-    { id: '1128', guidanceRemainingFt: 0.05, machineDisplayedRaw: 0.2, notes: 'Hammer restarted' },
-    { id: '1127', guidanceRemainingFt: 0.05, machineDisplayedRaw: 0.0, notes: 'Hammer restart' },
-    { id: '1126', guidanceRemainingFt: 0.09, machineDisplayedRaw: 0.16, notes: '' },
+    { id: '1161', gwRemainingFt: 0.2, machineDisplayedRaw: 0.04, notes: 'cut off elevation' },
+    { id: '1160', gwRemainingFt: 0.24, machineDisplayedRaw: 0.1, notes: '' },
+    { id: '1159', gwRemainingFt: 0.08, machineDisplayedRaw: 0.1, notes: 'Down 1000' },
+    { id: '1158', gwRemainingFt: 0.2, machineDisplayedRaw: 0.09, notes: 'V1.02 Trimble 2.0' },
+    { id: '1157', gwRemainingFt: 0.16, machineDisplayedRaw: 0.05, notes: '' },
+    { id: '1156', gwRemainingFt: 0.08, machineDisplayedRaw: 0.07, notes: '' },
+    { id: '1155', gwRemainingFt: 0.12, machineDisplayedRaw: 0.02, notes: 'Tall pile' },
+    { id: '1154', gwRemainingFt: 0.2, machineDisplayedRaw: 0.09, notes: '' },
+    { id: '1153', gwRemainingFt: 0.13, machineDisplayedRaw: 0.2, notes: 'Tall pile' },
+    { id: '1152', gwRemainingFt: 0.1, machineDisplayedRaw: 0.2, notes: '' },
+    { id: '1151', gwRemainingFt: 0.07, machineDisplayedRaw: 0.16, notes: 'Down 1800' },
+    { id: '1150', gwRemainingFt: 0.06, machineDisplayedRaw: 0.16, notes: 'V1.02 Trimble 2.0' },
+    { id: '1149', gwRemainingFt: 0.07, machineDisplayedRaw: 0.2, notes: 'Large Hammer Slowdown Zone' },
+    { id: '1148', gwRemainingFt: 0.07, machineDisplayedRaw: 0.16, notes: '' },
+    { id: '1147', gwRemainingFt: 0.08, machineDisplayedRaw: 0.2, notes: '' },
+    { id: '1146', gwRemainingFt: 0.07, machineDisplayedRaw: 0.24, notes: '' },
+    { id: '1141', gwRemainingFt: 0.05, machineDisplayedRaw: 0.2, notes: '' },
+    { id: '1140', gwRemainingFt: 0.07, machineDisplayedRaw: 0.08, notes: '' },
+    { id: '1139', gwRemainingFt: 0.06, machineDisplayedRaw: 0.16, notes: '' },
+    { id: '1138', gwRemainingFt: 0.07, machineDisplayedRaw: 0.16, notes: '' },
+    { id: '1137', gwRemainingFt: 0.08, machineDisplayedRaw: 0.24, notes: '' },
+    { id: '1136', gwRemainingFt: 0.04, machineDisplayedRaw: 0.04, notes: 'Restarted hammer momentarily' },
+    { id: '1135', gwRemainingFt: 0.1, machineDisplayedRaw: 0.2, notes: '' },
+    { id: '1134', gwRemainingFt: 0.06, machineDisplayedRaw: 0.2, notes: '' },
+    { id: '1133', gwRemainingFt: 0.08, machineDisplayedRaw: 0.2, notes: 'Slowed hammer' },
+    { id: '1132', gwRemainingFt: 0.08, machineDisplayedRaw: 0.24, notes: '' },
+    { id: '1131', gwRemainingFt: 0.07, machineDisplayedRaw: 0.04, notes: 'Hammer restarted' },
+    { id: '1130', gwRemainingFt: 0.07, machineDisplayedRaw: null, notes: 'No machine-displayed reading' },
+    { id: '1129', gwRemainingFt: 0.07, machineDisplayedRaw: 0.09, notes: 'Hammer restarted' },
+    { id: '1128', gwRemainingFt: 0.05, machineDisplayedRaw: 0.2, notes: 'Hammer restarted' },
+    { id: '1127', gwRemainingFt: 0.05, machineDisplayedRaw: 0.0, notes: 'Hammer restart' },
+    { id: '1126', gwRemainingFt: 0.09, machineDisplayedRaw: 0.16, notes: '' },
   ];
 
   function excludedIdList() {
@@ -425,21 +425,17 @@
     state.candidateIds = report.candidateIds || [];
     renderExcludeUi();
 
-    if (!report.counts.common) {
-      var exN = report.counts.excluded || 0;
-      alertEl.textContent = exN
-        ? 'All ' +
-          exN +
-          ' candidate pile(s) are excluded. Clear excludes or uncheck IDs to restore the sample.'
-        : 'No common pile IDs across loaded sources. Design=' +
-          report.counts.design +
-          ', GNSS=' +
-          report.counts.gnss +
-          ', UTS=' +
-          report.counts.uts +
-          ', Machine=' +
-          report.counts.machine +
-          '.';
+    if (!report.counts.candidates && !report.counts.common) {
+      alertEl.textContent =
+        'No common pile IDs across loaded sources. Design=' +
+        report.counts.design +
+        ', GNSS=' +
+        report.counts.gnss +
+        ', UTS=' +
+        report.counts.uts +
+        ', Machine=' +
+        report.counts.machine +
+        '.';
       alertEl.classList.remove('hidden');
       $('results').classList.add('hidden');
       updateButtons();
@@ -451,9 +447,22 @@
       warnText = state.warnings.slice(0, 6).join(' · ');
       if (state.warnings.length > 6) warnText += ' · +' + (state.warnings.length - 6) + ' more';
     }
+    if (!report.counts.common && report.counts.excluded) {
+      warnText =
+        (warnText ? warnText + ' · ' : '') +
+        'All ' +
+        report.counts.excluded +
+        ' candidate pile(s) are excluded — check Use in Per-pile QC to restore.';
+    }
 
     try {
-      setBusy('Rendering charts and table (' + report.counts.common + ' piles)…');
+      setBusy(
+        'Rendering charts and table (' +
+          (report.counts.common || 0) +
+          ' in sample' +
+          (report.counts.excluded ? ', ' + report.counts.excluded + ' excluded' : '') +
+          ')…'
+      );
       await yieldToUi();
       renderReport(report);
       $('results').classList.remove('hidden');
@@ -515,28 +524,133 @@
     }
   }
 
+  function readSiteTolerances() {
+    function readTol(id, fallback) {
+      var el = $(id);
+      var v = el ? Number(el.value) : fallback;
+      if (!Number.isFinite(v) || v < 0) return fallback;
+      return v;
+    }
+    return {
+      n: readTol('tol-n', 0.08),
+      e: readTol('tol-e', 0.08),
+      z: readTol('tol-z', 0.08),
+    };
+  }
+
+  function deltasFromRows(rows, key) {
+    var list = [];
+    if (!rows) return list;
+    for (var i = 0; i < rows.length; i++) {
+      var d = rows[i] && rows[i][key];
+      if (d) list.push(d);
+    }
+    return list;
+  }
+
+  function fmtPct(v) {
+    if (v == null || !Number.isFinite(v)) return '—';
+    return v.toFixed(0) + '%';
+  }
+
+  function spreadReadout(avg) {
+    if (!avg || avg.dz == null || avg.sdDz == null) return '';
+    var bias = Math.abs(avg.dz);
+    var noise = avg.sdDz;
+    if (bias >= noise * 1.5 && bias >= 0.01) {
+      return 'ΔZ looks consistently offset (bias ≫ scatter).';
+    }
+    if (noise >= bias * 1.5 && noise >= 0.01) {
+      return 'ΔZ looks noisy (scatter ≫ mean bias).';
+    }
+    if (bias < 0.01 && noise < 0.01) return 'ΔZ tight about design.';
+    return 'ΔZ mix of bias and scatter.';
+  }
+
+  function fillPassRateTile(prefix, list, tol) {
+    var block = $('pass-' + prefix + '-block');
+    if (!block) return;
+    var has = list && list.length;
+    block.style.display = has ? '' : 'none';
+    if (!has) return;
+    var ev = PileQC.evaluateTolerance(list, tol);
+    setText('pass-' + prefix + '-n', 'n=' + ev.count);
+    setText('pass-' + prefix + '-3d', fmtPct(ev.pct3d));
+    setText('pass-' + prefix + '-pct-n', fmtPct(ev.pctN));
+    setText('pass-' + prefix + '-pct-e', fmtPct(ev.pctE));
+    setText('pass-' + prefix + '-pct-z', fmtPct(ev.pctZ));
+    setText(
+      'pass-' + prefix + '-count',
+      ev.pass3d + ' / ' + ev.count
+    );
+    setText('pass-' + prefix + '-bias-n', ev.biasN || '');
+    setText('pass-' + prefix + '-bias-e', ev.biasE || '');
+    setText('pass-' + prefix + '-bias-z', ev.biasZ || '');
+  }
+
+  function fillSpreadTile(prefix, avg) {
+    var block = $('spread-' + prefix + '-block');
+    if (!block) return;
+    var has = avg && avg.count;
+    block.style.display = has ? '' : 'none';
+    if (!has) return;
+    setText('spread-' + prefix + '-rms-n', avg.rmsDn != null ? PileQC.fmt(avg.rmsDn) : '—');
+    setText('spread-' + prefix + '-sd-n', avg.sdDn != null ? PileQC.fmt(avg.sdDn) : '—');
+    setText('spread-' + prefix + '-rms-e', avg.rmsDe != null ? PileQC.fmt(avg.rmsDe) : '—');
+    setText('spread-' + prefix + '-sd-e', avg.sdDe != null ? PileQC.fmt(avg.sdDe) : '—');
+    setText('spread-' + prefix + '-rms-z', avg.rmsDz != null ? PileQC.fmt(avg.rmsDz) : '—');
+    setText('spread-' + prefix + '-sd-z', avg.sdDz != null ? PileQC.fmt(avg.sdDz) : '—');
+    setText('spread-' + prefix + '-read', spreadReadout(avg));
+  }
+
+  function renderPassAndSpread(report) {
+    if (!report) return;
+    var tol = readSiteTolerances();
+    var rows = report.rows || [];
+    var gdList = deltasFromRows(rows, 'gd');
+    var udList = deltasFromRows(rows, 'ud');
+    var kdList = deltasFromRows(rows, 'kd');
+    fillPassRateTile('gnss', report.hasGnss ? gdList : null, tol);
+    fillPassRateTile('uts', report.hasUts ? udList : null, tol);
+    fillPassRateTile('mach', report.hasMachine ? kdList : null, tol);
+    fillSpreadTile('gnss', report.hasGnss ? report.avg.gnssVsDesign : null);
+    fillSpreadTile('uts', report.hasUts ? report.avg.utsVsDesign : null);
+    fillSpreadTile('mach', report.hasMachine ? report.avg.machineVsDesign : null);
+  }
+
   function renderSampleSizeBoard(report) {
-    var sample = report.counts.sample != null ? report.counts.sample : report.counts.common;
+    var sample = report.counts.common || 0;
     var designTotal = report.counts.design || 0;
+    var fullSet = report.counts.fullSet != null ? report.counts.fullSet : sample;
+    var excluded = report.counts.excluded || 0;
     $('stat-count').textContent = String(sample);
     var pct =
       designTotal > 0 ? ((100 * sample) / designTotal).toFixed(0) : null;
     $('stat-count-note').textContent =
-      (pct != null ? pct + '% of design · ' : '') +
-      'piles with design + GNSS and/or UTS and/or machine' +
-      (report.counts.excluded
-        ? ' · ' + report.counts.excluded + ' excluded'
-        : '');
+      (pct != null ? pct + '% of design' : 'In sample') +
+      ' · design ∩ loaded as-builts';
     setText('stat-design-total', String(designTotal));
+    setText('stat-full-set', String(fullSet));
+    setText('stat-excluded', String(excluded));
     var missing = Math.max(0, designTotal - sample);
     setText(
       'stat-design-note',
       missing
-        ? missing + ' design ID(s) have no as-built in this load'
+        ? missing + ' design ID(s) missing from this sample'
         : sample
-          ? 'Every design ID has at least one as-built'
-          : 'All IDs in design CSV(s)'
+          ? 'Every design ID has at least one as-built in sample'
+          : 'Load design + as-built files'
     );
+    var fullNote = '';
+    if (report.hasMachine && (report.hasGnss || report.hasUts)) {
+      fullNote =
+        'Full set = design + (GNSS and/or UTS) + machine · n=' + fullSet;
+    } else if (report.hasGnss || report.hasUts) {
+      fullNote = 'Full set = design + rover as-built · n=' + fullSet;
+    } else if (report.hasMachine) {
+      fullNote = 'Full set = design + machine · n=' + fullSet;
+    }
+    setText('stat-full-set-note', fullNote);
 
     var lines = $('stat-series-lines');
     if (!lines) return;
@@ -558,20 +672,20 @@
       );
     }
     if (report.hasGnss)
-      line('GNSS vs design', report.counts.gnssVsDesign, report.counts.gnss, 'is-gnss');
+      line('GNSS ∩ design', report.counts.gnssVsDesign, report.counts.gnss, 'is-gnss');
     if (report.hasUts)
-      line('UTS vs design', report.counts.utsVsDesign, report.counts.uts, 'is-uts');
+      line('UTS ∩ design', report.counts.utsVsDesign, report.counts.uts, 'is-uts');
     if (report.hasMachine)
       line(
-        'Machine vs design',
+        'Machine ∩ design',
         report.counts.machineVsDesign,
         report.counts.machine,
         'is-mach'
       );
     if (report.hasGnss && report.hasMachine)
-      line('GNSS vs machine', report.counts.gnssVsMachine, null, 'is-gnss');
+      line('GNSS ∩ machine', report.counts.gnssVsMachine, null, 'is-gnss');
     if (report.hasUts && report.hasMachine)
-      line('UTS vs machine', report.counts.utsVsMachine, null, 'is-uts');
+      line('UTS ∩ machine', report.counts.utsVsMachine, null, 'is-uts');
     lines.innerHTML = parts.join('') || '<div class="muted">No as-built series</div>';
   }
 
@@ -607,6 +721,7 @@
     var med = report.medianZ || {};
 
     renderSampleSizeBoard(report);
+    renderPassAndSpread(report);
 
     showBlock('stat-gnss-block', !!(report.hasGnss && report.counts.gnssVsDesign));
     showBlock('stat-uts-block', !!(report.hasUts && report.counts.utsVsDesign));
@@ -682,7 +797,7 @@
         : report.joinMode === 'intersection'
           ? 'intersection of loaded sources'
           : report.joinMode || 'join';
-    var sample = report.counts.sample != null ? report.counts.sample : report.counts.common;
+    var sample = report.counts.common || 0;
     var exclNote =
       report.counts.excluded > 0 ? ' · excluded ' + report.counts.excluded : '';
     $('match-note').textContent =
@@ -719,55 +834,21 @@
     var summary = $('exclude-summary');
     if (summary) {
       summary.textContent = list.length
-        ? list.length + ' pile(s) excluded from sample and computations.'
-        : 'No piles excluded.';
+        ? list.length + ' pile(s) excluded — uncheck Use in Per-pile QC, or clear chips below.'
+        : 'No piles excluded. Uncheck Use in the Per-pile QC table to exclude.';
     }
     var chips = $('exclude-chips');
-    if (chips) {
-      chips.innerHTML = '';
-      list.forEach(function (id) {
-        var chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'exclude-chip';
-        chip.setAttribute('data-id', id);
-        chip.title = 'Remove exclude';
-        chip.innerHTML = '<span>' + id + '</span><span class="exclude-chip-x" aria-hidden="true">×</span>';
-        chips.appendChild(chip);
-      });
-    }
-    var filterEl = $('exclude-filter');
-    var filter = filterEl && filterEl.value ? filterEl.value.trim().toLowerCase() : '';
-    var checklist = $('exclude-checklist');
-    if (!checklist) return;
-    var ids = state.candidateIds.slice();
+    if (!chips) return;
+    chips.innerHTML = '';
     list.forEach(function (id) {
-      if (ids.indexOf(id) < 0) ids.push(id);
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'exclude-chip';
+      chip.setAttribute('data-id', id);
+      chip.title = 'Include again';
+      chip.innerHTML = '<span>' + id + '</span><span class="exclude-chip-x" aria-hidden="true">×</span>';
+      chips.appendChild(chip);
     });
-    ids.sort(function (a, b) {
-      var na = Number(a);
-      var nb = Number(b);
-      if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
-      return String(a).localeCompare(String(b));
-    });
-    checklist.innerHTML = '';
-    if (!ids.length) {
-      checklist.innerHTML = '<p class="muted" style="margin:8px">Load design + as-built to list pile IDs.</p>';
-      return;
-    }
-    var frag = document.createDocumentFragment();
-    ids.forEach(function (id) {
-      if (filter && String(id).toLowerCase().indexOf(filter) < 0) return;
-      var label = document.createElement('label');
-      label.className = 'exclude-check' + (state.excludedIds[id] ? ' is-excluded' : '');
-      var cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = !state.excludedIds[id];
-      cb.setAttribute('data-id', id);
-      label.appendChild(cb);
-      label.appendChild(document.createTextNode(' ' + id));
-      frag.appendChild(label);
-    });
-    checklist.appendChild(frag);
   }
 
   function applyExcludeIdsFromInput() {
@@ -999,9 +1080,30 @@
     sel.value = prefer;
   }
 
+  function setDriveMachineUnit(val) {
+    var el = $('drive-machine-unit');
+    if (val !== 'feet') val = 'inches';
+    if (el) el.value = val;
+    return val;
+  }
+
   function readDriveMachineUnit() {
     var el = $('drive-machine-unit');
-    return el && el.value === 'feet' ? 'feet' : 'inches';
+    var val = el && el.value ? el.value : 'feet';
+    return val === 'feet' ? 'feet' : 'inches';
+  }
+
+  function updateDriveLogStatus(label) {
+    var el = $('drive-log-status');
+    if (!el) return;
+    if (!state.driveRows.length) {
+      el.textContent = 'No drive-log loaded.';
+      return;
+    }
+    el.textContent =
+      state.driveRows.length +
+      ' pile(s) loaded' +
+      (label ? ' · ' + label : '');
   }
 
   function renderDriveScreenCompare() {
@@ -1017,16 +1119,17 @@
           : null;
 
     if (!state.driveRows.length) {
+      updateDriveLogStatus();
       setText('drive-n', '—');
       setText('drive-wins', '—');
       setText('drive-err-gw', '—');
       setText('drive-err-machine', '—');
-      setText('drive-n-note', 'Load seed or import CSV');
+      setText('drive-n-note', 'Import CSV in Load files tile');
       setText('drive-ties-note', '');
       var vEmpty = $('drive-verdict');
       if (vEmpty) {
         vEmpty.textContent =
-          'No drive-log rows yet. Import a drive-log CSV for this test, or load the Test 1 seed.';
+          'No drive-log rows yet. Import CSV/XLSX in the GW vs machine tile above.';
         vEmpty.className = 'ptp-verdict';
       }
       state.driveCompare = null;
@@ -1034,6 +1137,8 @@
       if (tb0) tb0.innerHTML = '';
       return;
     }
+
+    updateDriveLogStatus();
 
     if (!source || !designMap || !asBuiltMap) {
       setText('drive-n', String(state.driveRows.length));
@@ -1055,8 +1160,7 @@
         state.driveRows.map(function (dr) {
           return {
             id: dr.id,
-            guidanceRemainingFt: dr.guidanceRemainingFt != null ? dr.guidanceRemainingFt : dr.gwRemainingFt,
-            gwRemainingFt: dr.guidanceRemainingFt != null ? dr.guidanceRemainingFt : dr.gwRemainingFt,
+            gwRemainingFt: dr.gwRemainingFt,
             machineDisplayedRaw: dr.machineDisplayedRaw,
             machineDisplayedFt: null,
             truthDz: null,
@@ -1087,18 +1191,18 @@
         ? cmp.withTruth + ' of ' + cmp.count + ' log rows · ' + source.toUpperCase() + ' truth'
         : ''
     );
-    var guidCloser = cmp.guidanceCloser != null ? cmp.guidanceCloser : cmp.gwCloser;
     setText(
       'drive-wins',
-      cmp.withTruth ? guidCloser + ' / ' + cmp.machineCloser : '—'
+      cmp.withTruth ? cmp.gwCloser + ' / ' + cmp.machineCloser : '—'
     );
     setText(
       'drive-ties-note',
       cmp.ties ? cmp.ties + ' tie(s)' : cmp.withTruth ? 'Equal |err| ties: 0' : ''
     );
-    var meanGuid =
-      cmp.meanAbsErrGuidance != null ? cmp.meanAbsErrGuidance : cmp.meanAbsErrGw;
-    setText('drive-err-gw', meanGuid != null ? PileQC.fmt(meanGuid) : '—');
+    setText(
+      'drive-err-gw',
+      cmp.meanAbsErrGw != null ? PileQC.fmt(cmp.meanAbsErrGw) : '—'
+    );
     setText(
       'drive-err-machine',
       cmp.meanAbsErrMachine != null ? PileQC.fmt(cmp.meanAbsErrMachine) : '—'
@@ -1120,12 +1224,9 @@
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
       var tr = document.createElement('tr');
-      var rem =
-        r.guidanceRemainingFt != null ? r.guidanceRemainingFt : r.gwRemainingFt;
-      var errG = r.errGuidance != null ? r.errGuidance : r.errGw;
       var closerLabel =
-        r.closer === 'guidance' || r.closer === 'groundworks'
-          ? 'Guidance'
+        r.closer === 'gw'
+          ? 'GW'
           : r.closer === 'machine'
             ? 'Machine'
             : r.closer === 'tie'
@@ -1135,7 +1236,7 @@
         '<td class="id">' +
         r.id +
         '</td><td>' +
-        (rem != null ? PileQC.fmt(rem) : '—') +
+        (r.gwRemainingFt != null ? PileQC.fmt(r.gwRemainingFt) : '—') +
         '</td><td>' +
         (r.machineDisplayedRaw != null ? PileQC.fmt(r.machineDisplayedRaw) : '—') +
         '</td><td>' +
@@ -1143,7 +1244,7 @@
         '</td><td>' +
         (r.truthDz != null ? PileQC.fmt(r.truthDz) : '—') +
         '</td><td>' +
-        (errG != null ? PileQC.fmt(errG) : '—') +
+        (r.errGw != null ? PileQC.fmt(r.errGw) : '—') +
         '</td><td>' +
         (r.errMachine != null ? PileQC.fmt(r.errMachine) : '—') +
         '</td><td>' +
@@ -1156,50 +1257,46 @@
     body.appendChild(frag);
   }
 
-  function parseDriveLogCsv(text) {
-    var lines = String(text || '')
-      .replace(/^\uFEFF/, '')
-      .split(/\r?\n/)
-      .map(function (l) {
-        return l.trim();
-      })
-      .filter(Boolean);
-    if (!lines.length) return [];
-    var rows = [];
-    var start = 0;
-    var first = lines[0].toLowerCase();
-    if (
-      first.indexOf('pile') >= 0 ||
-      first.indexOf('groundworks') >= 0 ||
-      first.indexOf('guidance') >= 0 ||
-      first.indexOf('machine') >= 0 ||
-      first.indexOf('displayed') >= 0 ||
-      first.indexOf('vermeer') >= 0
-    ) {
-      start = 1;
+  function applyDriveLogParse(parsed, label) {
+    state.driveRows = (parsed && parsed.rows) || [];
+    if (parsed && parsed.unitHint === true) {
+      setDriveMachineUnit('feet');
+    } else if (parsed && parsed.unitHint === false) {
+      setDriveMachineUnit('inches');
     }
-    for (var i = start; i < lines.length; i++) {
-      var parts = lines[i].split(',').map(function (p) {
-        return p.trim().replace(/^"|"$/g, '');
-      });
-      if (!parts[0]) continue;
-      var gw = parts[1] !== undefined && parts[1] !== '' ? Number(parts[1]) : null;
-      var mach = parts[2] !== undefined && parts[2] !== '' ? Number(parts[2]) : null;
-      rows.push({
-        id: String(parts[0]).trim(),
-        guidanceRemainingFt: Number.isFinite(gw) ? gw : null,
-        gwRemainingFt: Number.isFinite(gw) ? gw : null,
-        machineDisplayedRaw: Number.isFinite(mach) ? mach : null,
-        notes: parts.slice(3).join(',').trim(),
-      });
-    }
-    return rows;
+    updateDriveLogStatus(label || '');
+    renderDriveScreenCompare();
+  }
+
+  function ingestDriveLogFile(file) {
+    if (!file) return;
+    var name = file.name || 'drive-log';
+    var isXlsx = /\.xlsx$/i.test(name) || /spreadsheetml/i.test(file.type || '');
+    var reader = new FileReader();
+    reader.onerror = function () {
+      alert('Could not read drive-log file: ' + name);
+    };
+    reader.onload = function () {
+      try {
+        var parsed = isXlsx
+          ? PileParsers.parseDriveLogXlsx(reader.result)
+          : PileParsers.parseDriveLogCsv(String(reader.result || ''));
+        applyDriveLogParse(parsed, name);
+      } catch (err) {
+        alert(
+          'Drive-log import failed: ' + (err && err.message ? err.message : err)
+        );
+        console.error(err);
+      }
+    };
+    if (isXlsx) reader.readAsArrayBuffer(file);
+    else reader.readAsText(file);
   }
 
   function buildTableHead(report) {
     var thead = $('table-head');
     if (!thead) return;
-    var cols = ['ID', 'Des N', 'Des E', 'Des Z'];
+    var cols = ['Use', 'ID', 'Des N', 'Des E', 'Des Z'];
     if (report.hasGnss) cols.push('GNSS N', 'GNSS E', 'GNSS Z', 'ΔN g−d', 'ΔE g−d', 'ΔZ g−d', 'Horiz g');
     if (report.hasUts) cols.push('UTS N', 'UTS E', 'UTS Z', 'ΔN u−d', 'ΔE u−d', 'ΔZ u−d', 'Horiz u');
     if (report.hasMachine) cols.push('Mach N', 'Mach E', 'Mach Z', 'ΔN k−d', 'ΔE k−d', 'ΔZ k−d');
@@ -1209,10 +1306,16 @@
       '<tr>' +
       cols
         .map(function (c) {
+          if (c === 'Use')
+            return '<th class="col-use" title="Uncheck to exclude from computations">Use</th>';
           return '<th' + (c === 'ID' ? ' class="id"' : '') + '>' + c + '</th>';
         })
         .join('') +
       '</tr>';
+  }
+
+  function reviewTableRows(report) {
+    return report.reviewRows && report.reviewRows.length ? report.reviewRows : report.rows || [];
   }
 
   function renderTablePage(reset) {
@@ -1220,7 +1323,7 @@
     var tbody = $('table-body');
     if (reset) tbody.innerHTML = '';
 
-    var rows = state.report.rows;
+    var rows = reviewTableRows(state.report);
     var start = state.tableShown;
     var end = Math.min(rows.length, start + TABLE_PAGE);
     var frag = document.createDocumentFragment();
@@ -1233,12 +1336,15 @@
 
     var note = $('table-note');
     if (note) {
+      var ex = state.report.counts.excluded || 0;
       note.textContent =
         'Showing ' +
         state.tableShown +
         ' of ' +
         rows.length +
-        ' rows. g−d = GNSS − design · u−d = UTS − design · k−d = machine − design · g−k = GNSS − machine · u−k = UTS − machine. Units: ft.';
+        ' piles' +
+        (ex ? ' · ' + ex + ' excluded (unchecked)' : '') +
+        '. Uncheck Use to drop a pile from averages/charts/PTP/PDF. g−d = GNSS − design · u−d = UTS − design · k−d = machine − design. Units: ft.';
     }
     var wrap = $('table-more-wrap');
     if (wrap) wrap.style.display = state.tableShown < rows.length ? 'flex' : 'none';
@@ -1246,12 +1352,24 @@
 
   function buildRow(r, report) {
     var tr = document.createElement('tr');
+    if (r.excluded) tr.className = 'row-excluded';
     function cell(v, cls) {
       var td = document.createElement('td');
       if (cls) td.className = cls;
       td.textContent = v == null || v === '' ? '—' : typeof v === 'number' ? PileQC.fmt(v) : String(v);
       return td;
     }
+    var useTd = document.createElement('td');
+    useTd.className = 'col-use';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'pile-use-check';
+    cb.checked = !r.excluded;
+    cb.setAttribute('data-id', r.id);
+    cb.title = r.excluded ? 'Excluded — check to include' : 'Included — uncheck to exclude';
+    cb.setAttribute('aria-label', 'Include pile ' + r.id);
+    useTd.appendChild(cb);
+    tr.appendChild(useTd);
     tr.appendChild(cell(r.id, 'id'));
     tr.appendChild(cell(r.design && r.design.n));
     tr.appendChild(cell(r.design && r.design.e));
@@ -1326,7 +1444,7 @@
     var p = hit.plotted;
     var src =
       hit.series === 'gnss' || hit.series === 'measured'
-        ? r.gnss || r.measured
+        ? r.gnss
         : hit.series === 'uts'
           ? r.uts
           : hit.series === 'machine'
@@ -1487,6 +1605,37 @@
     wireDropzone('dz-stakeout', 'file-stakeout', 'stakeout');
     wireDropzone('dz-machine', 'file-machine', 'machine');
 
+    var dzDrive = $('dz-drive-log');
+    var fileDriveInput = $('file-drive-log');
+    if (dzDrive && fileDriveInput) {
+      dzDrive.addEventListener('click', function (e) {
+        if (
+          e.target.tagName === 'BUTTON' ||
+          e.target.tagName === 'INPUT' ||
+          e.target.tagName === 'SELECT' ||
+          e.target.closest('label') ||
+          e.target.closest('.stakeout-add-row')
+        ) {
+          return;
+        }
+        fileDriveInput.click();
+      });
+      dzDrive.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        dzDrive.classList.add('is-drag');
+      });
+      dzDrive.addEventListener('dragleave', function () {
+        dzDrive.classList.remove('is-drag');
+      });
+      dzDrive.addEventListener('drop', function (e) {
+        e.preventDefault();
+        dzDrive.classList.remove('is-drag');
+        var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!f) return;
+        ingestDriveLogFile(f);
+      });
+    }
+
     var gnssInput = $('file-stakeout-gnss');
     var utsInput = $('file-stakeout-uts');
     if (gnssInput) {
@@ -1543,6 +1692,20 @@
       ptpSource.addEventListener('change', renderPileToPile);
     }
 
+    function onTolChange() {
+      if (!state.report) return;
+      clearTimeout(onTolChange._t);
+      onTolChange._t = setTimeout(function () {
+        renderPassAndSpread(state.report);
+      }, 150);
+    }
+    ['tol-n', 'tol-e', 'tol-z'].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener('change', onTolChange);
+      el.addEventListener('input', onTolChange);
+    });
+
     var btnExcludeAdd = $('btn-exclude-add');
     if (btnExcludeAdd) {
       btnExcludeAdd.addEventListener('click', applyExcludeIdsFromInput);
@@ -1564,12 +1727,6 @@
         scheduleRebuild();
       });
     }
-    var excludeFilter = $('exclude-filter');
-    if (excludeFilter) {
-      excludeFilter.addEventListener('input', function () {
-        renderExcludeUi();
-      });
-    }
     var excludeChips = $('exclude-chips');
     if (excludeChips) {
       excludeChips.addEventListener('click', function (e) {
@@ -1584,11 +1741,11 @@
         scheduleRebuild();
       });
     }
-    var excludeChecklist = $('exclude-checklist');
-    if (excludeChecklist) {
-      excludeChecklist.addEventListener('change', function (e) {
+    var tableBody = $('table-body');
+    if (tableBody) {
+      tableBody.addEventListener('change', function (e) {
         var t = e.target;
-        if (!t || t.type !== 'checkbox') return;
+        if (!t || !t.classList || !t.classList.contains('pile-use-check')) return;
         var id = t.getAttribute('data-id');
         if (!id) return;
         setExcluded(id, !t.checked);
@@ -1605,18 +1762,21 @@
     if (driveUnit) {
       driveUnit.addEventListener('change', renderDriveScreenCompare);
     }
+
     var btnDriveSeed = $('btn-drive-seed');
     if (btnDriveSeed) {
       btnDriveSeed.addEventListener('click', function () {
         state.driveRows = DRIVE_LOG_SEED.map(function (r) {
           return {
             id: r.id,
-            guidanceRemainingFt: r.guidanceRemainingFt,
-            gwRemainingFt: r.guidanceRemainingFt,
+            gwRemainingFt: r.gwRemainingFt,
             machineDisplayedRaw: r.machineDisplayedRaw,
             notes: r.notes || '',
           };
         });
+        // Test 1 machine-displayed values are inches (not feet).
+        setDriveMachineUnit('inches');
+        updateDriveLogStatus('Test 1 seed (MCH units: inches)');
         renderDriveScreenCompare();
       });
     }
@@ -1625,6 +1785,7 @@
       btnDriveClear.addEventListener('click', function () {
         state.driveRows = [];
         state.driveCompare = null;
+        updateDriveLogStatus();
         renderDriveScreenCompare();
       });
     }
@@ -1633,18 +1794,32 @@
       fileDrive.addEventListener('change', function () {
         var f = fileDrive.files && fileDrive.files[0];
         if (!f) return;
-        var reader = new FileReader();
-        reader.onload = function () {
-          state.driveRows = parseDriveLogCsv(String(reader.result || ''));
-          renderDriveScreenCompare();
-          fileDrive.value = '';
-        };
-        reader.readAsText(f);
+        ingestDriveLogFile(f);
+        fileDrive.value = '';
       });
     }
 
     renderExcludeUi();
     renderDriveScreenCompare();
+
+    var btnDashDetail = $('btn-dash-detail');
+    var dashDetailPanels = $('dash-detail-panels');
+    if (btnDashDetail && dashDetailPanels) {
+      btnDashDetail.addEventListener('click', function () {
+        var open = dashDetailPanels.hasAttribute('hidden');
+        if (open) {
+          dashDetailPanels.removeAttribute('hidden');
+          dashDetailPanels.classList.remove('is-collapsed');
+          btnDashDetail.setAttribute('aria-expanded', 'true');
+          btnDashDetail.textContent = 'Hide pass rate & spread';
+        } else {
+          dashDetailPanels.setAttribute('hidden', '');
+          dashDetailPanels.classList.add('is-collapsed');
+          btnDashDetail.setAttribute('aria-expanded', 'false');
+          btnDashDetail.textContent = 'Show pass rate & spread';
+        }
+      });
+    }
 
     $('btn-pdf').addEventListener('click', function () {
       if (!state.report) return;

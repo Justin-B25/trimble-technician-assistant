@@ -1,2 +1,2 @@
-PileID,GuidanceRemainingFt,MachineDisplayedRemaining,Notes
-1126,0.09,0.16,example — set app unit selector to match MachineDisplayedRemaining (inches or feet)
+PileID,GROUNDWORKS CUT/FILL (FT),MCH REMAINING (FT),NOTES
+1126,0.09,0.16,example — set Machine remaining units in results to match MCH column (feet or inches)

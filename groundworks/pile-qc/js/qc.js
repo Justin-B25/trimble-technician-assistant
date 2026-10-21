@@ -131,13 +131,43 @@ var PileQC = (function () {
 
   function normalizeSourceMaps(sourceMaps) {
     sourceMaps = sourceMaps || {};
-    var gnss = sourceMaps.gnss || sourceMaps.measured || null;
+    var gnss = sourceMaps.gnss || null;
     return {
       design: sourceMaps.design || null,
       gnss: gnss,
       uts: sourceMaps.uts || null,
       machine: sourceMaps.machine || null,
     };
+  }
+
+  function rmsOf(arr, key) {
+    if (!arr.length) return null;
+    var sum = 0;
+    var n = 0;
+    for (var i = 0; i < arr.length; i++) {
+      var v = arr[i][key];
+      if (v == null || !Number.isFinite(v)) continue;
+      sum += v * v;
+      n++;
+    }
+    return n ? Math.sqrt(sum / n) : null;
+  }
+
+  /** Sample standard deviation (n−1). */
+  function stdOf(arr, key, mean) {
+    if (mean == null || !Number.isFinite(mean)) return null;
+    var vals = [];
+    for (var i = 0; i < arr.length; i++) {
+      var v = arr[i][key];
+      if (v != null && Number.isFinite(v)) vals.push(v);
+    }
+    if (vals.length < 2) return vals.length === 1 ? 0 : null;
+    var sum = 0;
+    for (var j = 0; j < vals.length; j++) {
+      var d = vals[j] - mean;
+      sum += d * d;
+    }
+    return Math.sqrt(sum / (vals.length - 1));
   }
 
   function packAvg(list) {
@@ -151,7 +181,130 @@ var PileQC = (function () {
       count: list.length,
     };
     avg.favor = favorLabel(avg.de, avg.dn);
+    avg.rmsDn = rmsOf(list, 'dn');
+    avg.rmsDe = rmsOf(list, 'de');
+    avg.rmsDz = rmsOf(list, 'dz');
+    avg.rmsHoriz = rmsOf(list, 'horiz');
+    avg.sdDn = stdOf(list, 'dn', avg.dn);
+    avg.sdDe = stdOf(list, 'de', avg.de);
+    avg.sdDz = stdOf(list, 'dz', avg.dz);
+    avg.sdHoriz = stdOf(list, 'horiz', avg.horiz);
     return avg;
+  }
+
+  /**
+   * Pass-rate vs axis tolerances (ft). Fail direction counts show bias
+   * (e.g. more piles failing north than south).
+   * tol: { n, e, z } absolute limits on |ΔN|, |ΔE|, |ΔZ|.
+   */
+  function evaluateTolerance(list, tol) {
+    tol = tol || {};
+    var tolN = tol.n != null && Number.isFinite(tol.n) ? Math.abs(tol.n) : 0.08;
+    var tolE = tol.e != null && Number.isFinite(tol.e) ? Math.abs(tol.e) : 0.08;
+    var tolZ = tol.z != null && Number.isFinite(tol.z) ? Math.abs(tol.z) : 0.08;
+    var empty = {
+      tolN: tolN,
+      tolE: tolE,
+      tolZ: tolZ,
+      count: 0,
+      passN: 0,
+      passE: 0,
+      passZ: 0,
+      pass3d: 0,
+      pctN: null,
+      pctE: null,
+      pctZ: null,
+      pct3d: null,
+      failNorth: 0,
+      failSouth: 0,
+      failEast: 0,
+      failWest: 0,
+      failHigh: 0,
+      failLow: 0,
+    };
+    if (!list || !list.length) return empty;
+
+    var passN = 0;
+    var passE = 0;
+    var passZ = 0;
+    var pass3d = 0;
+    var failNorth = 0;
+    var failSouth = 0;
+    var failEast = 0;
+    var failWest = 0;
+    var failHigh = 0;
+    var failLow = 0;
+    var n = 0;
+
+    for (var i = 0; i < list.length; i++) {
+      var d = list[i];
+      if (!d) continue;
+      if (d.dn == null || d.de == null || d.dz == null) continue;
+      if (!Number.isFinite(d.dn) || !Number.isFinite(d.de) || !Number.isFinite(d.dz)) continue;
+      n++;
+      var okN = Math.abs(d.dn) <= tolN;
+      var okE = Math.abs(d.de) <= tolE;
+      var okZ = Math.abs(d.dz) <= tolZ;
+      if (okN) passN++;
+      else if (d.dn > 0) failNorth++;
+      else failSouth++;
+      if (okE) passE++;
+      else if (d.de > 0) failEast++;
+      else failWest++;
+      if (okZ) passZ++;
+      else if (d.dz > 0) failHigh++;
+      else failLow++;
+      if (okN && okE && okZ) pass3d++;
+    }
+
+    function pct(pass) {
+      return n ? (100 * pass) / n : null;
+    }
+
+    return {
+      tolN: tolN,
+      tolE: tolE,
+      tolZ: tolZ,
+      count: n,
+      passN: passN,
+      passE: passE,
+      passZ: passZ,
+      pass3d: pass3d,
+      pctN: pct(passN),
+      pctE: pct(passE),
+      pctZ: pct(passZ),
+      pct3d: pct(pass3d),
+      failNorth: failNorth,
+      failSouth: failSouth,
+      failEast: failEast,
+      failWest: failWest,
+      failHigh: failHigh,
+      failLow: failLow,
+      biasN:
+        failNorth === failSouth
+          ? failNorth
+            ? 'N/S equal'
+            : '—'
+          : failNorth > failSouth
+            ? 'Bias N (' + failNorth + ' vs ' + failSouth + ' S)'
+            : 'Bias S (' + failSouth + ' vs ' + failNorth + ' N)',
+      biasE:
+        failEast === failWest
+          ? failEast
+            ? 'E/W equal'
+            : '—'
+          : failEast > failWest
+            ? 'Bias E (' + failEast + ' vs ' + failWest + ' W)'
+            : 'Bias W (' + failWest + ' vs ' + failEast + ' E)',
+      biasZ:
+        failHigh === failLow
+          ? failHigh
+            ? 'High/low equal'
+            : '—'
+          : failHigh > failLow
+            ? 'Bias high (' + failHigh + ' vs ' + failLow + ' low)'
+            : 'Bias low (' + failLow + ' vs ' + failHigh + ' high)',
+    };
   }
 
   function exclusionSet(excludeIds) {
@@ -189,7 +342,10 @@ var PileQC = (function () {
 
     var common = commonIds(maps);
     var rows = [];
+    var reviewRows = [];
     var excludedCount = 0;
+    var fullSetCount = 0;
+    var roverCount = 0;
     var gdList = [];
     var udList = [];
     var kdList = [];
@@ -197,17 +353,19 @@ var PileQC = (function () {
     var kuList = [];
     var gmList = [];
     var umList = [];
+    var hasRoverSource = isLoaded(gnss) || isLoaded(uts);
+    var hasMachineSource = isLoaded(machine);
 
     for (var i = 0; i < common.ids.length; i++) {
       var id = common.ids[i];
-      if (excluded[id]) {
-        excludedCount++;
-        continue;
-      }
+      var isEx = !!excluded[id];
+      if (isEx) excludedCount++;
       var d = design[id] || null;
       var g = gnss[id] || null;
       var u = uts[id] || null;
       var k = machine[id] || null;
+      var hasRover = !!(g || u);
+      var hasMach = !!k;
       var gd = d && g ? delta(g, d) : null;
       var ud = d && u ? delta(u, d) : null;
       var kd = d && k ? delta(k, d) : null;
@@ -215,19 +373,21 @@ var PileQC = (function () {
       var ku = u && k ? delta(k, u) : null;
       var gm = g && k ? delta(g, k) : null; // GNSS − machine
       var um = u && k ? delta(u, k) : null; // UTS − machine
-      if (gd) gdList.push(gd);
-      if (ud) udList.push(ud);
-      if (kd) kdList.push(kd);
-      if (kg) kgList.push(kg);
-      if (ku) kuList.push(ku);
-      if (gm) gmList.push(gm);
-      if (um) umList.push(um);
-      rows.push({
+      if (!isEx) {
+        if (gd) gdList.push(gd);
+        if (ud) udList.push(ud);
+        if (kd) kdList.push(kd);
+        if (kg) kgList.push(kg);
+        if (ku) kuList.push(ku);
+        if (gm) gmList.push(gm);
+        if (um) umList.push(um);
+      }
+      var row = {
         id: id,
+        excluded: isEx,
         design: d,
         gnss: g,
         uts: u,
-        measured: g, // legacy alias for charts/UI during transition
         machine: k,
         gd: gd,
         ud: ud,
@@ -236,13 +396,28 @@ var PileQC = (function () {
         ku: ku,
         gm: gm,
         um: um,
-        md: gd, // legacy alias (measured/GNSS vs design)
-        km: kg, // legacy alias (machine vs GNSS)
-      });
+      };
+      reviewRows.push(row);
+      if (!isEx) {
+        rows.push(row);
+        if (hasRover) roverCount++;
+        // Full set = design ∩ (GNSS∪UTS) ∩ machine when those sources are loaded.
+        if (hasRoverSource && hasMachineSource) {
+          if (hasRover && hasMach) fullSetCount++;
+        } else if (hasRoverSource) {
+          if (hasRover) fullSetCount++;
+        } else if (hasMachineSource) {
+          if (hasMach) fullSetCount++;
+        } else {
+          fullSetCount++;
+        }
+      }
     }
 
     return {
       rows: rows,
+      /** All candidate piles (included + excluded) for live review / checkbox UI. */
+      reviewRows: reviewRows,
       sourcesUsed: common.sourcesUsed,
       joinMode: common.join || 'design-union',
       hasGnss: isLoaded(gnss),
@@ -253,14 +428,14 @@ var PileQC = (function () {
         design: mapKeys(design).length,
         gnss: mapKeys(gnss).length,
         uts: mapKeys(uts).length,
-        measured: mapKeys(gnss).length,
         machine: mapKeys(machine).length,
-        /** Piles in the report (design ∩ at least one as-built source). */
+        /** Piles used in computations (after excludes). */
         common: rows.length,
-        /** Alias — sample size used for charts/table (not full design count). */
-        sample: rows.length,
         excluded: excludedCount,
         candidates: common.ids.length,
+        /** Piles with design + rover (GNSS/UTS) + machine when those sources are loaded. */
+        fullSet: fullSetCount,
+        withRover: roverCount,
         gnssVsDesign: gdList.length,
         utsVsDesign: udList.length,
         machineVsDesign: kdList.length,
@@ -273,18 +448,15 @@ var PileQC = (function () {
       avg: {
         gnssVsDesign: packAvg(gdList),
         utsVsDesign: packAvg(udList),
-        measuredVsDesign: packAvg(gdList),
         machineVsDesign: packAvg(kdList),
         machineVsGnss: packAvg(kgList),
         machineVsUts: packAvg(kuList),
-        machineVsMeasured: packAvg(kgList),
         gnssVsMachine: packAvg(gmList),
         utsVsMachine: packAvg(umList),
       },
       medianZ: {
         gnssDz: medianOf(gdList, 'dz'),
         utsDz: medianOf(udList, 'dz'),
-        roverDz: medianOf(gdList, 'dz'),
         machineDz: medianOf(kdList, 'dz'),
         gnssVsMachineDz: medianOf(gmList, 'dz'),
         utsVsMachineDz: medianOf(umList, 'dz'),
@@ -712,35 +884,34 @@ var PileQC = (function () {
   }
 
   /**
-   * End-of-drive screen compare: guidance-screen remaining Z (ft) vs machine-displayed
+   * End-of-drive screen compare: GW cut/fill remaining Z (ft) vs machine-displayed
    * remaining Z against as-built truth ΔZ = Z_asBuilt − Z_design.
    * Objective counts/means only — no preferred source.
    *
    * Positive remaining / ΔZ = pile still high (need to drive down).
    * Machine-displayed raw values convert via machineUnit: 'inches' | 'feet'.
    *
-   * driveRows: [{ id, gwRemainingFt|guidanceRemainingFt, machineDisplayedRaw, notes? }]
+   * driveRows: [{ id, gwRemainingFt, machineDisplayedRaw, notes? }]
    */
   function buildDriveScreenCompare(options) {
     options = options || {};
     var designMap = options.designMap || Object.create(null);
     var asBuiltMap = options.asBuiltMap || Object.create(null);
     var asBuiltSource = options.asBuiltSource === 'gnss' ? 'gnss' : 'uts';
-    var unitOpt = options.machineUnit != null ? options.machineUnit : options.vermeerUnit;
-    var machineUnit = unitOpt === 'feet' ? 'feet' : 'inches';
+    var machineUnit = options.machineUnit === 'feet' ? 'feet' : 'inches';
     var excluded = exclusionSet(options.excludeIds);
     var driveRows = options.driveRows || [];
     var IN_TO_FT = 1 / 12;
 
     var rows = [];
-    var guidanceCloser = 0;
+    var gwCloser = 0;
     var machineCloser = 0;
     var ties = 0;
-    var sumAbsGuidance = 0;
+    var sumAbsGw = 0;
     var sumAbsMachine = 0;
     var sumAbsTruth = 0;
     var n = 0;
-    var nGuidance = 0;
+    var nGw = 0;
     var nMachine = 0;
 
     for (var i = 0; i < driveRows.length; i++) {
@@ -749,11 +920,9 @@ var PileQC = (function () {
       var id = String(dr.id != null ? dr.id : '').trim();
       if (!id || excluded[id]) continue;
       var gw = toNum(
-        dr.guidanceRemainingFt != null ? dr.guidanceRemainingFt : dr.gwRemainingFt
+        dr.gwRemainingFt != null ? dr.gwRemainingFt : dr.guidanceRemainingFt
       );
-      var machRaw = toNum(
-        dr.machineDisplayedRaw != null ? dr.machineDisplayedRaw : dr.vermeerRaw
-      );
+      var machRaw = toNum(dr.machineDisplayedRaw);
       if (gw == null) continue;
       var machFt =
         machRaw == null ? null : machineUnit === 'feet' ? machRaw : machRaw * IN_TO_FT;
@@ -771,12 +940,11 @@ var PileQC = (function () {
       var closer = null;
       if (errGw != null && errMachine != null) {
         if (Math.abs(errGw - errMachine) < 1e-6) closer = 'tie';
-        else closer = errGw < errMachine ? 'guidance' : 'machine';
+        else closer = errGw < errMachine ? 'gw' : 'machine';
       }
 
-      var row = {
+      rows.push({
         id: id,
-        guidanceRemainingFt: gw,
         gwRemainingFt: gw,
         machineDisplayedRaw: machRaw,
         machineDisplayedFt: machFt,
@@ -784,46 +952,44 @@ var PileQC = (function () {
         zDesign: d && d.z != null ? d.z : null,
         zAsBuilt: ab && ab.z != null ? ab.z : null,
         truthDz: truthDz,
-        errGuidance: errGw,
         errGw: errGw,
         errMachine: errMachine,
         closer: closer,
         notes: dr.notes || '',
         hasTruth: truthDz != null,
-      };
-      rows.push(row);
+      });
 
       if (truthDz != null) {
         n++;
         sumAbsTruth += Math.abs(truthDz);
         if (errGw != null) {
-          nGuidance++;
-          sumAbsGuidance += errGw;
+          nGw++;
+          sumAbsGw += errGw;
         }
         if (errMachine != null) {
           nMachine++;
           sumAbsMachine += errMachine;
         }
-        if (closer === 'guidance') guidanceCloser++;
+        if (closer === 'gw') gwCloser++;
         else if (closer === 'machine') machineCloser++;
         else if (closer === 'tie') ties++;
       }
     }
 
-    var meanGuid = nGuidance ? sumAbsGuidance / nGuidance : null;
+    var meanGw = nGw ? sumAbsGw / nGw : null;
     var meanMach = nMachine ? sumAbsMachine / nMachine : null;
     var verdict = null;
     if (n) {
       verdict =
         'As-built |error| summary (' +
         n +
-        ' piles with truth): guidance screen smaller on ' +
-        guidanceCloser +
+        ' piles with truth): GW cut/fill smaller on ' +
+        gwCloser +
         ', machine displayed smaller on ' +
         machineCloser +
         (ties ? ', ties ' + ties : '') +
-        '. Mean |err| guidance ' +
-        (meanGuid != null ? meanGuid.toFixed(3) : '—') +
+        '. Mean |err| GW ' +
+        (meanGw != null ? meanGw.toFixed(3) : '—') +
         ' ft · machine displayed ' +
         (meanMach != null ? meanMach.toFixed(3) : '—') +
         ' ft. Reported for analysis only.';
@@ -835,15 +1001,13 @@ var PileQC = (function () {
       rows: rows,
       count: rows.length,
       withTruth: n,
-      withGuidanceErr: nGuidance,
+      withGwErr: nGw,
       withMachineErr: nMachine,
-      guidanceCloser: guidanceCloser,
-      gwCloser: guidanceCloser,
+      gwCloser: gwCloser,
       machineCloser: machineCloser,
       ties: ties,
       meanAbsTruthDz: n ? sumAbsTruth / n : null,
-      meanAbsErrGuidance: meanGuid,
-      meanAbsErrGw: meanGuid,
+      meanAbsErrGw: meanGw,
       meanAbsErrMachine: meanMach,
       verdict: verdict,
     };
@@ -861,6 +1025,7 @@ var PileQC = (function () {
     buildReport: buildReport,
     buildPileToPileZ: buildPileToPileZ,
     buildDriveScreenCompare: buildDriveScreenCompare,
+    evaluateTolerance: evaluateTolerance,
     commonIds: commonIds,
     favorLabel: favorLabel,
     fmt: fmt,

@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/beta-access.css?v=1" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <link rel="stylesheet" href="styles.css?v=18" />
 </head>
 <body data-gw-page="pile-qc" data-beta-tool="gw-pile-qc" class="pile-qc beta-access-locked">
   <header class="tc-app-header">
@@ -28,17 +28,6 @@
   </header>
 
   <main class="tc-main pile-qc-main">
-    <p class="pile-qc-intro">
-      <strong>BETA — access required.</strong>
-      Neutral field-data calculator: join design with GNSS/UTS as-built and/or machine quality by pile ID,
-      report XY/Z deltas, and compare end-of-drive remaining-Z values recorded from the guidance screen
-      vs the machine-displayed screen against as-built truth. No preferred outcome — numbers only.
-      Load any combination of sources. Plots:
-      <span class="legend-swatch legend-swatch--gnss">GNSS</span>
-      <span class="legend-swatch legend-swatch--uts">UTS</span>
-      <span class="legend-swatch legend-swatch--machine">Machine</span>.
-    </p>
-
     <section class="card">
       <h2>Job</h2>
       <div class="job-grid">
@@ -127,6 +116,33 @@
           />
           <ul class="file-list" id="list-machine"></ul>
         </div>
+
+        <div class="dropzone" id="dz-drive-log">
+          <h3>GW vs machine screen</h3>
+          <p>
+            End-of-drive: <strong>GW cut/fill</strong> (ft remaining to design) vs
+            <strong>machine remaining</strong> (<strong>0 = on design</strong>). CSV or XLSX.
+          </p>
+          <p class="muted" style="margin:6px 0">
+            Columns: <code>PileID</code>,
+            <code>GROUNDWORKS CUT/FILL (FT)</code>,
+            <code>MCH REMAINING</code>,
+            <code>NOTES</code>
+            — set machine units in the results section after load.
+          </p>
+          <input
+            id="file-drive-log"
+            type="file"
+            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          />
+          <p class="muted" id="drive-log-status">No drive-log loaded.</p>
+          <div class="stakeout-add-row">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-drive-seed">
+              Load Test 1 seed
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-drive-clear">Clear</button>
+          </div>
+        </div>
       </div>
       <div class="actions">
         <button type="button" class="btn btn-secondary" id="btn-clear">Clear all files</button>
@@ -136,67 +152,74 @@
     </section>
 
     <section class="card" id="exclude-section">
-      <h2>Exclude piles from sample</h2>
+      <h2>Excluded piles</h2>
       <p class="muted" style="margin-top: -4px; margin-bottom: 10px">
-        Uncheck or add pile IDs with poor data. Excluded piles are omitted from summary averages,
-        charts, PTP, table, PDF, and guidance vs machine-displayed compare.
+        Uncheck <strong>Use</strong> in the per-pile table, or type IDs here. Excluded piles stay visible but leave averages, charts, PTP, and GW vs machine.
       </p>
       <div class="exclude-controls">
         <div>
-          <label class="muted" for="exclude-input">Add ID(s) to exclude</label>
+          <label class="muted" for="exclude-input">Add by ID</label>
           <div class="exclude-add-row">
             <input id="exclude-input" type="text" placeholder="e.g. 1152, 1130" />
             <button type="button" class="btn btn-secondary btn-sm" id="btn-exclude-add">Exclude</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-exclude-clear">Clear all excludes</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-exclude-clear">Clear all</button>
           </div>
         </div>
       </div>
       <p class="muted" id="exclude-summary">No piles excluded.</p>
       <div class="exclude-chips" id="exclude-chips"></div>
-      <div class="exclude-list-wrap">
-        <input id="exclude-filter" type="search" placeholder="Filter pile IDs…" />
-        <div class="exclude-checklist" id="exclude-checklist"></div>
-      </div>
     </section>
 
     <div id="alert" class="alert hidden"></div>
 
     <div id="results" class="hidden">
-      <section class="card">
-        <h2>Summary — design is the benchmark</h2>
+      <section class="card" id="results-dashboard">
+        <h2>Results dashboard</h2>
         <p class="muted" id="match-note"></p>
         <p class="delta-benchmark-note">
-          All deltas below are <strong>source − design</strong> (ft). Positive ΔN = north of design · Positive ΔE = east · Positive ΔZ = above.
+          Deltas are <strong>source − design</strong> (ft). +ΔN = north · +ΔE = east · +ΔZ = above design.
         </p>
 
-        <div class="sample-size-board" id="sample-size-board">
-          <article class="stat sample-stat sample-stat--primary">
-            <div class="label">Sample size</div>
-            <div class="value" id="stat-count">—</div>
-            <div class="note" id="stat-count-note">Piles with design + at least one as-built</div>
-          </article>
-          <article class="stat sample-stat">
-            <div class="label">Design total</div>
-            <div class="value" id="stat-design-total">—</div>
-            <div class="note" id="stat-design-note">All IDs in design CSV(s)</div>
-          </article>
-          <article class="stat sample-stat sample-stat--series" id="stat-series-samples">
-            <div class="label">As-built coverage in sample</div>
+        <div class="dash-grid" id="dash-primary">
+          <article class="dash-tile dash-tile--sample" id="sample-size-board">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">Sample size</h3>
+            </header>
+            <div class="dash-tile__hero">
+              <div class="dash-tile__hero-val" id="stat-count">—</div>
+              <div class="dash-tile__hero-label" id="stat-count-note">In sample</div>
+            </div>
+            <div class="dash-tile__metrics dash-tile__metrics--sample">
+              <div>
+                <span class="delta-k">Design total</span>
+                <strong id="stat-design-total">—</strong>
+              </div>
+              <div>
+                <span class="delta-k">Full set</span>
+                <strong id="stat-full-set">—</strong>
+              </div>
+              <div>
+                <span class="delta-k">Excluded</span>
+                <strong id="stat-excluded">—</strong>
+              </div>
+            </div>
+            <p class="dash-tile__note" id="stat-design-note"></p>
+            <p class="dash-tile__note" id="stat-full-set-note"></p>
             <div class="sample-series-lines" id="stat-series-lines"></div>
           </article>
-        </div>
 
-        <h3 class="delta-group-title">Vs design</h3>
-        <div class="delta-board" id="delta-vs-design">
-          <article class="delta-card delta-card--gnss" id="stat-gnss-block">
-            <header class="delta-card__head">
-              <span class="delta-card__name">GNSS vs design <span class="delta-card__n" id="n-gnss"></span></span>
-              <span class="delta-card__favor" id="favor-gnss">—</span>
+          <article class="dash-tile dash-tile--gnss" id="stat-gnss-block">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">GNSS vs design <span class="delta-card__n" id="n-gnss"></span></h3>
+              <span class="dash-tile__badge" id="favor-gnss">—</span>
             </header>
-            <div class="delta-card__metrics">
+            <div class="dash-tile__hero">
+              <div class="dash-tile__hero-val" id="stat-gnss-dz">—</div>
+              <div class="dash-tile__hero-label">Mean ΔZ (ft)</div>
+            </div>
+            <div class="dash-tile__metrics">
               <div><span class="delta-k">ΔN</span><strong id="stat-gnss-dn">—</strong></div>
               <div><span class="delta-k">ΔE</span><strong id="stat-gnss-de">—</strong></div>
-              <div><span class="delta-k">ΔZ</span><strong id="stat-gnss-dz">—</strong></div>
               <div><span class="delta-k">Horiz</span><strong id="stat-gnss-h">—</strong></div>
               <div><span class="delta-k">Med ΔZ</span><strong id="stat-median-gnss">—</strong></div>
             </div>
@@ -207,15 +230,18 @@
             </div>
           </article>
 
-          <article class="delta-card delta-card--uts" id="stat-uts-block">
-            <header class="delta-card__head">
-              <span class="delta-card__name">UTS vs design <span class="delta-card__n" id="n-uts"></span></span>
-              <span class="delta-card__favor" id="favor-uts">—</span>
+          <article class="dash-tile dash-tile--uts" id="stat-uts-block">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">UTS vs design <span class="delta-card__n" id="n-uts"></span></h3>
+              <span class="dash-tile__badge" id="favor-uts">—</span>
             </header>
-            <div class="delta-card__metrics">
+            <div class="dash-tile__hero">
+              <div class="dash-tile__hero-val" id="stat-uts-dz">—</div>
+              <div class="dash-tile__hero-label">Mean ΔZ (ft)</div>
+            </div>
+            <div class="dash-tile__metrics">
               <div><span class="delta-k">ΔN</span><strong id="stat-uts-dn">—</strong></div>
               <div><span class="delta-k">ΔE</span><strong id="stat-uts-de">—</strong></div>
-              <div><span class="delta-k">ΔZ</span><strong id="stat-uts-dz">—</strong></div>
               <div><span class="delta-k">Horiz</span><strong id="stat-uts-h">—</strong></div>
               <div><span class="delta-k">Med ΔZ</span><strong id="stat-median-uts">—</strong></div>
             </div>
@@ -226,15 +252,18 @@
             </div>
           </article>
 
-          <article class="delta-card delta-card--mach" id="stat-mach-block">
-            <header class="delta-card__head">
-              <span class="delta-card__name">Machine vs design <span class="delta-card__n" id="n-mach"></span></span>
-              <span class="delta-card__favor" id="favor-mach">—</span>
+          <article class="dash-tile dash-tile--mach" id="stat-mach-block">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">Machine vs design <span class="delta-card__n" id="n-mach"></span></h3>
+              <span class="dash-tile__badge" id="favor-mach">—</span>
             </header>
-            <div class="delta-card__metrics">
+            <div class="dash-tile__hero">
+              <div class="dash-tile__hero-val" id="stat-mach-dz">—</div>
+              <div class="dash-tile__hero-label">Mean ΔZ (ft)</div>
+            </div>
+            <div class="dash-tile__metrics">
               <div><span class="delta-k">ΔN</span><strong id="stat-mach-dn">—</strong></div>
               <div><span class="delta-k">ΔE</span><strong id="stat-mach-de">—</strong></div>
-              <div><span class="delta-k">ΔZ</span><strong id="stat-mach-dz">—</strong></div>
               <div><span class="delta-k">Horiz</span><strong id="stat-mach-h">—</strong></div>
               <div><span class="delta-k">Med ΔZ</span><strong id="stat-median-machine">—</strong></div>
             </div>
@@ -244,36 +273,221 @@
               <div class="delta-bar"><span>Z</span><i id="bar-mach-dz"></i></div>
             </div>
           </article>
+
+          <article class="dash-tile dash-tile--ptp" id="tile-ptp-summary">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">Pile-to-pile Z (N–S)</h3>
+            </header>
+            <div class="ptp-controls ptp-controls--tile">
+              <div>
+                <label class="muted" for="ptp-source">As-built Z</label>
+                <select id="ptp-source">
+                  <option value="gnss">GNSS</option>
+                  <option value="uts">UTS</option>
+                </select>
+              </div>
+              <div>
+                <label class="muted" for="ptp-spec">|ΔΔZ| spec (ft)</label>
+                <input id="ptp-spec" type="number" min="0" step="0.001" value="0.02" />
+              </div>
+            </div>
+            <div class="dash-tile__hero dash-tile__hero--split">
+              <div>
+                <div class="dash-tile__hero-val" id="ptp-pass">—</div>
+                <div class="dash-tile__hero-label">Within spec</div>
+              </div>
+              <div>
+                <div class="dash-tile__hero-val dash-tile__hero-val--warn" id="ptp-fail">—</div>
+                <div class="dash-tile__hero-label">Over spec</div>
+              </div>
+            </div>
+            <div class="dash-tile__metrics">
+              <div><span class="delta-k">Max |ΔΔZ|</span><strong id="ptp-max">—</strong></div>
+              <div><span class="delta-k">Mean / med</span><strong id="ptp-mean">—</strong></div>
+            </div>
+            <p class="dash-tile__note" id="ptp-pass-note"></p>
+            <p class="dash-tile__note" id="ptp-fail-note"></p>
+            <p class="ptp-verdict" id="ptp-verdict"></p>
+            <p class="muted" id="ptp-median-note" hidden></p>
+          </article>
+        </div>
+
+        <div class="tol-bar" id="tol-bar">
+          <h3 class="delta-group-title" style="margin:0">Site position tolerances (ft)</h3>
+          <div class="tol-bar__inputs">
+            <div>
+              <label class="muted" for="tol-n">|ΔN| north/south</label>
+              <input id="tol-n" type="number" min="0" step="0.001" value="0.08" />
+            </div>
+            <div>
+              <label class="muted" for="tol-e">|ΔE| east/west</label>
+              <input id="tol-e" type="number" min="0" step="0.001" value="0.08" />
+            </div>
+            <div>
+              <label class="muted" for="tol-z">|ΔZ| high/low</label>
+              <input id="tol-z" type="number" min="0" step="0.001" value="0.08" />
+            </div>
+          </div>
+          <p class="muted tol-bar__note">
+            Pass = within each axis limit. Fail counts show which side of design the pile sits (bias).
+          </p>
+        </div>
+
+        <div class="dash-detail-toggle" id="dash-detail-toggle-wrap">
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm"
+            id="btn-dash-detail"
+            aria-expanded="false"
+            aria-controls="dash-detail-panels"
+          >
+            Show pass rate &amp; spread
+          </button>
+          <span class="muted dash-detail-toggle__hint">Optional detail — means and PTP stay above</span>
+        </div>
+
+        <div class="dash-detail-panels is-collapsed" id="dash-detail-panels" hidden>
+        <div class="dash-grid" id="dash-pass-rate">
+          <article class="dash-tile dash-tile--pass dash-tile--gnss" id="pass-gnss-block">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">GNSS pass rate</h3>
+              <span class="delta-card__n" id="pass-gnss-n"></span>
+            </header>
+            <div class="dash-tile__hero">
+              <div class="dash-tile__hero-val" id="pass-gnss-3d">—</div>
+              <div class="dash-tile__hero-label">% within N+E+Z tol</div>
+            </div>
+            <div class="dash-tile__metrics">
+              <div><span class="delta-k">% |ΔN|</span><strong id="pass-gnss-pct-n">—</strong></div>
+              <div><span class="delta-k">% |ΔE|</span><strong id="pass-gnss-pct-e">—</strong></div>
+              <div><span class="delta-k">% |ΔZ|</span><strong id="pass-gnss-pct-z">—</strong></div>
+              <div><span class="delta-k">3D pass</span><strong id="pass-gnss-count">—</strong></div>
+            </div>
+            <p class="dash-tile__note" id="pass-gnss-bias-n"></p>
+            <p class="dash-tile__note" id="pass-gnss-bias-e"></p>
+            <p class="dash-tile__note" id="pass-gnss-bias-z"></p>
+          </article>
+
+          <article class="dash-tile dash-tile--pass dash-tile--uts" id="pass-uts-block">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">UTS pass rate</h3>
+              <span class="delta-card__n" id="pass-uts-n"></span>
+            </header>
+            <div class="dash-tile__hero">
+              <div class="dash-tile__hero-val" id="pass-uts-3d">—</div>
+              <div class="dash-tile__hero-label">% within N+E+Z tol</div>
+            </div>
+            <div class="dash-tile__metrics">
+              <div><span class="delta-k">% |ΔN|</span><strong id="pass-uts-pct-n">—</strong></div>
+              <div><span class="delta-k">% |ΔE|</span><strong id="pass-uts-pct-e">—</strong></div>
+              <div><span class="delta-k">% |ΔZ|</span><strong id="pass-uts-pct-z">—</strong></div>
+              <div><span class="delta-k">3D pass</span><strong id="pass-uts-count">—</strong></div>
+            </div>
+            <p class="dash-tile__note" id="pass-uts-bias-n"></p>
+            <p class="dash-tile__note" id="pass-uts-bias-e"></p>
+            <p class="dash-tile__note" id="pass-uts-bias-z"></p>
+          </article>
+
+          <article class="dash-tile dash-tile--pass dash-tile--mach" id="pass-mach-block">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">Machine pass rate</h3>
+              <span class="delta-card__n" id="pass-mach-n"></span>
+            </header>
+            <div class="dash-tile__hero">
+              <div class="dash-tile__hero-val" id="pass-mach-3d">—</div>
+              <div class="dash-tile__hero-label">% within N+E+Z tol</div>
+            </div>
+            <div class="dash-tile__metrics">
+              <div><span class="delta-k">% |ΔN|</span><strong id="pass-mach-pct-n">—</strong></div>
+              <div><span class="delta-k">% |ΔE|</span><strong id="pass-mach-pct-e">—</strong></div>
+              <div><span class="delta-k">% |ΔZ|</span><strong id="pass-mach-pct-z">—</strong></div>
+              <div><span class="delta-k">3D pass</span><strong id="pass-mach-count">—</strong></div>
+            </div>
+            <p class="dash-tile__note" id="pass-mach-bias-n"></p>
+            <p class="dash-tile__note" id="pass-mach-bias-e"></p>
+            <p class="dash-tile__note" id="pass-mach-bias-z"></p>
+          </article>
+        </div>
+
+        <div class="dash-grid" id="dash-spread">
+          <article class="dash-tile dash-tile--spread dash-tile--gnss" id="spread-gnss-block">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">GNSS spread</h3>
+            </header>
+            <p class="dash-tile__note">RMS includes bias · σ is scatter about the mean</p>
+            <div class="dash-tile__metrics dash-tile__metrics--spread">
+              <div><span class="delta-k">RMS ΔN</span><strong id="spread-gnss-rms-n">—</strong></div>
+              <div><span class="delta-k">σ ΔN</span><strong id="spread-gnss-sd-n">—</strong></div>
+              <div><span class="delta-k">RMS ΔE</span><strong id="spread-gnss-rms-e">—</strong></div>
+              <div><span class="delta-k">σ ΔE</span><strong id="spread-gnss-sd-e">—</strong></div>
+              <div><span class="delta-k">RMS ΔZ</span><strong id="spread-gnss-rms-z">—</strong></div>
+              <div><span class="delta-k">σ ΔZ</span><strong id="spread-gnss-sd-z">—</strong></div>
+            </div>
+            <p class="dash-tile__note" id="spread-gnss-read"></p>
+          </article>
+
+          <article class="dash-tile dash-tile--spread dash-tile--uts" id="spread-uts-block">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">UTS spread</h3>
+            </header>
+            <p class="dash-tile__note">RMS includes bias · σ is scatter about the mean</p>
+            <div class="dash-tile__metrics dash-tile__metrics--spread">
+              <div><span class="delta-k">RMS ΔN</span><strong id="spread-uts-rms-n">—</strong></div>
+              <div><span class="delta-k">σ ΔN</span><strong id="spread-uts-sd-n">—</strong></div>
+              <div><span class="delta-k">RMS ΔE</span><strong id="spread-uts-rms-e">—</strong></div>
+              <div><span class="delta-k">σ ΔE</span><strong id="spread-uts-sd-e">—</strong></div>
+              <div><span class="delta-k">RMS ΔZ</span><strong id="spread-uts-rms-z">—</strong></div>
+              <div><span class="delta-k">σ ΔZ</span><strong id="spread-uts-sd-z">—</strong></div>
+            </div>
+            <p class="dash-tile__note" id="spread-uts-read"></p>
+          </article>
+
+          <article class="dash-tile dash-tile--spread dash-tile--mach" id="spread-mach-block">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">Machine spread</h3>
+            </header>
+            <p class="dash-tile__note">RMS includes bias · σ is scatter about the mean</p>
+            <div class="dash-tile__metrics dash-tile__metrics--spread">
+              <div><span class="delta-k">RMS ΔN</span><strong id="spread-mach-rms-n">—</strong></div>
+              <div><span class="delta-k">σ ΔN</span><strong id="spread-mach-sd-n">—</strong></div>
+              <div><span class="delta-k">RMS ΔE</span><strong id="spread-mach-rms-e">—</strong></div>
+              <div><span class="delta-k">σ ΔE</span><strong id="spread-mach-sd-e">—</strong></div>
+              <div><span class="delta-k">RMS ΔZ</span><strong id="spread-mach-rms-z">—</strong></div>
+              <div><span class="delta-k">σ ΔZ</span><strong id="spread-mach-sd-z">—</strong></div>
+            </div>
+            <p class="dash-tile__note" id="spread-mach-read"></p>
+          </article>
+        </div>
         </div>
 
         <h3 class="delta-group-title delta-group-title--secondary" id="rover-mach-heading">Rover vs machine</h3>
-        <div class="delta-board delta-board--secondary" id="delta-vs-machine">
-          <article class="delta-card delta-card--gnss-mach" id="stat-gnss-mach-block">
-            <header class="delta-card__head">
-              <span class="delta-card__name">GNSS vs machine <span class="delta-card__n" id="n-gnss-mach"></span></span>
-              <span class="delta-card__favor" id="favor-gnss-mach">—</span>
+        <div class="dash-grid dash-grid--2" id="delta-vs-machine">
+          <article class="dash-tile dash-tile--gnss-mach" id="stat-gnss-mach-block">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">GNSS vs machine <span class="delta-card__n" id="n-gnss-mach"></span></h3>
+              <span class="dash-tile__badge" id="favor-gnss-mach">—</span>
             </header>
-            <div class="delta-card__metrics">
+            <div class="dash-tile__metrics">
               <div><span class="delta-k">ΔN</span><strong id="stat-gnss-mach-dn">—</strong></div>
               <div><span class="delta-k">ΔE</span><strong id="stat-gnss-mach-de">—</strong></div>
               <div><span class="delta-k">ΔZ</span><strong id="stat-gnss-mach-dz">—</strong></div>
               <div><span class="delta-k">Horiz</span><strong id="stat-gnss-mach-h">—</strong></div>
             </div>
-            <p class="delta-card__note">GNSS − machine (ft)</p>
+            <p class="dash-tile__note">GNSS − machine (ft)</p>
           </article>
 
-          <article class="delta-card delta-card--uts-mach" id="stat-uts-mach-block">
-            <header class="delta-card__head">
-              <span class="delta-card__name">UTS vs machine <span class="delta-card__n" id="n-uts-mach"></span></span>
-              <span class="delta-card__favor" id="favor-uts-mach">—</span>
+          <article class="dash-tile dash-tile--uts-mach" id="stat-uts-mach-block">
+            <header class="dash-tile__head">
+              <h3 class="dash-tile__title">UTS vs machine <span class="delta-card__n" id="n-uts-mach"></span></h3>
+              <span class="dash-tile__badge" id="favor-uts-mach">—</span>
             </header>
-            <div class="delta-card__metrics">
+            <div class="dash-tile__metrics">
               <div><span class="delta-k">ΔN</span><strong id="stat-uts-mach-dn">—</strong></div>
               <div><span class="delta-k">ΔE</span><strong id="stat-uts-mach-de">—</strong></div>
               <div><span class="delta-k">ΔZ</span><strong id="stat-uts-mach-dz">—</strong></div>
               <div><span class="delta-k">Horiz</span><strong id="stat-uts-mach-h">—</strong></div>
             </div>
-            <p class="delta-card__note">UTS − machine (ft)</p>
+            <p class="dash-tile__note">UTS − machine (ft)</p>
           </article>
         </div>
 
@@ -281,13 +495,11 @@
       </section>
 
       <section class="card" id="drive-screen-section">
-        <h2>Guidance screen vs machine displayed — end-of-drive Z</h2>
+        <h2>GW cut/fill vs machine remaining</h2>
         <p class="muted" style="margin-top: -4px; margin-bottom: 12px">
-          Side-by-side remaining-to-design Z from the <strong>guidance screen</strong> and the
-          <strong>machine-displayed</strong> value at end of drive, each scored against as-built
-          <code>ΔZ = Z<sub>as-built</sub> − Z<sub>design</sub></code> (UTS when loaded, else GNSS).
-          Positive = still high (need to drive down). Import one drive-log CSV per test
-          (see <code>samples/</code>). Results are counts and mean |error| only — not a recommendation.
+          Scores each screen value against as-built
+          <code>ΔZ = Z<sub>as-built</sub> − Z<sub>design</sub></code>
+          (positive = still high). Machine remaining: <strong>0 = on design</strong>.
         </p>
         <div class="ptp-controls">
           <div>
@@ -298,28 +510,12 @@
             </select>
           </div>
           <div>
-            <label class="muted" for="drive-machine-unit">Machine displayed remaining units</label>
+            <label class="muted" for="drive-machine-unit">Machine remaining units</label>
             <select id="drive-machine-unit">
-              <option value="inches" selected>Inches</option>
-              <option value="feet">Feet</option>
+              <option value="feet" selected>Feet</option>
+              <option value="inches">Inches</option>
             </select>
           </div>
-          <div>
-            <label class="muted" for="file-drive-log">Import drive-log CSV</label>
-            <input id="file-drive-log" type="file" accept=".csv,text/csv" />
-          </div>
-        </div>
-        <p class="muted" style="margin-bottom: 8px">
-          CSV columns:
-          <code>PileID, GuidanceRemainingFt, MachineDisplayedRemaining, Notes</code>
-          (aliases <code>GroundworksRemainingFt</code> accepted). Machine column uses the unit selector.
-          One CSV per test run.
-        </p>
-        <div class="actions" style="margin-bottom: 12px">
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-drive-seed">
-            Load Test 1 drive-log seed
-          </button>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-drive-clear">Clear drive log</button>
         </div>
         <div class="ptp-stats" id="drive-stats">
           <article class="ptp-stat">
@@ -328,17 +524,17 @@
             <div class="note" id="drive-n-note"></div>
           </article>
           <article class="ptp-stat">
-            <div class="label">Smaller |err| count (guid. / mach.)</div>
+            <div class="label">Closer count (GW / machine)</div>
             <div class="value" id="drive-wins">—</div>
             <div class="note" id="drive-ties-note"></div>
           </article>
           <article class="ptp-stat">
-            <div class="label">Mean |err| guidance (ft)</div>
+            <div class="label">Mean |err| GW (ft)</div>
             <div class="value" id="drive-err-gw">—</div>
-            <div class="note">|as-built ΔZ − guidance rem.|</div>
+            <div class="note">|as-built ΔZ − GW rem.|</div>
           </article>
           <article class="ptp-stat">
-            <div class="label">Mean |err| machine disp. (ft)</div>
+            <div class="label">Mean |err| machine (ft)</div>
             <div class="value" id="drive-err-machine">—</div>
             <div class="note">After unit conversion to ft</div>
           </article>
@@ -349,12 +545,12 @@
             <thead>
               <tr>
                 <th class="id">ID</th>
-                <th>Guid. rem (ft)</th>
-                <th>Mach rem (raw)</th>
-                <th>Mach rem (ft)</th>
+                <th>GW cut/fill (ft)</th>
+                <th>MCH rem (raw)</th>
+                <th>MCH rem (ft)</th>
                 <th>As-built ΔZ</th>
-                <th>|err| Guid.</th>
-                <th>|err| Mach</th>
+                <th>|err| GW</th>
+                <th>|err| MCH</th>
                 <th>Lower |err|</th>
                 <th>Notes</th>
               </tr>
@@ -365,50 +561,11 @@
       </section>
 
       <section class="card" id="ptp-section">
-        <h2>Pile-to-pile Z consistency</h2>
+        <h2>Pile-to-pile Z — detail</h2>
         <p class="muted" style="margin-top: -4px; margin-bottom: 12px">
-          Design Z vs as-built Z only (GNSS or UTS — <strong>no machine</strong>).
-          Rows run <strong>north–south</strong> on design Easting. For each N/S neighbor pair,
-          compare residuals <code>ΔZ = Z<sub>as-built</sub> − Z<sub>design</sub></code>;
-          pass when <code>|(ΔZ)<sub>i</sub> − (ΔZ)<sub>j</sub>|</code> ≤ spec.
-          Large gaps in a row are skipped.
+          Adjust source and |ΔΔZ| spec in the dashboard tile above.
+          N–S neighbors on design Easting; pass when residual difference ≤ spec. Machine not used.
         </p>
-        <div class="ptp-controls">
-          <div>
-            <label class="muted" for="ptp-source">As-built Z (rover)</label>
-            <select id="ptp-source">
-              <option value="gnss">GNSS as-built</option>
-              <option value="uts">UTS as-built</option>
-            </select>
-          </div>
-          <div>
-            <label class="muted" for="ptp-spec">Pile-to-pile residual |ΔΔZ| spec (ft)</label>
-            <input id="ptp-spec" type="number" min="0" step="0.001" value="0.02" />
-          </div>
-        </div>
-        <div class="ptp-stats" id="ptp-stats">
-          <article class="ptp-stat">
-            <div class="label">Within spec</div>
-            <div class="value" id="ptp-pass">—</div>
-            <div class="note" id="ptp-pass-note"></div>
-          </article>
-          <article class="ptp-stat ptp-stat--fail">
-            <div class="label">Over spec</div>
-            <div class="value" id="ptp-fail">—</div>
-            <div class="note" id="ptp-fail-note"></div>
-          </article>
-          <article class="ptp-stat">
-            <div class="label">Max |ΔZ| (ft)</div>
-            <div class="value" id="ptp-max">—</div>
-            <div class="note">|(ΔZ)<sub>i</sub>−(ΔZ)<sub>j</sub>|</div>
-          </article>
-          <article class="ptp-stat">
-            <div class="label">Mean / median |ΔΔZ| (ft)</div>
-            <div class="value" id="ptp-mean">—</div>
-            <div class="note" id="ptp-median-note"></div>
-          </article>
-        </div>
-        <p class="ptp-verdict" id="ptp-verdict"></p>
         <div class="ptp-viz">
           <div class="viz-panel">
             <h3>Plan — N–S residual consistency</h3>
@@ -464,8 +621,12 @@
         </div>
       </section>
 
-      <section class="card">
+      <section class="card" id="per-pile-section">
         <h2>Per-pile QC</h2>
+        <p class="muted" style="margin-top: -4px; margin-bottom: 10px">
+          Review live deltas below. Uncheck <strong>Use</strong> to exclude poor piles from computations
+          (row stays visible, greyed out).
+        </p>
         <div class="table-wrap">
           <table class="qc-table" id="qc-table">
             <thead id="table-head"></thead>
@@ -491,10 +652,10 @@
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="js/parsers.js?v=4"></script>
-  <script src="js/qc.js?v=10"></script>
-  <script src="js/charts.js?v=5"></script>
+  <script src="js/parsers.js?v=5"></script>
+  <script src="js/qc.js?v=14"></script>
+  <script src="js/charts.js?v=6"></script>
   <script src="js/pdf.js?v=6"></script>
-  <script src="js/app.js?v=17"></script>
+  <script src="js/app.js?v=23"></script>
 </body>
 </html>

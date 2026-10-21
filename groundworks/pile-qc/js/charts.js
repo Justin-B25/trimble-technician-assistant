@@ -27,11 +27,11 @@ var PileCharts = (function () {
   function seriesList(report) {
     var c = colors();
     var list = [];
-    if (report.hasGnss || report.avg.gnssVsDesign || report.avg.measuredVsDesign) {
+    if (report.hasGnss || report.avg.gnssVsDesign) {
       list.push({
         key: 'gnss',
         deltaKey: 'gd',
-        avg: report.avg.gnssVsDesign || report.avg.measuredVsDesign,
+        avg: report.avg.gnssVsDesign,
         color: c.gnss,
         label: 'GNSS vs design',
         short: 'GNSS',
@@ -60,11 +60,11 @@ var PileCharts = (function () {
     // Fallback if flags missing but rows have deltas
     if (!list.length) {
       var sample = report.rows[0];
-      if (sample && (sample.gd || sample.md)) {
+      if (sample && sample.gd) {
         list.push({
           key: 'gnss',
-          deltaKey: sample.gd ? 'gd' : 'md',
-          avg: report.avg.gnssVsDesign || report.avg.measuredVsDesign,
+          deltaKey: 'gd',
+          avg: report.avg.gnssVsDesign,
           color: c.gnss,
           label: 'GNSS vs design',
           short: 'GNSS',
@@ -113,9 +113,9 @@ var PileCharts = (function () {
   }
 
   function rowDelta(r, deltaKey) {
-    var pre = r[deltaKey] || (deltaKey === 'gd' ? r.md : null);
+    var pre = r[deltaKey];
     if (pre && pre.dz != null && Number.isFinite(pre.dz)) return pre;
-    if (deltaKey === 'gd' || deltaKey === 'md') return liveDelta(r.gnss || r.measured, r.design);
+    if (deltaKey === 'gd') return liveDelta(r.gnss, r.design);
     if (deltaKey === 'ud') return liveDelta(r.uts, r.design);
     if (deltaKey === 'kd') return liveDelta(r.machine, r.design);
     return pre;
