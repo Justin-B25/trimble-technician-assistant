@@ -201,14 +201,21 @@ var PilePdf = (function () {
       report.joinMode === 'design-union'
         ? 'design ∩ (rover ∪ machine)'
         : report.joinMode || 'join';
+    var sample = report.counts.sample != null ? report.counts.sample : report.counts.common;
     var html =
-      '<p class="match">Showing ' +
-      report.counts.common +
-      ' ID(s) via ' +
+      '<p class="match"><strong>Sample size ' +
+      sample +
+      '</strong> of ' +
+      report.counts.design +
+      ' design piles (via ' +
       escapeHtml(join) +
-      ': ' +
-      escapeHtml((report.sourcesUsed || []).join(', ')) +
-      ' · counts D' +
+      '). Series n — GNSS∩des ' +
+      (report.counts.gnssVsDesign || 0) +
+      ' · UTS∩des ' +
+      (report.counts.utsVsDesign || 0) +
+      ' · Mach∩des ' +
+      (report.counts.machineVsDesign || 0) +
+      '. File counts D' +
       report.counts.design +
       ' / G' +
       report.counts.gnss +
@@ -218,13 +225,36 @@ var PilePdf = (function () {
       report.counts.machine +
       '</p>' +
       '<div class="avg-row">';
-    if (report.hasGnss) html += avgBlock('GNSS rover vs design', report.avg.gnssVsDesign, 'avg-gnss');
-    if (report.hasUts) html += avgBlock('UTS vs design', report.avg.utsVsDesign, 'avg-uts');
-    if (report.hasMachine) html += avgBlock('Machine vs design', report.avg.machineVsDesign, 'avg-mach');
-    if (report.hasGnss && report.hasMachine)
-      html += avgBlock('GNSS vs machine', report.avg.gnssVsMachine, 'avg-gnss-mach');
-    if (report.hasUts && report.hasMachine)
-      html += avgBlock('UTS vs machine', report.avg.utsVsMachine, 'avg-uts-mach');
+    if (report.hasGnss && report.avg.gnssVsDesign)
+      html += avgBlock(
+        'GNSS rover vs design (n=' + (report.avg.gnssVsDesign.count || 0) + ')',
+        report.avg.gnssVsDesign,
+        'avg-gnss'
+      );
+    if (report.hasUts && report.avg.utsVsDesign)
+      html += avgBlock(
+        'UTS vs design (n=' + (report.avg.utsVsDesign.count || 0) + ')',
+        report.avg.utsVsDesign,
+        'avg-uts'
+      );
+    if (report.hasMachine && report.avg.machineVsDesign)
+      html += avgBlock(
+        'Machine vs design (n=' + (report.avg.machineVsDesign.count || 0) + ')',
+        report.avg.machineVsDesign,
+        'avg-mach'
+      );
+    if (report.hasGnss && report.hasMachine && report.avg.gnssVsMachine)
+      html += avgBlock(
+        'GNSS vs machine (n=' + (report.avg.gnssVsMachine.count || 0) + ')',
+        report.avg.gnssVsMachine,
+        'avg-gnss-mach'
+      );
+    if (report.hasUts && report.hasMachine && report.avg.utsVsMachine)
+      html += avgBlock(
+        'UTS vs machine (n=' + (report.avg.utsVsMachine.count || 0) + ')',
+        report.avg.utsVsMachine,
+        'avg-uts-mach'
+      );
     html += '</div>';
     html +=
       '<p class="median-line">Median ΔZ vs design — ' +

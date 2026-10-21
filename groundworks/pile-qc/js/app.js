@@ -437,6 +437,69 @@
             ? 'favor-uts-mach'
             : 'favor-' + prefix;
     setText(favorId, avg && avg.favor ? avg.favor : '—');
+    var nId = 'n-' + prefix;
+    var nEl = $(nId);
+    if (nEl) {
+      nEl.textContent =
+        avg && avg.count != null ? 'n=' + avg.count : '';
+    }
+  }
+
+  function renderSampleSizeBoard(report) {
+    var sample = report.counts.sample != null ? report.counts.sample : report.counts.common;
+    var designTotal = report.counts.design || 0;
+    $('stat-count').textContent = String(sample);
+    var pct =
+      designTotal > 0 ? ((100 * sample) / designTotal).toFixed(0) : null;
+    $('stat-count-note').textContent =
+      (pct != null ? pct + '% of design · ' : '') +
+      'piles with design + GNSS and/or UTS and/or machine';
+    setText('stat-design-total', String(designTotal));
+    var missing = Math.max(0, designTotal - sample);
+    setText(
+      'stat-design-note',
+      missing
+        ? missing + ' design ID(s) have no as-built in this load'
+        : sample
+          ? 'Every design ID has at least one as-built'
+          : 'All IDs in design CSV(s)'
+    );
+
+    var lines = $('stat-series-lines');
+    if (!lines) return;
+    var parts = [];
+    function line(label, n, fileN, cls) {
+      if (n == null) return;
+      parts.push(
+        '<div class="sample-series-line ' +
+          (cls || '') +
+          '"><span>' +
+          label +
+          '</span><strong>n=' +
+          n +
+          '</strong>' +
+          (fileN != null && fileN !== n
+            ? '<em>of ' + fileN + ' in file</em>'
+            : '') +
+          '</div>'
+      );
+    }
+    if (report.hasGnss)
+      line('GNSS vs design', report.counts.gnssVsDesign, report.counts.gnss, 'is-gnss');
+    if (report.hasUts)
+      line('UTS vs design', report.counts.utsVsDesign, report.counts.uts, 'is-uts');
+    if (report.hasMachine)
+      line(
+        'Machine vs design',
+        report.counts.machineVsDesign,
+        report.counts.machine,
+        'is-mach'
+      );
+    if (report.hasGnss && report.hasMachine)
+      line('GNSS vs machine', report.counts.gnssVsMachine, null, 'is-gnss');
+    if (report.hasUts && report.hasMachine)
+      line('UTS vs machine', report.counts.utsVsMachine, null, 'is-uts');
+    lines.innerHTML = parts.join('') || '<div class="muted">No as-built series</div>';
   }
 
   function paintDeltaBars(prefix, avg, scaleMax) {
@@ -470,22 +533,19 @@
     var um = report.avg.utsVsMachine;
     var med = report.medianZ || {};
 
-    $('stat-count').textContent = String(report.counts.common);
-    $('stat-count-note').textContent =
-      'D' +
-      report.counts.design +
-      ' / G' +
-      report.counts.gnss +
-      ' / U' +
-      report.counts.uts +
-      ' / K' +
-      report.counts.machine;
+    renderSampleSizeBoard(report);
 
-    showBlock('stat-gnss-block', report.hasGnss);
-    showBlock('stat-uts-block', report.hasUts);
-    showBlock('stat-mach-block', report.hasMachine);
-    showBlock('stat-gnss-mach-block', report.hasGnss && report.hasMachine);
-    showBlock('stat-uts-mach-block', report.hasUts && report.hasMachine);
+    showBlock('stat-gnss-block', !!(report.hasGnss && report.counts.gnssVsDesign));
+    showBlock('stat-uts-block', !!(report.hasUts && report.counts.utsVsDesign));
+    showBlock('stat-mach-block', !!(report.hasMachine && report.counts.machineVsDesign));
+    showBlock(
+      'stat-gnss-mach-block',
+      !!(report.hasGnss && report.hasMachine && report.counts.gnssVsMachine)
+    );
+    showBlock(
+      'stat-uts-mach-block',
+      !!(report.hasUts && report.hasMachine && report.counts.utsVsMachine)
+    );
     showBlock(
       'rover-mach-heading',
       (report.hasGnss || report.hasUts) && report.hasMachine
@@ -549,22 +609,22 @@
         : report.joinMode === 'intersection'
           ? 'intersection of loaded sources'
           : report.joinMode || 'join';
+    var sample = report.counts.sample != null ? report.counts.sample : report.counts.common;
     $('match-note').textContent =
       'Rover mode: ' +
       modeLabel +
-      '. Showing ' +
-      report.counts.common +
-      ' ID(s) via ' +
+      '. Sample size ' +
+      sample +
+      ' (of ' +
+      report.counts.design +
+      ' design) via ' +
       joinHint +
-      ' [' +
-      report.sourcesUsed.join(', ') +
-      ']' +
-      (report.counts.gnssVsDesign != null
-        ? ' · GNSS∩des ' +
-          report.counts.gnssVsDesign +
-          ' · UTS∩des ' +
-          report.counts.utsVsDesign
-        : '') +
+      ' · series n: GNSS ' +
+      (report.counts.gnssVsDesign || 0) +
+      ' · UTS ' +
+      (report.counts.utsVsDesign || 0) +
+      ' · Machine ' +
+      (report.counts.machineVsDesign || 0) +
       '.';
 
     syncPileToPileSourceOptions();

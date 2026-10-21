@@ -94,8 +94,31 @@ var PileCharts = (function () {
     return list;
   }
 
+  function liveDelta(src, design) {
+    if (!src || !design) return null;
+    if (src.z == null || design.z == null) return null;
+    if (!Number.isFinite(src.z) || !Number.isFinite(design.z)) return null;
+    var dn = src.n != null && design.n != null ? src.n - design.n : null;
+    var de = src.e != null && design.e != null ? src.e - design.e : null;
+    var dz = src.z - design.z;
+    return {
+      dn: dn,
+      de: de,
+      dz: dz,
+      horiz:
+        dn != null && de != null
+          ? Math.sqrt(dn * dn + de * de)
+          : null,
+    };
+  }
+
   function rowDelta(r, deltaKey) {
-    return r[deltaKey] || (deltaKey === 'gd' ? r.md : null);
+    var pre = r[deltaKey] || (deltaKey === 'gd' ? r.md : null);
+    if (pre && pre.dz != null && Number.isFinite(pre.dz)) return pre;
+    if (deltaKey === 'gd' || deltaKey === 'md') return liveDelta(r.gnss || r.measured, r.design);
+    if (deltaKey === 'ud') return liveDelta(r.uts, r.design);
+    if (deltaKey === 'kd') return liveDelta(r.machine, r.design);
+    return pre;
   }
 
   function computeMaxAbsZ(report, rows) {
@@ -119,7 +142,14 @@ var PileCharts = (function () {
     return maxAbs;
   }
 
-  function drawBullseye(canvas, report) {
+  /**
+   * options.zoom: 1 = fit (~90th pct of points), 2 = 2×, etc.
+   * options.hiddenSeries: { gnss:true, uts:true, machine:true } to hide
+   */
+  function drawBullseye(canvas, report, options) {
+    options = options || {};
+    var zoom = options.zoom != null && options.zoom > 0 ? options.zoom : 1;
+    var hidden = options.hiddenSeries || {};
     var ctx = clear(canvas);
     var w = canvas.width;
     var h = canvas.height;
@@ -127,7 +157,9 @@ var PileCharts = (function () {
     var cy = h / 2;
     var pad = 28;
     var radius = Math.min(w, h) / 2 - pad;
-    var series = seriesList(report);
+    var series = seriesList(report).filter(function (s) {
+      return !hidden[s.key];
+    });
 
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
@@ -156,71 +188,98 @@ var PileCharts = (function () {
     ctx.fillText('North', cx + 18, pad + 4);
     ctx.fillText('South', cx + 18, h - 10);
 
-    var maxAbs = 0.05;
-    series.forEach(function (s) {
-      if (!s.avg) return;
-      maxAbs = Math.max(maxAbs, Math.abs(s.avg.de), Math.abs(s.avg.dn));
-    });
-
     var rows = report.rows;
     var step = rows.length > BULLSEYE_MAX_DOTS ? Math.ceil(rows.length / BULLSEYE_MAX_DOTS) : 1;
+    var radii = [];
     for (i = 0; i < rows.length; i += step) {
       var r = rows[i];
       series.forEach(function (s) {
         var d = rowDelta(r, s.deltaKey);
-        if (d) maxAbs = Math.max(maxAbs, Math.abs(d.de), Math.abs(d.dn));
+        if (!d || d.de == null || d.dn == null) return;
+        if (!Number.isFinite(d.de) || !Number.isFinite(d.dn)) return;
+        radii.push(Math.sqrt(d.de * d.de + d.dn * d.dn));
       });
     }
+    series.forEach(function (s) {
+      if (!s.avg || s.avg.de == null || s.avg.dn == null) return;
+      radii.push(Math.sqrt(s.avg.de * s.avg.de + s.avg.dn * s.avg.dn));
+    });
+    radii.sort(function (a, b) {
+      return a - b;
+    });
+    // Fit ~90th percentile so typical points spread; zoom multiplies scale
+    var fitAbs = 0.05;
+    if (radii.length) {
+      var idx90 = Math.min(radii.length - 1, Math.floor(radii.length * 0.9));
+      fitAbs = Math.max(0.02, radii[idx90] * 1.15);
+    }
+    var maxAbs = fitAbs / zoom;
     var scale = radius / maxAbs;
 
-    function plotPoint(de, dn, color, label) {
+    function plotPoint(de, dn, color, label, rad) {
       var x = cx + de * scale;
       var y = cy - dn * scale;
+      // Clamp labels that zoom off-canvas
+      var onCanvas = x >= pad && x <= w - pad && y >= pad && y <= h - pad;
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(x, y, 7, 0, Math.PI * 2);
+      ctx.arc(x, y, rad || 7, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
       ctx.stroke();
-      ctx.fillStyle = color;
-      ctx.font = '600 11px "Open Sans", Arial, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(label, x + 10, y + 4);
+      if (label && onCanvas) {
+        ctx.fillStyle = color;
+        ctx.font = '600 11px "Open Sans", Arial, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(label, x + 10, y + 4);
+      }
     }
 
-    series.forEach(function (s) {
-      ctx.globalAlpha = 0.22;
+    // Draw machine under rovers so blue/orange stay visible
+    var drawOrder = series.slice().sort(function (a, b) {
+      var rank = { machine: 0, gnss: 1, uts: 2 };
+      return (rank[a.key] || 0) - (rank[b.key] || 0);
+    });
+
+    drawOrder.forEach(function (s) {
+      ctx.globalAlpha = s.key === 'machine' ? 0.28 : 0.45;
       for (i = 0; i < rows.length; i += step) {
         r = rows[i];
         var d = rowDelta(r, s.deltaKey);
-        if (!d) continue;
+        if (!d || d.de == null || d.dn == null) continue;
         var x = cx + d.de * scale;
         var y = cy - d.dn * scale;
         ctx.fillStyle = s.color;
         ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.arc(x, y, s.key === 'machine' ? 3 : 4, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.globalAlpha = 1;
     });
 
-    series.forEach(function (s) {
-      if (s.avg) plotPoint(s.avg.de, s.avg.dn, s.color, s.short + ' avg');
+    drawOrder.forEach(function (s) {
+      if (s.avg) plotPoint(s.avg.de, s.avg.dn, s.color, s.short + ' avg', 8);
     });
 
     ctx.fillStyle = '#252a2e';
     ctx.font = '12px "Open Sans", Arial, sans-serif';
     ctx.textAlign = 'left';
-    var note = 'Center = design · GNSS blue · UTS orange · Machine green';
-    if (step > 1) note += ' · dots sampled 1/' + step;
+    var ringFt = maxAbs;
+    var note =
+      'Center = design · ring ≈ ±' +
+      ringFt.toFixed(3) +
+      ' ft · zoom ' +
+      zoom.toFixed(1) +
+      '×';
+    if (step > 1) note += ' · dots 1/' + step;
     ctx.fillText(note, 12, h - 12);
   }
 
   function seriesOffsets(count) {
     if (count <= 1) return [0];
-    if (count === 2) return [-7, 7];
-    return [-10, 0, 10];
+    if (count === 2) return [-12, 12];
+    return [-18, 0, 18];
   }
 
   function drawZ(canvas, report, options) {

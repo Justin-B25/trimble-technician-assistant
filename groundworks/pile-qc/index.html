@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=9" />
+  <link rel="stylesheet" href="styles.css?v=10" />
 </head>
 <body data-gw-page="pile-qc" class="pile-qc">
   <header class="tc-app-header">
@@ -141,17 +141,28 @@
           All deltas below are <strong>source − design</strong> (ft). Positive ΔN = north of design · Positive ΔE = east · Positive ΔZ = above.
         </p>
 
-        <div class="stat stat-count-alone">
-          <div class="label">Common piles in report</div>
-          <div class="value" id="stat-count">—</div>
-          <div class="note" id="stat-count-note"></div>
+        <div class="sample-size-board" id="sample-size-board">
+          <article class="stat sample-stat sample-stat--primary">
+            <div class="label">Sample size</div>
+            <div class="value" id="stat-count">—</div>
+            <div class="note" id="stat-count-note">Piles with design + at least one as-built</div>
+          </article>
+          <article class="stat sample-stat">
+            <div class="label">Design total</div>
+            <div class="value" id="stat-design-total">—</div>
+            <div class="note" id="stat-design-note">All IDs in design CSV(s)</div>
+          </article>
+          <article class="stat sample-stat sample-stat--series" id="stat-series-samples">
+            <div class="label">As-built coverage in sample</div>
+            <div class="sample-series-lines" id="stat-series-lines"></div>
+          </article>
         </div>
 
         <h3 class="delta-group-title">Vs design</h3>
         <div class="delta-board" id="delta-vs-design">
           <article class="delta-card delta-card--gnss" id="stat-gnss-block">
             <header class="delta-card__head">
-              <span class="delta-card__name">GNSS vs design</span>
+              <span class="delta-card__name">GNSS vs design <span class="delta-card__n" id="n-gnss"></span></span>
               <span class="delta-card__favor" id="favor-gnss">—</span>
             </header>
             <div class="delta-card__metrics">
@@ -170,7 +181,7 @@
 
           <article class="delta-card delta-card--uts" id="stat-uts-block">
             <header class="delta-card__head">
-              <span class="delta-card__name">UTS vs design</span>
+              <span class="delta-card__name">UTS vs design <span class="delta-card__n" id="n-uts"></span></span>
               <span class="delta-card__favor" id="favor-uts">—</span>
             </header>
             <div class="delta-card__metrics">
@@ -189,7 +200,7 @@
 
           <article class="delta-card delta-card--mach" id="stat-mach-block">
             <header class="delta-card__head">
-              <span class="delta-card__name">Machine vs design</span>
+              <span class="delta-card__name">Machine vs design <span class="delta-card__n" id="n-mach"></span></span>
               <span class="delta-card__favor" id="favor-mach">—</span>
             </header>
             <div class="delta-card__metrics">
@@ -211,7 +222,7 @@
         <div class="delta-board delta-board--secondary" id="delta-vs-machine">
           <article class="delta-card delta-card--gnss-mach" id="stat-gnss-mach-block">
             <header class="delta-card__head">
-              <span class="delta-card__name">GNSS vs machine</span>
+              <span class="delta-card__name">GNSS vs machine <span class="delta-card__n" id="n-gnss-mach"></span></span>
               <span class="delta-card__favor" id="favor-gnss-mach">—</span>
             </header>
             <div class="delta-card__metrics">
@@ -225,7 +236,7 @@
 
           <article class="delta-card delta-card--uts-mach" id="stat-uts-mach-block">
             <header class="delta-card__head">
-              <span class="delta-card__name">UTS vs machine</span>
+              <span class="delta-card__name">UTS vs machine <span class="delta-card__n" id="n-uts-mach"></span></span>
               <span class="delta-card__favor" id="favor-uts-mach">—</span>
             </header>
             <div class="delta-card__metrics">
@@ -368,9 +379,9 @@
   <script src="../../assets/feedback.js?v=4"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="js/parsers.js?v=4"></script>
-  <script src="js/qc.js?v=6"></script>
+  <script src="js/qc.js?v=7"></script>
   <script src="js/charts.js?v=5"></script>
-  <script src="js/pdf.js?v=5"></script>
-  <script src="js/app.js?v=11"></script>
+  <script src="js/pdf.js?v=6"></script>
+  <script src="js/app.js?v=12"></script>
 </body>
 </html>

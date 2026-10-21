@@ -224,10 +224,15 @@ var PileQC = (function () {
         uts: mapKeys(uts).length,
         measured: mapKeys(gnss).length,
         machine: mapKeys(machine).length,
+        /** Piles in the report (design ∩ at least one as-built source). */
         common: rows.length,
+        /** Alias — sample size used for charts/table (not full design count). */
+        sample: rows.length,
         gnssVsDesign: gdList.length,
         utsVsDesign: udList.length,
         machineVsDesign: kdList.length,
+        gnssVsMachine: gmList.length,
+        utsVsMachine: umList.length,
       },
       avg: {
         gnssVsDesign: packAvg(gdList),
