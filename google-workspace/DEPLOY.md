@@ -175,6 +175,8 @@ Some dealer tools (e.g. **Groundworks CSV Formatter (BETA)**) require a **second
 | Tool ID | Label | Dealer path |
 |---------|-------|-------------|
 | `gw-csv-formatter` | Groundworks CSV Formatter (BETA) | `groundworks/csv-formatter/index.html` |
+| `gw-pile-qc` | Pile QC / Deviation Calculator (BETA) | `groundworks/pile-qc/index.html` |
+| `excavator-measure-up` | Excavator Measure-Up Calculator (BETA) | `measure-up/excavator/index.html` |
 
 **Client modules:** `assets/beta-access.js`, `assets/beta-access.css` — loaded on BETA tool pages after `app-access.js`. The tool UI defers initialization until `tta:beta-access-ready` fires.
 

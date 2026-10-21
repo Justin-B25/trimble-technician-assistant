@@ -1215,16 +1215,21 @@ function handleAccessDeny(params) {
 function getBetaToolLabel(toolId) {
   var labels = {
     'gw-csv-formatter': 'Groundworks CSV Formatter (BETA)',
+    'gw-pile-qc': 'Pile QC / Deviation Calculator (BETA)',
+    'excavator-measure-up': 'Excavator Measure-Up Calculator (BETA)',
   };
   return labels[String(toolId || '')] || String(toolId || 'BETA tool');
 }
 
 function getBetaToolPage(toolId) {
   var base = getAppUrl();
-  if (toolId === 'gw-csv-formatter') {
-    return base + 'groundworks/csv-formatter/index.html';
-  }
-  return base;
+  var pages = {
+    'gw-csv-formatter': 'groundworks/csv-formatter/index.html',
+    'gw-pile-qc': 'groundworks/pile-qc/index.html',
+    'excavator-measure-up': 'measure-up/excavator/index.html',
+  };
+  var page = pages[String(toolId || '')];
+  return page ? base + page : base;
 }
 
 function findBetaApprovedUserRow(sheet, toolId, email) {

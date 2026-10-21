@@ -27,6 +27,10 @@ window.WORKSPACE_CONFIG = {
       label: 'Groundworks CSV Formatter (BETA)',
       path: 'groundworks/csv-formatter/index.html',
     },
+    'gw-pile-qc': {
+      label: 'Pile QC / Deviation Calculator (BETA)',
+      path: 'groundworks/pile-qc/index.html',
+    },
     'excavator-measure-up': {
       label: 'Excavator Measure-Up Calculator (BETA)',
       path: 'measure-up/excavator/index.html',

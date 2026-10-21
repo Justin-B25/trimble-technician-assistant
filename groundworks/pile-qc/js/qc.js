@@ -154,7 +154,33 @@ var PileQC = (function () {
     return avg;
   }
 
-  function buildReport(sourceMaps) {
+  function exclusionSet(excludeIds) {
+    var set = Object.create(null);
+    if (!excludeIds) return set;
+    if (Array.isArray(excludeIds)) {
+      excludeIds.forEach(function (id) {
+        if (id != null && id !== '') set[String(id)] = true;
+      });
+    } else if (typeof excludeIds === 'object') {
+      Object.keys(excludeIds).forEach(function (id) {
+        if (excludeIds[id]) set[String(id)] = true;
+      });
+    }
+    return set;
+  }
+
+  function isExcludedId(id, excludeIds) {
+    if (!excludeIds) return false;
+    var set = exclusionSet(excludeIds);
+    return !!set[String(id)];
+  }
+
+  /**
+   * options.excludeIds: array or map of pile IDs to omit from all QC computations.
+   */
+  function buildReport(sourceMaps, options) {
+    options = options || {};
+    var excluded = exclusionSet(options.excludeIds);
     var maps = normalizeSourceMaps(sourceMaps);
     var design = maps.design || Object.create(null);
     var gnss = maps.gnss || Object.create(null);
@@ -163,6 +189,7 @@ var PileQC = (function () {
 
     var common = commonIds(maps);
     var rows = [];
+    var excludedCount = 0;
     var gdList = [];
     var udList = [];
     var kdList = [];
@@ -173,6 +200,10 @@ var PileQC = (function () {
 
     for (var i = 0; i < common.ids.length; i++) {
       var id = common.ids[i];
+      if (excluded[id]) {
+        excludedCount++;
+        continue;
+      }
       var d = design[id] || null;
       var g = gnss[id] || null;
       var u = uts[id] || null;
@@ -228,12 +259,17 @@ var PileQC = (function () {
         common: rows.length,
         /** Alias — sample size used for charts/table (not full design count). */
         sample: rows.length,
+        excluded: excludedCount,
+        candidates: common.ids.length,
         gnssVsDesign: gdList.length,
         utsVsDesign: udList.length,
         machineVsDesign: kdList.length,
         gnssVsMachine: gmList.length,
         utsVsMachine: umList.length,
       },
+      excludedIds: Object.keys(excluded),
+      /** Sample candidate IDs before exclusion (design ∩ as-builts). */
+      candidateIds: common.ids.slice(),
       avg: {
         gnssVsDesign: packAvg(gdList),
         utsVsDesign: packAvg(udList),
@@ -330,6 +366,7 @@ var PileQC = (function () {
     var asBuiltSource = options.asBuiltSource === 'uts' ? 'uts' : 'gnss';
     var designMap = options.designMap || Object.create(null);
     var asBuiltMap = options.asBuiltMap || Object.create(null);
+    var excluded = exclusionSet(options.excludeIds);
     var spec =
       options.specFt != null && Number.isFinite(options.specFt) ? Math.abs(options.specFt) : 0.02;
     var rowTol =
@@ -376,6 +413,7 @@ var PileQC = (function () {
     var ids = mapKeys(designMap);
     for (var i = 0; i < ids.length; i++) {
       var id = ids[i];
+      if (excluded[id]) continue;
       var d = designMap[id];
       var ab = asBuiltMap[id];
       if (!d || !ab) continue;
@@ -673,13 +711,160 @@ var PileQC = (function () {
     return lines.join('\r\n');
   }
 
+  /**
+   * End-of-drive screen compare: guidance-screen remaining Z (ft) vs machine-displayed
+   * remaining Z against as-built truth ΔZ = Z_asBuilt − Z_design.
+   * Objective counts/means only — no preferred source.
+   *
+   * Positive remaining / ΔZ = pile still high (need to drive down).
+   * Machine-displayed raw values convert via machineUnit: 'inches' | 'feet'.
+   *
+   * driveRows: [{ id, gwRemainingFt|guidanceRemainingFt, machineDisplayedRaw, notes? }]
+   */
+  function buildDriveScreenCompare(options) {
+    options = options || {};
+    var designMap = options.designMap || Object.create(null);
+    var asBuiltMap = options.asBuiltMap || Object.create(null);
+    var asBuiltSource = options.asBuiltSource === 'gnss' ? 'gnss' : 'uts';
+    var unitOpt = options.machineUnit != null ? options.machineUnit : options.vermeerUnit;
+    var machineUnit = unitOpt === 'feet' ? 'feet' : 'inches';
+    var excluded = exclusionSet(options.excludeIds);
+    var driveRows = options.driveRows || [];
+    var IN_TO_FT = 1 / 12;
+
+    var rows = [];
+    var guidanceCloser = 0;
+    var machineCloser = 0;
+    var ties = 0;
+    var sumAbsGuidance = 0;
+    var sumAbsMachine = 0;
+    var sumAbsTruth = 0;
+    var n = 0;
+    var nGuidance = 0;
+    var nMachine = 0;
+
+    for (var i = 0; i < driveRows.length; i++) {
+      var dr = driveRows[i];
+      if (!dr) continue;
+      var id = String(dr.id != null ? dr.id : '').trim();
+      if (!id || excluded[id]) continue;
+      var gw = toNum(
+        dr.guidanceRemainingFt != null ? dr.guidanceRemainingFt : dr.gwRemainingFt
+      );
+      var machRaw = toNum(
+        dr.machineDisplayedRaw != null ? dr.machineDisplayedRaw : dr.vermeerRaw
+      );
+      if (gw == null) continue;
+      var machFt =
+        machRaw == null ? null : machineUnit === 'feet' ? machRaw : machRaw * IN_TO_FT;
+
+      var d = designMap[id];
+      var ab = asBuiltMap[id];
+      var truthDz = null;
+      if (d && ab && d.z != null && ab.z != null && Number.isFinite(d.z) && Number.isFinite(ab.z)) {
+        truthDz = ab.z - d.z;
+      }
+
+      var errGw = truthDz != null ? Math.abs(truthDz - gw) : null;
+      var errMachine =
+        truthDz != null && machFt != null ? Math.abs(truthDz - machFt) : null;
+      var closer = null;
+      if (errGw != null && errMachine != null) {
+        if (Math.abs(errGw - errMachine) < 1e-6) closer = 'tie';
+        else closer = errGw < errMachine ? 'guidance' : 'machine';
+      }
+
+      var row = {
+        id: id,
+        guidanceRemainingFt: gw,
+        gwRemainingFt: gw,
+        machineDisplayedRaw: machRaw,
+        machineDisplayedFt: machFt,
+        machineUnit: machineUnit,
+        zDesign: d && d.z != null ? d.z : null,
+        zAsBuilt: ab && ab.z != null ? ab.z : null,
+        truthDz: truthDz,
+        errGuidance: errGw,
+        errGw: errGw,
+        errMachine: errMachine,
+        closer: closer,
+        notes: dr.notes || '',
+        hasTruth: truthDz != null,
+      };
+      rows.push(row);
+
+      if (truthDz != null) {
+        n++;
+        sumAbsTruth += Math.abs(truthDz);
+        if (errGw != null) {
+          nGuidance++;
+          sumAbsGuidance += errGw;
+        }
+        if (errMachine != null) {
+          nMachine++;
+          sumAbsMachine += errMachine;
+        }
+        if (closer === 'guidance') guidanceCloser++;
+        else if (closer === 'machine') machineCloser++;
+        else if (closer === 'tie') ties++;
+      }
+    }
+
+    var meanGuid = nGuidance ? sumAbsGuidance / nGuidance : null;
+    var meanMach = nMachine ? sumAbsMachine / nMachine : null;
+    var verdict = null;
+    if (n) {
+      verdict =
+        'As-built |error| summary (' +
+        n +
+        ' piles with truth): guidance screen smaller on ' +
+        guidanceCloser +
+        ', machine displayed smaller on ' +
+        machineCloser +
+        (ties ? ', ties ' + ties : '') +
+        '. Mean |err| guidance ' +
+        (meanGuid != null ? meanGuid.toFixed(3) : '—') +
+        ' ft · machine displayed ' +
+        (meanMach != null ? meanMach.toFixed(3) : '—') +
+        ' ft. Reported for analysis only.';
+    }
+
+    return {
+      asBuiltSource: asBuiltSource,
+      machineUnit: machineUnit,
+      rows: rows,
+      count: rows.length,
+      withTruth: n,
+      withGuidanceErr: nGuidance,
+      withMachineErr: nMachine,
+      guidanceCloser: guidanceCloser,
+      gwCloser: guidanceCloser,
+      machineCloser: machineCloser,
+      ties: ties,
+      meanAbsTruthDz: n ? sumAbsTruth / n : null,
+      meanAbsErrGuidance: meanGuid,
+      meanAbsErrGw: meanGuid,
+      meanAbsErrMachine: meanMach,
+      verdict: verdict,
+    };
+  }
+
+  function toNum(v) {
+    if (v == null || v === '') return null;
+    if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+    var n = Number(String(v).trim().replace(/,/g, ''));
+    return Number.isFinite(n) ? n : null;
+  }
+
   return {
     COLORS: COLORS,
     buildReport: buildReport,
     buildPileToPileZ: buildPileToPileZ,
+    buildDriveScreenCompare: buildDriveScreenCompare,
     commonIds: commonIds,
     favorLabel: favorLabel,
     fmt: fmt,
     rowsToCsv: rowsToCsv,
+    exclusionSet: exclusionSet,
   };
 })();

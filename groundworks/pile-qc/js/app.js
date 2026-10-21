@@ -24,7 +24,66 @@
     tableShown: 0,
     rebuildToken: 0,
     pileToPile: null,
+    /** Map of pile ID string → true when excluded from all computations. */
+    excludedIds: Object.create(null),
+    /** Candidate IDs from last join (before exclude). */
+    candidateIds: [],
+    /** Field drive-log rows: { id, guidanceRemainingFt, machineDisplayedRaw, notes }. */
+    driveRows: [],
+    driveCompare: null,
   };
+
+  /**
+   * Test 1 Full Down Pressure — guidance rem (ft) vs machine-displayed rem (inches).
+   * Pair with samples/test1-full-down-pressure/*.csv. Other tests: import their own drive-log CSV.
+   */
+  var DRIVE_LOG_SEED = [
+    { id: '1161', guidanceRemainingFt: 0.2, machineDisplayedRaw: 0.04, notes: 'cut off elevation' },
+    { id: '1160', guidanceRemainingFt: 0.24, machineDisplayedRaw: 0.1, notes: '' },
+    { id: '1159', guidanceRemainingFt: 0.08, machineDisplayedRaw: 0.1, notes: 'Down 1000' },
+    { id: '1158', guidanceRemainingFt: 0.2, machineDisplayedRaw: 0.09, notes: 'V1.02 Trimble 2.0' },
+    { id: '1157', guidanceRemainingFt: 0.16, machineDisplayedRaw: 0.05, notes: '' },
+    { id: '1156', guidanceRemainingFt: 0.08, machineDisplayedRaw: 0.07, notes: '' },
+    { id: '1155', guidanceRemainingFt: 0.12, machineDisplayedRaw: 0.02, notes: 'Tall pile' },
+    { id: '1154', guidanceRemainingFt: 0.2, machineDisplayedRaw: 0.09, notes: '' },
+    { id: '1153', guidanceRemainingFt: 0.13, machineDisplayedRaw: 0.2, notes: 'Tall pile' },
+    { id: '1152', guidanceRemainingFt: 0.1, machineDisplayedRaw: 0.2, notes: '' },
+    { id: '1151', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.16, notes: 'Down 1800' },
+    { id: '1150', guidanceRemainingFt: 0.06, machineDisplayedRaw: 0.16, notes: 'V1.02 Trimble 2.0' },
+    { id: '1149', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.2, notes: 'Large Hammer Slowdown Zone' },
+    { id: '1148', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.16, notes: '' },
+    { id: '1147', guidanceRemainingFt: 0.08, machineDisplayedRaw: 0.2, notes: '' },
+    { id: '1146', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.24, notes: '' },
+    { id: '1141', guidanceRemainingFt: 0.05, machineDisplayedRaw: 0.2, notes: '' },
+    { id: '1140', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.08, notes: '' },
+    { id: '1139', guidanceRemainingFt: 0.06, machineDisplayedRaw: 0.16, notes: '' },
+    { id: '1138', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.16, notes: '' },
+    { id: '1137', guidanceRemainingFt: 0.08, machineDisplayedRaw: 0.24, notes: '' },
+    { id: '1136', guidanceRemainingFt: 0.04, machineDisplayedRaw: 0.04, notes: 'Restarted hammer momentarily' },
+    { id: '1135', guidanceRemainingFt: 0.1, machineDisplayedRaw: 0.2, notes: '' },
+    { id: '1134', guidanceRemainingFt: 0.06, machineDisplayedRaw: 0.2, notes: '' },
+    { id: '1133', guidanceRemainingFt: 0.08, machineDisplayedRaw: 0.2, notes: 'Slowed hammer' },
+    { id: '1132', guidanceRemainingFt: 0.08, machineDisplayedRaw: 0.24, notes: '' },
+    { id: '1131', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.04, notes: 'Hammer restarted' },
+    { id: '1130', guidanceRemainingFt: 0.07, machineDisplayedRaw: null, notes: 'No machine-displayed reading' },
+    { id: '1129', guidanceRemainingFt: 0.07, machineDisplayedRaw: 0.09, notes: 'Hammer restarted' },
+    { id: '1128', guidanceRemainingFt: 0.05, machineDisplayedRaw: 0.2, notes: 'Hammer restarted' },
+    { id: '1127', guidanceRemainingFt: 0.05, machineDisplayedRaw: 0.0, notes: 'Hammer restart' },
+    { id: '1126', guidanceRemainingFt: 0.09, machineDisplayedRaw: 0.16, notes: '' },
+  ];
+
+  function excludedIdList() {
+    return Object.keys(state.excludedIds).filter(function (id) {
+      return state.excludedIds[id];
+    });
+  }
+
+  function setExcluded(id, on) {
+    id = String(id).trim();
+    if (!id) return;
+    if (on) state.excludedIds[id] = true;
+    else delete state.excludedIds[id];
+  }
 
   function $(id) {
     return document.getElementById(id);
@@ -333,6 +392,8 @@
         )
       );
       $('results').classList.add('hidden');
+      state.candidateIds = [];
+      renderExcludeUi();
       updateButtons();
       return;
     }
@@ -342,12 +403,15 @@
 
     var report;
     try {
-      report = PileQC.buildReport({
-        design: state.design ? state.design.map : null,
-        gnss: state.gnss ? state.gnss.map : null,
-        uts: state.uts ? state.uts.map : null,
-        machine: state.machine ? state.machine.map : null,
-      });
+      report = PileQC.buildReport(
+        {
+          design: state.design ? state.design.map : null,
+          gnss: state.gnss ? state.gnss.map : null,
+          uts: state.uts ? state.uts.map : null,
+          machine: state.machine ? state.machine.map : null,
+        },
+        { excludeIds: excludedIdList() }
+      );
     } catch (err) {
       alertEl.textContent = 'Failed to build report: ' + (err && err.message ? err.message : err);
       alertEl.classList.remove('hidden');
@@ -358,18 +422,24 @@
 
     if (token !== state.rebuildToken) return;
     state.report = report;
+    state.candidateIds = report.candidateIds || [];
+    renderExcludeUi();
 
     if (!report.counts.common) {
-      alertEl.textContent =
-        'No common pile IDs across loaded sources. Design=' +
-        report.counts.design +
-        ', GNSS=' +
-        report.counts.gnss +
-        ', UTS=' +
-        report.counts.uts +
-        ', Machine=' +
-        report.counts.machine +
-        '.';
+      var exN = report.counts.excluded || 0;
+      alertEl.textContent = exN
+        ? 'All ' +
+          exN +
+          ' candidate pile(s) are excluded. Clear excludes or uncheck IDs to restore the sample.'
+        : 'No common pile IDs across loaded sources. Design=' +
+          report.counts.design +
+          ', GNSS=' +
+          report.counts.gnss +
+          ', UTS=' +
+          report.counts.uts +
+          ', Machine=' +
+          report.counts.machine +
+          '.';
       alertEl.classList.remove('hidden');
       $('results').classList.add('hidden');
       updateButtons();
@@ -453,7 +523,10 @@
       designTotal > 0 ? ((100 * sample) / designTotal).toFixed(0) : null;
     $('stat-count-note').textContent =
       (pct != null ? pct + '% of design · ' : '') +
-      'piles with design + GNSS and/or UTS and/or machine';
+      'piles with design + GNSS and/or UTS and/or machine' +
+      (report.counts.excluded
+        ? ' · ' + report.counts.excluded + ' excluded'
+        : '');
     setText('stat-design-total', String(designTotal));
     var missing = Math.max(0, designTotal - sample);
     setText(
@@ -610,6 +683,8 @@
           ? 'intersection of loaded sources'
           : report.joinMode || 'join';
     var sample = report.counts.sample != null ? report.counts.sample : report.counts.common;
+    var exclNote =
+      report.counts.excluded > 0 ? ' · excluded ' + report.counts.excluded : '';
     $('match-note').textContent =
       'Rover mode: ' +
       modeLabel +
@@ -619,6 +694,7 @@
       report.counts.design +
       ' design) via ' +
       joinHint +
+      exclNote +
       ' · series n: GNSS ' +
       (report.counts.gnssVsDesign || 0) +
       ' · UTS ' +
@@ -629,6 +705,85 @@
 
     syncPileToPileSourceOptions();
     renderPileToPile();
+    syncDriveTruthOptions();
+    renderDriveScreenCompare();
+  }
+
+  function renderExcludeUi() {
+    var list = excludedIdList().sort(function (a, b) {
+      var na = Number(a);
+      var nb = Number(b);
+      if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+      return String(a).localeCompare(String(b));
+    });
+    var summary = $('exclude-summary');
+    if (summary) {
+      summary.textContent = list.length
+        ? list.length + ' pile(s) excluded from sample and computations.'
+        : 'No piles excluded.';
+    }
+    var chips = $('exclude-chips');
+    if (chips) {
+      chips.innerHTML = '';
+      list.forEach(function (id) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'exclude-chip';
+        chip.setAttribute('data-id', id);
+        chip.title = 'Remove exclude';
+        chip.innerHTML = '<span>' + id + '</span><span class="exclude-chip-x" aria-hidden="true">×</span>';
+        chips.appendChild(chip);
+      });
+    }
+    var filterEl = $('exclude-filter');
+    var filter = filterEl && filterEl.value ? filterEl.value.trim().toLowerCase() : '';
+    var checklist = $('exclude-checklist');
+    if (!checklist) return;
+    var ids = state.candidateIds.slice();
+    list.forEach(function (id) {
+      if (ids.indexOf(id) < 0) ids.push(id);
+    });
+    ids.sort(function (a, b) {
+      var na = Number(a);
+      var nb = Number(b);
+      if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+      return String(a).localeCompare(String(b));
+    });
+    checklist.innerHTML = '';
+    if (!ids.length) {
+      checklist.innerHTML = '<p class="muted" style="margin:8px">Load design + as-built to list pile IDs.</p>';
+      return;
+    }
+    var frag = document.createDocumentFragment();
+    ids.forEach(function (id) {
+      if (filter && String(id).toLowerCase().indexOf(filter) < 0) return;
+      var label = document.createElement('label');
+      label.className = 'exclude-check' + (state.excludedIds[id] ? ' is-excluded' : '');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !state.excludedIds[id];
+      cb.setAttribute('data-id', id);
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(' ' + id));
+      frag.appendChild(label);
+    });
+    checklist.appendChild(frag);
+  }
+
+  function applyExcludeIdsFromInput() {
+    var input = $('exclude-input');
+    if (!input) return;
+    var raw = input.value || '';
+    var parts = raw.split(/[,;\s]+/).map(function (s) {
+      return s.trim();
+    }).filter(Boolean);
+    if (!parts.length) return;
+    parts.forEach(function (id) {
+      setExcluded(id, true);
+    });
+    input.value = '';
+    renderExcludeUi();
+    scheduleRebuild();
   }
 
   function readPileToPileSpec() {
@@ -708,6 +863,7 @@
       asBuiltMap: asBuiltMap,
       asBuiltSource: source,
       specFt: readPileToPileSpec(),
+      excludeIds: excludedIdList(),
     });
     state.pileToPile = ptp;
 
@@ -809,6 +965,235 @@
       frag.appendChild(tr);
     }
     body.appendChild(frag);
+  }
+
+  function syncDriveTruthOptions() {
+    var sel = $('drive-truth-source');
+    if (!sel) return;
+    var prev = sel.value;
+    var opts = [];
+    if (state.uts && state.uts.count) opts.push({ value: 'uts', label: 'UTS as-built' });
+    if (state.gnss && state.gnss.count) opts.push({ value: 'gnss', label: 'GNSS as-built' });
+    sel.innerHTML = '';
+    if (!opts.length) {
+      var empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = 'Load GNSS or UTS stakeout';
+      sel.appendChild(empty);
+      sel.disabled = true;
+      return;
+    }
+    sel.disabled = false;
+    opts.forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.value;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    var prefer =
+      opts.some(function (o) {
+        return o.value === prev;
+      })
+        ? prev
+        : opts[0].value;
+    sel.value = prefer;
+  }
+
+  function readDriveMachineUnit() {
+    var el = $('drive-machine-unit');
+    return el && el.value === 'feet' ? 'feet' : 'inches';
+  }
+
+  function renderDriveScreenCompare() {
+    if (!$('drive-screen-section')) return;
+    var sourceEl = $('drive-truth-source');
+    var source = sourceEl && sourceEl.value ? sourceEl.value : '';
+    var designMap = state.design && state.design.map;
+    var asBuiltMap =
+      source === 'uts'
+        ? state.uts && state.uts.map
+        : source === 'gnss'
+          ? state.gnss && state.gnss.map
+          : null;
+
+    if (!state.driveRows.length) {
+      setText('drive-n', '—');
+      setText('drive-wins', '—');
+      setText('drive-err-gw', '—');
+      setText('drive-err-machine', '—');
+      setText('drive-n-note', 'Load seed or import CSV');
+      setText('drive-ties-note', '');
+      var vEmpty = $('drive-verdict');
+      if (vEmpty) {
+        vEmpty.textContent =
+          'No drive-log rows yet. Import a drive-log CSV for this test, or load the Test 1 seed.';
+        vEmpty.className = 'ptp-verdict';
+      }
+      state.driveCompare = null;
+      var tb0 = $('drive-table-body');
+      if (tb0) tb0.innerHTML = '';
+      return;
+    }
+
+    if (!source || !designMap || !asBuiltMap) {
+      setText('drive-n', String(state.driveRows.length));
+      setText('drive-wins', '—');
+      setText('drive-err-gw', '—');
+      setText('drive-err-machine', '—');
+      setText('drive-n-note', 'Need design + as-built for truth ΔZ');
+      setText('drive-ties-note', '');
+      var vNeed = $('drive-verdict');
+      if (vNeed) {
+        vNeed.textContent =
+          'Drive log loaded (' +
+          state.driveRows.length +
+          ' rows). Load design and GNSS/UTS stakeout to score against as-built ΔZ.';
+        vNeed.className = 'ptp-verdict';
+      }
+      state.driveCompare = null;
+      renderDriveTableRows(
+        state.driveRows.map(function (dr) {
+          return {
+            id: dr.id,
+            guidanceRemainingFt: dr.guidanceRemainingFt != null ? dr.guidanceRemainingFt : dr.gwRemainingFt,
+            gwRemainingFt: dr.guidanceRemainingFt != null ? dr.guidanceRemainingFt : dr.gwRemainingFt,
+            machineDisplayedRaw: dr.machineDisplayedRaw,
+            machineDisplayedFt: null,
+            truthDz: null,
+            errGw: null,
+            errMachine: null,
+            closer: null,
+            notes: dr.notes || '',
+          };
+        })
+      );
+      return;
+    }
+
+    var cmp = PileQC.buildDriveScreenCompare({
+      designMap: designMap,
+      asBuiltMap: asBuiltMap,
+      asBuiltSource: source,
+      machineUnit: readDriveMachineUnit(),
+      driveRows: state.driveRows,
+      excludeIds: excludedIdList(),
+    });
+    state.driveCompare = cmp;
+
+    setText('drive-n', String(cmp.withTruth));
+    setText(
+      'drive-n-note',
+      cmp.count
+        ? cmp.withTruth + ' of ' + cmp.count + ' log rows · ' + source.toUpperCase() + ' truth'
+        : ''
+    );
+    var guidCloser = cmp.guidanceCloser != null ? cmp.guidanceCloser : cmp.gwCloser;
+    setText(
+      'drive-wins',
+      cmp.withTruth ? guidCloser + ' / ' + cmp.machineCloser : '—'
+    );
+    setText(
+      'drive-ties-note',
+      cmp.ties ? cmp.ties + ' tie(s)' : cmp.withTruth ? 'Equal |err| ties: 0' : ''
+    );
+    var meanGuid =
+      cmp.meanAbsErrGuidance != null ? cmp.meanAbsErrGuidance : cmp.meanAbsErrGw;
+    setText('drive-err-gw', meanGuid != null ? PileQC.fmt(meanGuid) : '—');
+    setText(
+      'drive-err-machine',
+      cmp.meanAbsErrMachine != null ? PileQC.fmt(cmp.meanAbsErrMachine) : '—'
+    );
+
+    var verdict = $('drive-verdict');
+    if (verdict) {
+      verdict.textContent = cmp.verdict || 'No piles with as-built truth matched the drive log.';
+      verdict.className = 'ptp-verdict';
+    }
+    renderDriveTableRows(cmp.rows);
+  }
+
+  function renderDriveTableRows(rows) {
+    var body = $('drive-table-body');
+    if (!body) return;
+    body.innerHTML = '';
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var tr = document.createElement('tr');
+      var rem =
+        r.guidanceRemainingFt != null ? r.guidanceRemainingFt : r.gwRemainingFt;
+      var errG = r.errGuidance != null ? r.errGuidance : r.errGw;
+      var closerLabel =
+        r.closer === 'guidance' || r.closer === 'groundworks'
+          ? 'Guidance'
+          : r.closer === 'machine'
+            ? 'Machine'
+            : r.closer === 'tie'
+              ? 'Tie'
+              : '—';
+      tr.innerHTML =
+        '<td class="id">' +
+        r.id +
+        '</td><td>' +
+        (rem != null ? PileQC.fmt(rem) : '—') +
+        '</td><td>' +
+        (r.machineDisplayedRaw != null ? PileQC.fmt(r.machineDisplayedRaw) : '—') +
+        '</td><td>' +
+        (r.machineDisplayedFt != null ? PileQC.fmt(r.machineDisplayedFt) : '—') +
+        '</td><td>' +
+        (r.truthDz != null ? PileQC.fmt(r.truthDz) : '—') +
+        '</td><td>' +
+        (errG != null ? PileQC.fmt(errG) : '—') +
+        '</td><td>' +
+        (r.errMachine != null ? PileQC.fmt(r.errMachine) : '—') +
+        '</td><td>' +
+        closerLabel +
+        '</td><td>' +
+        (r.notes ? String(r.notes) : '') +
+        '</td>';
+      frag.appendChild(tr);
+    }
+    body.appendChild(frag);
+  }
+
+  function parseDriveLogCsv(text) {
+    var lines = String(text || '')
+      .replace(/^\uFEFF/, '')
+      .split(/\r?\n/)
+      .map(function (l) {
+        return l.trim();
+      })
+      .filter(Boolean);
+    if (!lines.length) return [];
+    var rows = [];
+    var start = 0;
+    var first = lines[0].toLowerCase();
+    if (
+      first.indexOf('pile') >= 0 ||
+      first.indexOf('groundworks') >= 0 ||
+      first.indexOf('guidance') >= 0 ||
+      first.indexOf('machine') >= 0 ||
+      first.indexOf('displayed') >= 0 ||
+      first.indexOf('vermeer') >= 0
+    ) {
+      start = 1;
+    }
+    for (var i = start; i < lines.length; i++) {
+      var parts = lines[i].split(',').map(function (p) {
+        return p.trim().replace(/^"|"$/g, '');
+      });
+      if (!parts[0]) continue;
+      var gw = parts[1] !== undefined && parts[1] !== '' ? Number(parts[1]) : null;
+      var mach = parts[2] !== undefined && parts[2] !== '' ? Number(parts[2]) : null;
+      rows.push({
+        id: String(parts[0]).trim(),
+        guidanceRemainingFt: Number.isFinite(gw) ? gw : null,
+        gwRemainingFt: Number.isFinite(gw) ? gw : null,
+        machineDisplayedRaw: Number.isFinite(mach) ? mach : null,
+        notes: parts.slice(3).join(',').trim(),
+      });
+    }
+    return rows;
   }
 
   function buildTableHead(report) {
@@ -1158,6 +1543,109 @@
       ptpSource.addEventListener('change', renderPileToPile);
     }
 
+    var btnExcludeAdd = $('btn-exclude-add');
+    if (btnExcludeAdd) {
+      btnExcludeAdd.addEventListener('click', applyExcludeIdsFromInput);
+    }
+    var excludeInput = $('exclude-input');
+    if (excludeInput) {
+      excludeInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyExcludeIdsFromInput();
+        }
+      });
+    }
+    var btnExcludeClear = $('btn-exclude-clear');
+    if (btnExcludeClear) {
+      btnExcludeClear.addEventListener('click', function () {
+        state.excludedIds = Object.create(null);
+        renderExcludeUi();
+        scheduleRebuild();
+      });
+    }
+    var excludeFilter = $('exclude-filter');
+    if (excludeFilter) {
+      excludeFilter.addEventListener('input', function () {
+        renderExcludeUi();
+      });
+    }
+    var excludeChips = $('exclude-chips');
+    if (excludeChips) {
+      excludeChips.addEventListener('click', function (e) {
+        var el = e.target;
+        if (el && el.nodeType !== 1) el = el.parentElement;
+        var btn = el && el.closest ? el.closest('.exclude-chip') : null;
+        if (!btn) return;
+        var id = btn.getAttribute('data-id');
+        if (!id) return;
+        setExcluded(id, false);
+        renderExcludeUi();
+        scheduleRebuild();
+      });
+    }
+    var excludeChecklist = $('exclude-checklist');
+    if (excludeChecklist) {
+      excludeChecklist.addEventListener('change', function (e) {
+        var t = e.target;
+        if (!t || t.type !== 'checkbox') return;
+        var id = t.getAttribute('data-id');
+        if (!id) return;
+        setExcluded(id, !t.checked);
+        renderExcludeUi();
+        scheduleRebuild();
+      });
+    }
+
+    var driveTruth = $('drive-truth-source');
+    if (driveTruth) {
+      driveTruth.addEventListener('change', renderDriveScreenCompare);
+    }
+    var driveUnit = $('drive-machine-unit');
+    if (driveUnit) {
+      driveUnit.addEventListener('change', renderDriveScreenCompare);
+    }
+    var btnDriveSeed = $('btn-drive-seed');
+    if (btnDriveSeed) {
+      btnDriveSeed.addEventListener('click', function () {
+        state.driveRows = DRIVE_LOG_SEED.map(function (r) {
+          return {
+            id: r.id,
+            guidanceRemainingFt: r.guidanceRemainingFt,
+            gwRemainingFt: r.guidanceRemainingFt,
+            machineDisplayedRaw: r.machineDisplayedRaw,
+            notes: r.notes || '',
+          };
+        });
+        renderDriveScreenCompare();
+      });
+    }
+    var btnDriveClear = $('btn-drive-clear');
+    if (btnDriveClear) {
+      btnDriveClear.addEventListener('click', function () {
+        state.driveRows = [];
+        state.driveCompare = null;
+        renderDriveScreenCompare();
+      });
+    }
+    var fileDrive = $('file-drive-log');
+    if (fileDrive) {
+      fileDrive.addEventListener('change', function () {
+        var f = fileDrive.files && fileDrive.files[0];
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          state.driveRows = parseDriveLogCsv(String(reader.result || ''));
+          renderDriveScreenCompare();
+          fileDrive.value = '';
+        };
+        reader.readAsText(f);
+      });
+    }
+
+    renderExcludeUi();
+    renderDriveScreenCompare();
+
     $('btn-pdf').addEventListener('click', function () {
       if (!state.report) return;
       try {
@@ -1197,7 +1685,9 @@
       state.gnssFiles = [];
       state.utsFiles = [];
       state.machineFiles = [];
+      state.candidateIds = [];
       refreshLists();
+      renderExcludeUi();
       scheduleRebuild();
     });
 
@@ -1213,5 +1703,22 @@
     wireZInteractions();
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  function startWhenBetaReady() {
+    var betaToolId = document.body.getAttribute('data-beta-tool');
+    if (!betaToolId) {
+      init();
+      return;
+    }
+    if (!document.body.classList.contains('beta-access-locked')) {
+      init();
+      return;
+    }
+    document.addEventListener('tta:beta-access-ready', init, { once: true });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startWhenBetaReady);
+  } else {
+    startWhenBetaReady();
+  }
 })();

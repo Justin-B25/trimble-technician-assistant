@@ -4,23 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="../../assets/theme-init.js"></script>
-  <title>Pile QC / Deviation Calculator — Trimble Technician Assistant</title>
+  <title>Pile QC / Deviation Calculator (BETA) — Trimble Technician Assistant</title>
   <meta name="theme-color" content="#005f9e" />
   <link rel="icon" type="image/png" sizes="32x32" href="../../favicon-32.png" />
   <link rel="stylesheet" href="../../assets/trimble-connect.css" />
   <link rel="stylesheet" href="../../assets/app-access.css" />
+  <link rel="stylesheet" href="../../assets/beta-access.css?v=1" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=10" />
+  <link rel="stylesheet" href="styles.css?v=12" />
 </head>
-<body data-gw-page="pile-qc" class="pile-qc">
+<body data-gw-page="pile-qc" data-beta-tool="gw-pile-qc" class="pile-qc beta-access-locked">
   <header class="tc-app-header">
     <a class="tc-back-link" href="../index.html">&larr; Groundworks</a>
     <div class="tc-header__inner">
       <div class="tc-header__brand">
         <img class="tc-header__logo" src="../../assets/brand/trimble-logo-white.png" alt="Trimble" />
         <div class="tc-header__titles">
-          <h1 class="tc-header__product">Pile QC / Deviation Calculator</h1>
-          <p class="tc-header__sub">Design · GNSS / UTS stakeout · Machine quality</p>
+          <h1 class="tc-header__product">Pile QC / Deviation Calculator (BETA)</h1>
+          <p class="tc-header__sub">Objective field QC · Design · GNSS / UTS · Machine</p>
         </div>
       </div>
     </div>
@@ -28,8 +29,11 @@
 
   <main class="tc-main pile-qc-main">
     <p class="pile-qc-intro">
-      Compare design top-of-pile to GNSS rover, UTS rover, and/or Groundworks machine as-built on matching pile IDs.
-      Load any combination (GNSS only, UTS only, both stakeouts, machine, or all). Plots:
+      <strong>BETA — access required.</strong>
+      Neutral field-data calculator: join design with GNSS/UTS as-built and/or machine quality by pile ID,
+      report XY/Z deltas, and compare end-of-drive remaining-Z values recorded from the guidance screen
+      vs the machine-displayed screen against as-built truth. No preferred outcome — numbers only.
+      Load any combination of sources. Plots:
       <span class="legend-swatch legend-swatch--gnss">GNSS</span>
       <span class="legend-swatch legend-swatch--uts">UTS</span>
       <span class="legend-swatch legend-swatch--machine">Machine</span>.
@@ -128,6 +132,30 @@
         <button type="button" class="btn btn-secondary" id="btn-clear">Clear all files</button>
         <button type="button" class="btn btn-secondary" id="btn-csv" disabled>Export CSV</button>
         <button type="button" class="btn btn-primary" id="btn-pdf" disabled>Export PDF</button>
+      </div>
+    </section>
+
+    <section class="card" id="exclude-section">
+      <h2>Exclude piles from sample</h2>
+      <p class="muted" style="margin-top: -4px; margin-bottom: 10px">
+        Uncheck or add pile IDs with poor data. Excluded piles are omitted from summary averages,
+        charts, PTP, table, PDF, and guidance vs machine-displayed compare.
+      </p>
+      <div class="exclude-controls">
+        <div>
+          <label class="muted" for="exclude-input">Add ID(s) to exclude</label>
+          <div class="exclude-add-row">
+            <input id="exclude-input" type="text" placeholder="e.g. 1152, 1130" />
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-exclude-add">Exclude</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-exclude-clear">Clear all excludes</button>
+          </div>
+        </div>
+      </div>
+      <p class="muted" id="exclude-summary">No piles excluded.</p>
+      <div class="exclude-chips" id="exclude-chips"></div>
+      <div class="exclude-list-wrap">
+        <input id="exclude-filter" type="search" placeholder="Filter pile IDs…" />
+        <div class="exclude-checklist" id="exclude-checklist"></div>
       </div>
     </section>
 
@@ -252,6 +280,90 @@
         <p class="favor" id="favor-text"></p>
       </section>
 
+      <section class="card" id="drive-screen-section">
+        <h2>Guidance screen vs machine displayed — end-of-drive Z</h2>
+        <p class="muted" style="margin-top: -4px; margin-bottom: 12px">
+          Side-by-side remaining-to-design Z from the <strong>guidance screen</strong> and the
+          <strong>machine-displayed</strong> value at end of drive, each scored against as-built
+          <code>ΔZ = Z<sub>as-built</sub> − Z<sub>design</sub></code> (UTS when loaded, else GNSS).
+          Positive = still high (need to drive down). Import one drive-log CSV per test
+          (see <code>samples/</code>). Results are counts and mean |error| only — not a recommendation.
+        </p>
+        <div class="ptp-controls">
+          <div>
+            <label class="muted" for="drive-truth-source">As-built truth</label>
+            <select id="drive-truth-source">
+              <option value="uts">UTS as-built</option>
+              <option value="gnss">GNSS as-built</option>
+            </select>
+          </div>
+          <div>
+            <label class="muted" for="drive-machine-unit">Machine displayed remaining units</label>
+            <select id="drive-machine-unit">
+              <option value="inches" selected>Inches</option>
+              <option value="feet">Feet</option>
+            </select>
+          </div>
+          <div>
+            <label class="muted" for="file-drive-log">Import drive-log CSV</label>
+            <input id="file-drive-log" type="file" accept=".csv,text/csv" />
+          </div>
+        </div>
+        <p class="muted" style="margin-bottom: 8px">
+          CSV columns:
+          <code>PileID, GuidanceRemainingFt, MachineDisplayedRemaining, Notes</code>
+          (aliases <code>GroundworksRemainingFt</code> accepted). Machine column uses the unit selector.
+          One CSV per test run.
+        </p>
+        <div class="actions" style="margin-bottom: 12px">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-drive-seed">
+            Load Test 1 drive-log seed
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-drive-clear">Clear drive log</button>
+        </div>
+        <div class="ptp-stats" id="drive-stats">
+          <article class="ptp-stat">
+            <div class="label">Pairs with as-built truth</div>
+            <div class="value" id="drive-n">—</div>
+            <div class="note" id="drive-n-note"></div>
+          </article>
+          <article class="ptp-stat">
+            <div class="label">Smaller |err| count (guid. / mach.)</div>
+            <div class="value" id="drive-wins">—</div>
+            <div class="note" id="drive-ties-note"></div>
+          </article>
+          <article class="ptp-stat">
+            <div class="label">Mean |err| guidance (ft)</div>
+            <div class="value" id="drive-err-gw">—</div>
+            <div class="note">|as-built ΔZ − guidance rem.|</div>
+          </article>
+          <article class="ptp-stat">
+            <div class="label">Mean |err| machine disp. (ft)</div>
+            <div class="value" id="drive-err-machine">—</div>
+            <div class="note">After unit conversion to ft</div>
+          </article>
+        </div>
+        <p class="ptp-verdict" id="drive-verdict"></p>
+        <div class="table-wrap ptp-table-wrap">
+          <table class="qc-table" id="drive-table">
+            <thead>
+              <tr>
+                <th class="id">ID</th>
+                <th>Guid. rem (ft)</th>
+                <th>Mach rem (raw)</th>
+                <th>Mach rem (ft)</th>
+                <th>As-built ΔZ</th>
+                <th>|err| Guid.</th>
+                <th>|err| Mach</th>
+                <th>Lower |err|</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="drive-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="card" id="ptp-section">
         <h2>Pile-to-pile Z consistency</h2>
         <p class="muted" style="margin-top: -4px; margin-bottom: 12px">
@@ -368,20 +480,21 @@
     </div>
   </main>
 
-  <footer class="tc-footer">Pile QC / Deviation Calculator · Groundworks · Technician Assistant</footer>
+  <footer class="tc-footer">Pile QC / Deviation Calculator (BETA) · Groundworks · Technician Assistant</footer>
 
-  <script src="../../assets/workspace-config.js?v=5"></script>
+  <script src="../../assets/workspace-config.js?v=6"></script>
   <script src="../../assets/workspace-api.js?v=12"></script>
   <script src="../../assets/app-access.js?v=10"></script>
+  <script src="../../assets/beta-access.js?v=3"></script>
   <script src="../../assets/theme-toggle.js"></script>
   <script src="../../assets/header-home.js"></script>
   <script src="../../assets/feedback-config.js?v=3"></script>
   <script src="../../assets/feedback.js?v=4"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="js/parsers.js?v=4"></script>
-  <script src="js/qc.js?v=7"></script>
+  <script src="js/qc.js?v=10"></script>
   <script src="js/charts.js?v=5"></script>
   <script src="js/pdf.js?v=6"></script>
-  <script src="js/app.js?v=12"></script>
+  <script src="js/app.js?v=17"></script>
 </body>
 </html>

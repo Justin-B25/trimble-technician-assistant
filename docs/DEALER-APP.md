@@ -80,7 +80,7 @@ flowchart TB
 
 Backend: `google-workspace/Code.gs` → Sheets (`ApprovedUsers`, `AccessCodes`, `Events`).
 
-### BETA tool access (Groundworks CSV Formatter)
+### BETA tool access
 
 BETA access is **in addition to** main app access. Users must be signed in to the Technician Assistant before the BETA gate appears.
 
@@ -89,14 +89,22 @@ BETA access is **in addition to** main app access. Users must be signed in to th
 | **Trimble personnel** (`@trimble.com`, `@*.trimblecorp.net`) | BETA access activates automatically after main app sign-in (28-day grant) |
 | **Other approved users** | Tap **Request BETA access** → admin approval email → user notified when granted |
 
+**BETA tools:**
+
+| Tool ID | Page |
+|---------|------|
+| `gw-csv-formatter` | `groundworks/csv-formatter/index.html` |
+| `gw-pile-qc` | `groundworks/pile-qc/index.html` |
+| `excavator-measure-up` | `measure-up/excavator/index.html` |
+
 **Implementation:**
 
-- Tool page: `groundworks/csv-formatter/index.html` with `data-beta-tool="gw-csv-formatter"`
-- Gate: `assets/beta-access.js` (unlocks on grant, dispatches `tta:beta-access-ready`)
-- Tool UI: `groundworks/csv-formatter/app.js` defers `init()` until BETA unlock
+- Each tool page sets `data-beta-tool="<tool-id>"` and loads `beta-access.css` / `beta-access.js`
+- Gate unlocks on grant and dispatches `tta:beta-access-ready`
+- Tool UI defers `init()` until BETA unlock
 - Backend sheets: `BetaAccessRequests`, `BetaApprovedUsers` (see [google-workspace/DEPLOY.md](../google-workspace/DEPLOY.md))
 
-Hub and Groundworks category list the tool as **CSV Formatter (BETA)**.
+Hub and Groundworks list these tools with a **BETA** badge.
 
 ---
 

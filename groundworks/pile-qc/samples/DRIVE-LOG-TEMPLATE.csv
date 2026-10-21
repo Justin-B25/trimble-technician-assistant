@@ -1,0 +1,2 @@
+PileID,GuidanceRemainingFt,MachineDisplayedRemaining,Notes
+1126,0.09,0.16,example — set app unit selector to match MachineDisplayedRemaining (inches or feet)

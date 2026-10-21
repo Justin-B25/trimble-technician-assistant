@@ -40,8 +40,10 @@
         {
           href: './groundworks/pile-qc/index.html',
           icon: 'QC',
-          name: 'Pile QC / Deviation Calculator',
-          summary: 'Design vs GNSS / UTS stakeout vs machine — XY/Z deltas, bullseye, and landscape PDF',
+          name: 'Pile QC / Deviation Calculator (BETA)',
+          beta: true,
+          summary:
+            'Objective field QC — design vs GNSS/UTS/machine, guidance vs machine-displayed remaining Z — BETA access required',
         },
       ],
     },
