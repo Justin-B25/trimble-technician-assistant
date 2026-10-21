@@ -673,6 +673,8 @@
       alert('Choose a CSV file first.');
       return;
     }
+    // Allow re-entry only after clearBusy — callers that set busy must clear
+    // it before invoking process (see onFileLoaded / ignore-rows handlers).
     if (isBusy) return;
 
     var gen = ++processGeneration;
@@ -796,12 +798,11 @@
         if (gen !== loadGeneration) return;
 
         rebuildMappingUiOnly();
-        if (shouldAutoProcess()) {
-          processCurrent();
-        } else {
-          invalidatePreview();
-          clearBusy();
-        }
+        // Mapping starts empty by design — wait for the user to map columns
+        // (or click Apply). Do not call processCurrent while busy: it returns
+        // early and would leave the busy overlay stuck.
+        invalidatePreview();
+        clearBusy();
       } catch (err) {
         if (gen !== loadGeneration) return;
         state.result = null;
@@ -941,11 +942,12 @@
           try {
             buildSourceState(false);
             rebuildMappingUiOnly();
-            if (shouldAutoProcess()) {
+            // clearBusy first — processCurrent refuses to run while isBusy is true
+            clearBusy();
+            if (shouldAutoProcess() && mappingIssues().length === 0) {
               processCurrent();
             } else {
               invalidatePreview();
-              clearBusy();
             }
           } catch (err) {
             els.statusCard.classList.remove('hidden', 'gw-card--ok', 'gw-card--warn');

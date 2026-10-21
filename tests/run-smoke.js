@@ -169,21 +169,32 @@ function testGwCsvFormatter() {
   var swCsv = fs.readFileSync(path.join(__dirname, 'fixtures/gw-siteworks-export.csv'), 'utf8');
   var swRaw = fmt.parseCsvRaw(swCsv);
   var swSource = fmt.buildSourceTable(swRaw, { hasHeaderRow: true });
-  var swMapping = fmt.guessColumnMapping(swSource.columns);
-  assert(swMapping.ID === 0, 'Siteworks export maps point names to ID');
-  var swMapped = fmt.processWithMapping(swSource, swMapping, { fieldConstants: { Length: '15' } });
+  // Unlabeled Siteworks-style headers (Instrument,,,) must not auto-map — user maps manually.
+  var unlabeledGuess = fmt.guessColumnMapping(swSource.columns);
+  assert(Object.keys(unlabeledGuess).length === 0, 'Unlabeled Siteworks headers do not auto-map');
+  var swManual = { ID: 0, X: 1, Y: 2, Z: 3 };
+  var swMapped = fmt.processWithMapping(swSource, swManual, { fieldConstants: { Length: '15' } });
   assert(swMapped.pileCount === 6, 'Siteworks export yields six piles');
   assert(swMapped.outputRecords[0].ID === 'ML', 'Siteworks first pile ID preserved');
-  assert(swMapped.outputRecords[0].X === '5000', 'Siteworks northing maps to X');
-  assert(swMapped.outputRecords[0].Y === '1000', 'Siteworks easting maps to Y');
+  assert(swMapped.outputRecords[0].X === '5000', 'Siteworks col1 maps to X when user selects it');
+  assert(swMapped.outputRecords[0].Y === '1000', 'Siteworks col2 maps to Y when user selects it');
   assert(swMapped.outputRecords[0].Z === '100.709', 'Siteworks elevation maps to Z');
   assert(swMapped.inputUnits === 'US FT', 'GW formatter defaults to US FT');
-  var swMetric = fmt.processWithMapping(swSource, swMapping, {
+
+  var labeledRaw = fmt.parseCsvRaw('Point Name,Easting,Northing,Elevation\nML,1000,5000,100.709\n');
+  var labeledSource = fmt.buildSourceTable(labeledRaw, { hasHeaderRow: true });
+  var labeledMapping = fmt.guessColumnMapping(labeledSource.columns);
+  assert(labeledMapping.ID === 0 && labeledMapping.X === 1 && labeledMapping.Y === 2 && labeledMapping.Z === 3, 'Labeled export auto-maps easting→X northing→Y');
+  var labeledMapped = fmt.processWithMapping(labeledSource, labeledMapping, { fieldConstants: { Length: '15' } });
+  assert(labeledMapped.outputRecords[0].X === '1000', 'Guessed X is easting');
+  assert(labeledMapped.outputRecords[0].Y === '5000', 'Guessed Y is northing');
+
+  var swMetric = fmt.processWithMapping(swSource, swManual, {
     fieldConstants: { Length: '15' },
     inputUnits: 'METRIC',
   });
   assert(swMetric.inputUnits === 'METRIC', 'GW formatter records METRIC input units');
-  var swIntl = fmt.processWithMapping(swSource, swMapping, {
+  var swIntl = fmt.processWithMapping(swSource, swManual, {
     fieldConstants: { Length: '15' },
     inputUnits: 'INTL FT',
   });

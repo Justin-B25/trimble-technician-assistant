@@ -376,8 +376,15 @@ var GwCsvFormatter = (function () {
       for (i = 0; i < columns.length; i++) {
         if (used[i]) continue;
         var labelNorm = normalizeHeader(columns[i].headerText || columns[i].label);
+        if (!labelNorm) continue;
         var matched = aliases.some(function (alias) {
-          return labelNorm === alias || labelNorm.indexOf(alias) !== -1 || alias.indexOf(labelNorm) !== -1;
+          if (!alias) return false;
+          // Require meaningful overlap — empty labelNorm would match every alias via indexOf('').
+          return (
+            labelNorm === alias ||
+            (alias.length >= 2 && labelNorm.indexOf(alias) !== -1) ||
+            (labelNorm.length >= 2 && alias.indexOf(labelNorm) !== -1)
+          );
         });
         if (matched) claim(field, i);
       }
