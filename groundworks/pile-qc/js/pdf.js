@@ -136,23 +136,219 @@ var PilePdf = (function () {
       escapeHtml(title) +
       '</div>' +
       '<div class="avg-grid">' +
-      '<div><span>ΔN</span><b>' +
+      '<div><span>Mean ΔN</span><b>' +
       fmt(avg.dn) +
       '</b></div>' +
-      '<div><span>ΔE</span><b>' +
+      '<div><span>Mean ΔE</span><b>' +
       fmt(avg.de) +
       '</b></div>' +
-      '<div><span>ΔZ</span><b>' +
+      '<div><span>Mean ΔZ</span><b>' +
       fmt(avg.dz) +
       '</b></div>' +
       '<div><span>Horiz</span><b>' +
       fmt(avg.horiz) +
+      '</b></div>' +
+      '<div><span>Med ΔZ</span><b>' +
+      fmt(avg.medianDz) +
       '</b></div>' +
       '<div class="favor-cell"><span>Favor</span><b>' +
       escapeHtml(avg.favor) +
       '</b></div>' +
       '</div></div>'
     );
+  }
+
+  function pctFmt(v) {
+    if (v == null || !Number.isFinite(v)) return '—';
+    return v.toFixed(0) + '%';
+  }
+
+  function deltasFromRows(rows, key) {
+    var list = [];
+    if (!rows) return list;
+    for (var i = 0; i < rows.length; i++) {
+      var d = rows[i] && rows[i][key];
+      if (d) list.push(d);
+    }
+    return list;
+  }
+
+  /** RMS / σ + pass rates vs site tolerances for one series. */
+  function spreadPassBlock(title, avg, passEv, colorClass) {
+    if (!avg && !passEv) return '';
+    var n = (avg && avg.count) || (passEv && passEv.count) || 0;
+    var html =
+      '<div class="avg-card ' +
+      (colorClass || '') +
+      '">' +
+      '<div class="avg-title">' +
+      escapeHtml(title) +
+      (n ? ' (n=' + n + ')' : '') +
+      '</div>';
+    if (avg) {
+      html +=
+        '<div class="avg-grid avg-grid--spread">' +
+        '<div><span>RMS ΔN</span><b>' +
+        fmt(avg.rmsDn) +
+        '</b></div>' +
+        '<div><span>σ ΔN</span><b>' +
+        fmt(avg.sdDn) +
+        '</b></div>' +
+        '<div><span>RMS ΔE</span><b>' +
+        fmt(avg.rmsDe) +
+        '</b></div>' +
+        '<div><span>σ ΔE</span><b>' +
+        fmt(avg.sdDe) +
+        '</b></div>' +
+        '<div><span>RMS ΔZ</span><b>' +
+        fmt(avg.rmsDz) +
+        '</b></div>' +
+        '<div><span>σ ΔZ</span><b>' +
+        fmt(avg.sdDz) +
+        '</b></div>' +
+        '</div>';
+    }
+    if (avg && avg.medianDz != null) {
+      html +=
+        '<p class="spread-pass">Median ΔZ ' + escapeHtml(fmt(avg.medianDz)) + ' ft</p>';
+    }
+    if (passEv && passEv.count) {
+      html +=
+        '<p class="spread-pass">' +
+        '<strong>Pass vs site tol</strong> — 3D ' +
+        pctFmt(passEv.pct3d) +
+        ' (' +
+        passEv.pass3d +
+        '/' +
+        passEv.count +
+        ')' +
+        ' · |ΔN| ' +
+        pctFmt(passEv.pctN) +
+        ' · |ΔE| ' +
+        pctFmt(passEv.pctE) +
+        ' · |ΔZ| ' +
+        pctFmt(passEv.pctZ) +
+        '</p>';
+      var biases = [passEv.biasN, passEv.biasE, passEv.biasZ]
+        .filter(function (b) {
+          return b && b !== '—';
+        })
+        .join(' · ');
+      if (biases) html += '<p class="spread-pass muted-inline">' + escapeHtml(biases) + '</p>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function buildTolAndSpreadPage(report, meta) {
+    meta = meta || {};
+    var tol = meta.tolerances || {};
+    var tolN = tol.n != null && Number.isFinite(tol.n) ? Math.abs(tol.n) : 0.08;
+    var tolE = tol.e != null && Number.isFinite(tol.e) ? Math.abs(tol.e) : 0.08;
+    var tolZ = tol.z != null && Number.isFinite(tol.z) ? Math.abs(tol.z) : 0.08;
+    var tolObj = { n: tolN, e: tolE, z: tolZ };
+
+    var html =
+      '<h2>Site position tolerances, pass rate &amp; spread</h2>' +
+      '<table class="mini tol-table">' +
+      row('|ΔN| north/south tol (ft)', fmt(tolN)) +
+      row('|ΔE| east/west tol (ft)', fmt(tolE)) +
+      row('|ΔZ| high/low tol (ft)', fmt(tolZ)) +
+      '</table>' +
+      '<p class="muted">Pass = within each axis limit above. RMS includes bias · σ is scatter about the mean (ft).</p>' +
+      '<div class="avg-row">';
+
+    function addSeries(label, has, avg, deltaKey, colorClass) {
+      if (!has || !avg) return;
+      var list = deltasFromRows(report.rows, deltaKey);
+      var passEv =
+        typeof PileQC !== 'undefined' && PileQC.evaluateTolerance
+          ? PileQC.evaluateTolerance(list, tolObj)
+          : null;
+      html += spreadPassBlock(label, avg, passEv, colorClass);
+    }
+
+    addSeries('GNSS vs design', report.hasGnss, report.avg.gnssVsDesign, 'gd', 'avg-gnss');
+    addSeries('UTS vs design', report.hasUts, report.avg.utsVsDesign, 'ud', 'avg-uts');
+    addSeries('Machine vs design', report.hasMachine, report.avg.machineVsDesign, 'kd', 'avg-mach');
+    html += '</div>';
+    return html;
+  }
+
+  function buildDriveCompareBlock(cmp) {
+    if (!cmp || !cmp.rows || !cmp.rows.length) {
+      return (
+        '<h2>GW cut/fill vs machine remaining</h2>' +
+        '<p class="muted">No drive-log compare in this export (load a drive log in the app to include it).</p>'
+      );
+    }
+    var src = (cmp.asBuiltSource || '').toUpperCase();
+    var html =
+      '<h2>GW cut/fill vs machine remaining</h2>' +
+      '<p class="muted">As-built truth: ' +
+      escapeHtml(src || '—') +
+      ' · machine units: ' +
+      escapeHtml(cmp.machineUnit || '—') +
+      '. Positive remaining / ΔZ = still high.</p>' +
+      '<p class="match">' +
+      'Pairs with truth: <strong>' +
+      (cmp.withTruth != null ? cmp.withTruth : '—') +
+      '</strong> of ' +
+      cmp.count +
+      ' log rows · closer count GW/machine: ' +
+      (cmp.gwCloser != null ? cmp.gwCloser : '—') +
+      ' / ' +
+      (cmp.machineCloser != null ? cmp.machineCloser : '—') +
+      (cmp.ties ? ' · ties ' + cmp.ties : '') +
+      ' · mean |err| GW ' +
+      escapeHtml(fmt(cmp.meanAbsErrGw)) +
+      ' ft · machine ' +
+      escapeHtml(fmt(cmp.meanAbsErrMachine)) +
+      ' ft</p>';
+    if (cmp.verdict) {
+      html += '<p class="muted">' + escapeHtml(cmp.verdict) + '</p>';
+    }
+    var maxRows = Math.min(cmp.rows.length, 400);
+    html +=
+      '<table class="data"><thead><tr>' +
+      '<th>ID</th><th>GW rem (ft)</th><th>MCH raw</th><th>MCH (ft)</th>' +
+      '<th>As-built ΔZ</th><th>|err| GW</th><th>|err| MCH</th><th>Closer</th><th>Notes</th>' +
+      '</tr></thead><tbody>';
+    for (var i = 0; i < maxRows; i++) {
+      var r = cmp.rows[i];
+      var closer =
+        r.closer === 'gw' ? 'GW' : r.closer === 'machine' ? 'Machine' : r.closer === 'tie' ? 'Tie' : '—';
+      html +=
+        '<tr><td>' +
+        escapeHtml(r.id) +
+        '</td><td>' +
+        fmt(r.gwRemainingFt) +
+        '</td><td>' +
+        fmt(r.machineDisplayedRaw) +
+        '</td><td>' +
+        fmt(r.machineDisplayedFt) +
+        '</td><td>' +
+        fmt(r.truthDz) +
+        '</td><td>' +
+        fmt(r.errGw) +
+        '</td><td>' +
+        fmt(r.errMachine) +
+        '</td><td>' +
+        escapeHtml(closer) +
+        '</td><td>' +
+        escapeHtml(r.notes || '') +
+        '</td></tr>';
+    }
+    html += '</tbody></table>';
+    if (cmp.rows.length > maxRows) {
+      html +=
+        '<p class="muted">Drive table truncated to first ' +
+        maxRows +
+        ' of ' +
+        cmp.rows.length +
+        ' rows.</p>';
+    }
+    return html;
   }
 
   function buildPtpBlock(ptp, images) {
@@ -206,7 +402,13 @@ var PilePdf = (function () {
       report.counts.design +
       ' design piles (via ' +
       escapeHtml(join) +
-      '). Series n — GNSS∩des ' +
+      '). Full set ' +
+      (report.counts.fullSet != null ? report.counts.fullSet : '—') +
+      ' · excluded ' +
+      (report.counts.excluded || 0) +
+      ' · candidates ' +
+      (report.counts.candidates != null ? report.counts.candidates : '—') +
+      '. Series n — GNSS∩des ' +
       (report.counts.gnssVsDesign || 0) +
       ' · UTS∩des ' +
       (report.counts.utsVsDesign || 0) +
@@ -373,8 +575,12 @@ var PilePdf = (function () {
       '.avg-title{font-size:11px;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}' +
       '.avg-gnss .avg-title,.avg-gnss-mach .avg-title{color:#005f9e;}.avg-uts .avg-title,.avg-uts-mach .avg-title{color:#e36c0a;}.avg-mach .avg-title{color:#006638;}' +
       '.avg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}' +
+      '.avg-grid--spread{grid-template-columns:repeat(3,1fr);}' +
       '.avg-grid span{display:block;font-size:10px;color:#6a6e79;}.avg-grid b{font-size:14px;}' +
       '.favor-cell{grid-column:1/-1;}' +
+      '.spread-pass{margin:8px 0 0;font-size:10px;color:#252a2e;}' +
+      '.spread-pass.muted-inline{color:#6a6e79;}' +
+      '.tol-table{max-width:420px;margin:0 0 10px;}' +
       '.viz img{max-width:62%;max-height:5.8in;border:1px solid #e0e1e9;}' +
       '.z-page img,.pile-plot img{width:100%;max-height:6.2in;object-fit:contain;border:1px solid #e0e1e9;background:#fff;}' +
       '.pile-layout{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;align-items:start;}' +
@@ -413,6 +619,15 @@ var PilePdf = (function () {
       row('UTS stakeout files', (meta.utsFiles || []).join('; ')) +
       row('Machine files', (meta.machineFiles || []).join('; ')) +
       row('Sources used', (report.sourcesUsed || []).join(', ')) +
+      row(
+        'Site |ΔN|/|ΔE|/|ΔZ| tol (ft)',
+        (meta.tolerances
+          ? fmt(meta.tolerances.n) + ' / ' + fmt(meta.tolerances.e) + ' / ' + fmt(meta.tolerances.z)
+          : '0.080 / 0.080 / 0.080')
+      ) +
+      (report.excludedIds && report.excludedIds.length
+        ? row('Excluded pile IDs', report.excludedIds.join(', '))
+        : '') +
       '</table></div>' +
       '<div><h2>Summary — design is the benchmark</h2>' +
       '<p class="muted">Deltas are source − design (ft) unless noted. GNSS vs machine / UTS vs machine are rover − machine.</p>' +
@@ -423,16 +638,29 @@ var PilePdf = (function () {
           '" alt="Bullseye" /></div>'
         : '') +
       '</div></div>' +
-      '<div class="footer">Positive ΔN = north of design · Positive ΔE = east of design · Positive ΔZ = above design. With design: IDs = design ∩ (GNSS ∪ UTS ∪ machine). Landscape report: PTP, Z charts, and per-pile pages follow.</div>' +
+      '<div class="footer">Positive ΔN = north of design · Positive ΔE = east of design · Positive ΔZ = above design. With design: IDs = design ∩ (GNSS ∪ UTS ∪ machine). Following pages: tolerances / RMS·σ / pass rates, GW vs machine, PTP, table, Z charts, per-pile.</div>' +
       '</div>';
 
-    // Page 2 — pile-to-pile Z
+    // Page 2 — tolerances, pass rates, RMS / σ (matches UI pass & spread panels)
+    html +=
+      '<div class="page">' +
+      buildTolAndSpreadPage(report, meta) +
+      '<div class="footer">Compare RMS and σ to the site tolerances above. Pass % uses the same |ΔN|, |ΔE|, |ΔZ| limits as the app.</div>' +
+      '</div>';
+
+    // GW vs machine drive compare (only when a drive log was scored)
+    var driveCmp = images.driveCompare || meta.driveCompare || null;
+    if (driveCmp && driveCmp.rows && driveCmp.rows.length) {
+      html += '<div class="page">' + buildDriveCompareBlock(driveCmp) + '</div>';
+    }
+
+    // Pile-to-pile Z
     html +=
       '<div class="page">' +
       buildPtpBlock(images.ptp || null, images) +
       '</div>';
 
-    // Page 3 — table
+    // Per-pile QC table
     html +=
       '<div class="page">' +
       '<h2>Per-pile QC table</h2>' +

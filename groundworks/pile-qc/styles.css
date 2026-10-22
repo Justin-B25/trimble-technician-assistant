@@ -336,9 +336,8 @@
   margin-bottom: 8px;
 }
 
-.pile-qc .dash-detail-panels.is-collapsed,
-.pile-qc .dash-detail-panels[hidden] {
-  display: none;
+.pile-qc #pass-spread-heading {
+  margin-top: 4px;
 }
 
 .pile-qc .dash-tile__metrics--spread {

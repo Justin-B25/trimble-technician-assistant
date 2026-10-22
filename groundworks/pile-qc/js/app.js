@@ -1550,6 +1550,7 @@
       machineFiles: state.machineFiles.map(function (f) {
         return f.name;
       }),
+      tolerances: readSiteTolerances(),
     };
   }
 
@@ -1779,25 +1780,6 @@
     renderExcludeUi();
     renderDriveScreenCompare();
 
-    var btnDashDetail = $('btn-dash-detail');
-    var dashDetailPanels = $('dash-detail-panels');
-    if (btnDashDetail && dashDetailPanels) {
-      btnDashDetail.addEventListener('click', function () {
-        var open = dashDetailPanels.hasAttribute('hidden');
-        if (open) {
-          dashDetailPanels.removeAttribute('hidden');
-          dashDetailPanels.classList.remove('is-collapsed');
-          btnDashDetail.setAttribute('aria-expanded', 'true');
-          btnDashDetail.textContent = 'Hide pass rate & spread';
-        } else {
-          dashDetailPanels.setAttribute('hidden', '');
-          dashDetailPanels.classList.add('is-collapsed');
-          btnDashDetail.setAttribute('aria-expanded', 'false');
-          btnDashDetail.textContent = 'Show pass rate & spread';
-        }
-      });
-    }
-
     $('btn-pdf').addEventListener('click', function () {
       if (!state.report) return;
       try {
@@ -1812,6 +1794,7 @@
           pileMeta: pilePack,
           ptp: state.pileToPile,
           ptpPlan: PileCharts.toDataUrl($('canvas-ptp-plan')),
+          driveCompare: state.driveCompare,
         });
         var alertEl = $('alert');
         if (alertEl) alertEl.classList.add('hidden');

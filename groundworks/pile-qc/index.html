@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../../assets/app-access.css" />
   <link rel="stylesheet" href="../../assets/beta-access.css?v=1" />
   <link rel="stylesheet" href="../../assets/feedback.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=22" />
+  <link rel="stylesheet" href="styles.css?v=23" />
 </head>
 <body data-gw-page="pile-qc" data-beta-tool="gw-pile-qc" class="pile-qc beta-access-locked">
   <header class="tc-app-header">
@@ -287,20 +287,8 @@
           </p>
         </div>
 
-        <div class="dash-detail-toggle" id="dash-detail-toggle-wrap">
-          <button
-            type="button"
-            class="btn btn-secondary btn-sm"
-            id="btn-dash-detail"
-            aria-expanded="false"
-            aria-controls="dash-detail-panels"
-          >
-            Show pass rate &amp; spread
-          </button>
-          <span class="muted dash-detail-toggle__hint">Optional detail — means and PTP stay above</span>
-        </div>
-
-        <div class="dash-detail-panels is-collapsed" id="dash-detail-panels" hidden>
+        <h3 class="delta-group-title" id="pass-spread-heading">Pass rate &amp; spread (RMS / σ)</h3>
+        <div class="dash-detail-panels" id="dash-detail-panels">
         <div class="dash-grid" id="dash-pass-rate">
           <article class="dash-tile dash-tile--pass dash-tile--gnss" id="pass-gnss-block">
             <header class="dash-tile__head">
@@ -641,7 +629,7 @@
   <script src="js/parsers.js?v=5"></script>
   <script src="js/qc.js?v=14"></script>
   <script src="js/charts.js?v=7"></script>
-  <script src="js/pdf.js?v=7"></script>
-  <script src="js/app.js?v=26"></script>
+  <script src="js/pdf.js?v=9"></script>
+  <script src="js/app.js?v=28"></script>
 </body>
 </html>
